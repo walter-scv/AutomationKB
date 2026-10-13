@@ -4,7 +4,7 @@
 > una función que Playwright inyecta en cada test vía `test.extend()` (por
 > ejemplo, una página ya autenticada). Es un caso específico de la idea más
 > general de "Data / Fixture" como capa que ya viste en
-> [Las piezas de una suite](./04-piezas-de-una-suite.md): ahí, una fixture es
+> [Estructura y capas](./02-estructura-y-capas.md): ahí, una fixture es
 > cualquier dato preparado antes de que el test arranque; acá es,
 > puntualmente, el mecanismo de Playwright para inyectar ese dato.
 
@@ -108,7 +108,7 @@ test('a seeded position shows the right unit count @p1 @portfolio', async ({ pag
 
 (El detalle de por qué `seedPosition` revierte exactamente lo que compró,
 y cuándo esa fixture no alcanza, se desarrolla en
-[Setup & Cleanup](./12-setup-and-cleanup.md).) El valor de BaseTest es
+[Setup & Cleanup](./11-setup-and-cleanup.md).) El valor de BaseTest es
 justamente este: **todos los tests ya importan desde acá**
 (`from '../base-test'`, nunca de `@playwright/test` directo), así que
 cualquier fixture nueva que aparezca —como `seedPosition`— queda disponible
@@ -134,9 +134,9 @@ Con esta configuración sola, cualquier test que falla deja una screenshot,
 un video y un trace — y `allure-playwright` (el reporter configurado en el
 mismo archivo) los toma de ahí y los adjunta al reporte solo, sin que
 ningún test ni ninguna fixture tenga que pedirlo explícitamente (se
-profundiza en [Reportes con Allure](./16-reportes-allure.md)). Escribir una
+profundiza en [Reportes con Allure](./15-reportes-allure.md)). Escribir una
 fixture que envuelva manualmente cada `expect` para capturar algo que el
 framework ya captura solo es código extra para mantener, sin beneficio
 real.
 
-**Siguiente:** [Parametrización de datos](./11-parametrizacion-de-datos.md)
+**Siguiente:** [Parametrización de datos](./10-parametrizacion-de-datos.md)

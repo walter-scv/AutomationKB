@@ -20,12 +20,12 @@ Tres piezas, ya vistas en entradas anteriores, se combinan para esto:
    sí.
 
 2. **Los pasos numerados** (`test.step('1- ...')`, vistos en
-   [Anatomía de un test](./05-anatomia-de-un-test.md)) son lo que convierte
+   [Anatomía de un test](./06-anatomia-de-un-test.md)) son lo que convierte
    un test de una sola línea de resultado en un reporte navegable paso a
    paso.
 
 3. **`screenshot`, `video` y `trace` en `playwright.config.ts`** (visto en
-   [BaseTest](./10-basetest.md)), configurados como `'only-on-failure'` /
+   [BaseTest](./09-basetest.md)), configurados como `'only-on-failure'` /
    `'retain-on-failure'` / `'on-first-retry'` — Playwright los captura solo
    cuando el test falla, y `allure-playwright` los adjunta al reporte sin
    que ningún test tenga que pedirlo. Así el reporte no solo dice "falló en
@@ -59,7 +59,7 @@ Es un composite action bastante más elaborado que "generar y listo":
   link de reporte perdido en el historial de Actions.
 
 Esto se dispara desde los dos workflows reales
-([CI/CD](./19-ci-cd.md)) después de correr los tests, con `if: always()` —
+([CI/CD](./18-ci-cd.md)) después de correr los tests, con `if: always()` —
 el reporte se publica tanto si la suite pasó como si falló.
 
-**Siguiente:** [Debugging: trace viewer y modo UI](./17-debugging.md)
+**Siguiente:** [Debugging: trace viewer y modo UI](./16-debugging.md)

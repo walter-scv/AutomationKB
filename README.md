@@ -34,33 +34,33 @@ project/                ← el framework de automation real que ilustra cada
 
 ### Introducción al automation y patrones de diseño
 
-Cada entrada es autocontenida — no hace falta haber leído las anteriores
-para entenderla. El orden sugerido sigue el momento en que cada cosa se
-vuelve necesaria si estuvieras armando este proyecto desde cero:
+Pensadas para leerse en orden — cada entrada cierra con un link a la
+siguiente, y varias dan por sabido lo que ya se explicó antes. El orden
+sigue el momento en que cada cosa se vuelve necesaria si estuvieras
+armando este proyecto desde cero:
 
 | # | Entrada |
 |---|---|
 | 1 | [¿Qué es automatizar, y por qué nos importa?](./docs/best-practices/01-que-es-automatizar.md) |
-| 2 | [Estructura de carpetas de un proyecto de automation](./docs/best-practices/02-estructura-de-carpetas.md) |
+| 2 | [Estructura de un proyecto de automation: carpetas y capas](./docs/best-practices/02-estructura-y-capas.md) |
 | 3 | [Configuración base del proyecto](./docs/best-practices/03-configuracion-base.md) |
-| 4 | [Las piezas de una suite de tests](./docs/best-practices/04-piezas-de-una-suite.md) |
-| 5 | [Anatomía de un test](./docs/best-practices/05-anatomia-de-un-test.md) |
-| 6 | [Page Object Model](./docs/best-practices/06-page-object-model.md) |
-| 7 | [BasePage — lo que comparten las Page Objects](./docs/best-practices/07-basepage.md) |
-| 8 | [Centralizando los selectores](./docs/best-practices/08-centralizando-selectores.md) |
-| 9 | [Data-attributes: el contrato con frontend para selectores estables](./docs/best-practices/09-data-attributes-con-frontend.md) |
-| 10 | [BaseTest — lo que comparten los tests](./docs/best-practices/10-basetest.md) |
-| 11 | [Parametrización de datos de test y configuración](./docs/best-practices/11-parametrizacion-de-datos.md) |
-| 12 | [Setup & Cleanup — dónde nace y muere la data (incluye Factory/Builders)](./docs/best-practices/12-setup-and-cleanup.md) |
-| 13 | [Otras formas de escribir tests](./docs/best-practices/13-otras-formas-de-escribir-tests.md) |
-| 14 | [Screenplay](./docs/best-practices/14-screenplay.md) |
-| 15 | [Sesión reutilizada / autenticación](./docs/best-practices/15-sesion-reutilizada.md) |
-| 16 | [Reportes con Allure](./docs/best-practices/16-reportes-allure.md) |
-| 17 | [Debugging: trace viewer y modo UI](./docs/best-practices/17-debugging.md) |
-| 18 | [Tags y cómo correr subsets](./docs/best-practices/18-tags-y-subsets.md) |
-| 19 | [CI/CD: un pipeline que se mantiene verde](./docs/best-practices/19-ci-cd.md) |
-| 20 | [Triage de tests inestables](./docs/best-practices/20-triage-de-flaky-tests.md) |
-| 21 | [Errores que se pagan caro](./docs/best-practices/21-errores-que-se-pagan-caro.md) |
+| 4 | [Page Object Model](./docs/best-practices/04-page-object-model.md) |
+| 5 | [BasePage — lo que comparten las Page Objects](./docs/best-practices/05-basepage.md) |
+| 6 | [Anatomía de un test](./docs/best-practices/06-anatomia-de-un-test.md) |
+| 7 | [Centralizando los selectores](./docs/best-practices/07-centralizando-selectores.md) |
+| 8 | [Data-attributes: el contrato con frontend para selectores estables](./docs/best-practices/08-data-attributes-con-frontend.md) |
+| 9 | [BaseTest — lo que comparten los tests](./docs/best-practices/09-basetest.md) |
+| 10 | [Parametrización de datos de test y configuración](./docs/best-practices/10-parametrizacion-de-datos.md) |
+| 11 | [Setup & Cleanup — dónde nace y muere la data (incluye Factory/Builders)](./docs/best-practices/11-setup-and-cleanup.md) |
+| 12 | [Otras formas de escribir tests](./docs/best-practices/12-otras-formas-de-escribir-tests.md) |
+| 13 | [Screenplay](./docs/best-practices/13-screenplay.md) |
+| 14 | [Sesión reutilizada / autenticación](./docs/best-practices/14-sesion-reutilizada.md) |
+| 15 | [Reportes con Allure](./docs/best-practices/15-reportes-allure.md) |
+| 16 | [Debugging: trace viewer y modo UI](./docs/best-practices/16-debugging.md) |
+| 17 | [Tags y cómo correr subsets](./docs/best-practices/17-tags-y-subsets.md) |
+| 18 | [CI/CD: un pipeline que se mantiene verde](./docs/best-practices/18-ci-cd.md) |
+| 19 | [Triage de tests inestables](./docs/best-practices/19-triage-de-flaky-tests.md) |
+| 20 | [Errores que se pagan caro](./docs/best-practices/20-errores-que-se-pagan-caro.md) |
 
 ### Próximas entradas
 

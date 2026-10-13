@@ -47,7 +47,7 @@ donde Playwright vuelca sus archivos de salida — no en `allure-results/`,
 que solo tiene la data que lee el reporte de Allure. Los dos workflows
 reales ([`e2e-tests.yml`](../../project/.github/workflows/e2e-tests.yml) y
 [`daily-regression.yml`](../../project/.github/workflows/daily-regression.yml),
-desarrollados en [CI/CD](./19-ci-cd.md)) suben esa carpeta como artifact
+desarrollados en [CI/CD](./18-ci-cd.md)) suben esa carpeta como artifact
 (`traces-<run>` / `daily-traces-<run>`) además de `allure-results/`:
 
 ```yaml
@@ -72,6 +72,6 @@ que falló en CI una sola vez y no se puede reproducir corriendo de nuevo.
 | Estás escribiendo un test nuevo | Modo UI |
 | Sabés dónde está el problema, querés ver variable por variable | Modo debug |
 | Un test falló en CI y no podés reproducirlo corriendo de nuevo | Trace viewer, descargando el `trace.zip` del artifact `traces-<run>` |
-| Un test falla y no sabés ni por dónde arrancar | Abrí primero el reporte de Allure ([entrada anterior](./16-reportes-allure.md)) — la screenshot que Playwright adjunta sola en el fallo suele contestar la pregunta sin necesitar nada más |
+| Un test falla y no sabés ni por dónde arrancar | Abrí primero el reporte de Allure ([entrada anterior](./15-reportes-allure.md)) — la screenshot que Playwright adjunta sola en el fallo suele contestar la pregunta sin necesitar nada más |
 
-**Siguiente:** [Tags y cómo correr subsets](./18-tags-y-subsets.md)
+**Siguiente:** [Tags y cómo correr subsets](./17-tags-y-subsets.md)

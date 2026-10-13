@@ -2,21 +2,21 @@
 
 ## El problema que resuelve
 
-Imaginá dos tests que compran un activo en la app de inversiones. Sin
-ningún patrón, cada uno busca los elementos directamente en la pantalla:
+Imaginá dos tests que compran un producto en un checkout. Sin ningún
+patrón, cada uno busca los elementos directamente en la pantalla:
 
 ```typescript
 // test A
 await page.getByRole('spinbutton').first().fill('1');
-await page.getByRole('button', { name: 'Realizar compra' }).click();
+await page.getByRole('button', { name: 'Confirmar compra' }).click();
 
 // test B, en otro archivo, repite exactamente lo mismo
 await page.getByRole('spinbutton').first().fill('5');
-await page.getByRole('button', { name: 'Realizar compra' }).click();
+await page.getByRole('button', { name: 'Confirmar compra' }).click();
 ```
 
-El día que el texto del botón cambie de "Realizar compra" a "Confirmar
-compra", hay que salir a buscar esa línea en cada test que la repite.
+El día que el texto del botón cambie de "Confirmar compra" a "Finalizar
+pedido", hay que salir a buscar esa línea en cada test que la repite.
 Multiplicá eso por cien tests y un botón que cambia cada dos semanas, y
 tenés la razón de ser de este patrón.
 
@@ -29,34 +29,34 @@ que haga cosas — nunca tocan el DOM directamente:
 ```typescript
 // Sin Page Object: el test sabe CÓMO está armada la pantalla
 await page.getByRole('spinbutton').first().fill('1');
-await page.getByRole('button', { name: 'Realizar compra' }).click();
+await page.getByRole('button', { name: 'Confirmar compra' }).click();
 
 // Con Page Object: el test solo dice QUÉ quiere lograr
-await portfolioPage.fillComprar(1);
-await portfolioPage.clickRealizarCompra();
+await checkoutPage.fillQuantity(1);
+await checkoutPage.clickConfirmarCompra();
 ```
 
 Y así de simple es la clase, en su forma mínima:
 
 ```typescript
-class PortfolioPage {
-  readonly comprarSpinbutton = this.page.getByRole('spinbutton').first();
-  readonly realizarCompraButton = this.page.getByRole('button', { name: 'Realizar compra' });
+class CheckoutPage {
+  readonly quantitySpinbutton = this.page.getByRole('spinbutton').first();
+  readonly confirmarCompraButton = this.page.getByRole('button', { name: 'Confirmar compra' });
 
   constructor(private page: Page) {}
 
-  async fillComprar(quantity: number) {
-    await this.comprarSpinbutton.fill(String(quantity));
+  async fillQuantity(quantity: number) {
+    await this.quantitySpinbutton.fill(String(quantity));
   }
 
-  async clickRealizarCompra() {
-    await this.realizarCompraButton.click();
+  async clickConfirmarCompra() {
+    await this.confirmarCompraButton.click();
   }
 }
 ```
 
 Ahora, si el texto del botón cambia, se arregla **en un solo lugar** — acá —
-y los cien tests que llaman a `clickRealizarCompra()` quedan arreglados sin
+y los cien tests que llaman a `clickConfirmarCompra()` quedan arreglados sin
 tocarlos. Eso es todo el patrón: el conocimiento de "cómo es esta pantalla"
 vive en un único lugar, no repetido en cada test que la usa.
 
@@ -92,7 +92,7 @@ export class PortfolioPage extends BasePage {
 A esta escala (18 locators, varios sin `data-testid` disponible) aparecen
 preguntas propias de cómo organizarlas y cuándo hace falta desambiguar con
 `.first()`/`.nth()` — eso se profundiza en
-[Centralizando los selectores](./08-centralizando-selectores.md). Acá
+[Centralizando los selectores](./07-centralizando-selectores.md). Acá
 alcanza con el punto central: viven arriba, como propiedades, nunca
 declaradas sueltas dentro de un método de abajo.
 
@@ -128,7 +128,7 @@ forma de interactuar con ella. Ningún método expone el spinbutton, el
 botón, ni el texto crudo del DOM: el test nunca ve nada de eso, solo el
 nombre de lo que logra.
 (`this.click(...)` y `this.waitForTransactionComplete()` son helpers
-propios de la clase — se explican en la [próxima entrada](./07-basepage.md).)
+propios de la clase — se explican en la [próxima entrada](./05-basepage.md).)
 
 ### 3. Esos métodos reciben lo que les falta como parámetro, no lo adivinan
 
@@ -145,7 +145,7 @@ no es un valor para comparar sino **qué elemento buscar en el DOM** — por
 ejemplo, un botón que puede ser cualquiera según un nombre que recién llega
 del test. Ese caso puntual, y por qué ahí el método construye el `Locator`
 en vez de ejecutar una acción, se desarrolla en
-[Centralizando los selectores](./08-centralizando-selectores.md).
+[Centralizando los selectores](./07-centralizando-selectores.md).
 
 ## Tres reglas para no arruinarlo
 
@@ -202,12 +202,12 @@ de que un test ya se rompió, tiene un impacto directo y medible:
   texto se rompió en producción, cuesta un test roto en CI, una
   investigación, y recién después el mismo cambio de una línea.
 - Tener los selectores agrupados y bien nombrados dentro de la Page Object
-  (se profundiza en [Centralizando los selectores](./08-centralizando-selectores.md))
+  (se profundiza en [Centralizando los selectores](./07-centralizando-selectores.md))
   ya ayuda a esa conversación: en vez de "el selector tal se rompió", se
   puede señalar con precisión qué elemento necesita el atributo.
 - Qué pedirle exactamente a frontend —no un `data-testid` suelto, sino un
   atributo por tipo de elemento— es una convención concreta, desarrollada
-  en [Data-attributes: el contrato con frontend](./09-data-attributes-con-frontend.md).
+  en [Data-attributes: el contrato con frontend](./08-data-attributes-con-frontend.md).
 
 > Una excepción real en esta misma clase: `portfolioAssetButton(name)` usa
 > `page.locator('.my-investments__items__name', ...)` — un selector CSS, el
@@ -219,4 +219,4 @@ de que un test ya se rompió, tiene un impacto directo y medible:
 > la regla pide es no usarlo *por comodidad* cuando sí había una opción
 > mejor arriba en la tabla, no prohibirlo sin excepción.
 
-**Siguiente:** [BasePage — lo que comparten todas las Page Objects](./07-basepage.md)
+**Siguiente:** [BasePage — lo que comparten todas las Page Objects](./05-basepage.md)

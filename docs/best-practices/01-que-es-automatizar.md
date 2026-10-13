@@ -58,4 +58,4 @@ proyecto real: `project/` en la raíz de este repo, la suite E2E de una app
 de inversiones ("Show me the money!"). No son fragmentos inventados — es
 una suite que corre de verdad, con sus bugs reales documentados incluidos.
 
-**Siguiente:** [Estructura de carpetas de un proyecto de automation](./02-estructura-de-carpetas.md)
+**Siguiente:** [Estructura de un proyecto: carpetas y capas](./02-estructura-y-capas.md)

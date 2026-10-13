@@ -65,8 +65,8 @@ fallidos si los hay, y links directos al reporte y a la corrida de GitHub
 Actions — para que enterarse de un fallo no signifique tener que entrar a
 buscarlo. La URL del webhook nunca aparece en el código: el workflow se la
 pasa como `${{ secrets.SLACK_WEBHOOK_URL }}` — ver
-[Parametrización de datos](./11-parametrizacion-de-datos.md) para cómo funciona
+[Parametrización de datos](./10-parametrizacion-de-datos.md) para cómo funciona
 ese mecanismo y por qué una composite action no puede leer `secrets.*`
 directamente.
 
-**Siguiente:** [Triage de tests inestables](./20-triage-de-flaky-tests.md)
+**Siguiente:** [Triage de tests inestables](./19-triage-de-flaky-tests.md)

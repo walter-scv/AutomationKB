@@ -83,4 +83,4 @@ test('advisor buys an asset on behalf of a client', async ({ page }) => {
 secuencia de clicks tendría que repetirse (o copiarse) en cada clase de
 página que necesite comprar un activo.
 
-**Siguiente:** [Sesión reutilizada / autenticación](./15-sesion-reutilizada.md)
+**Siguiente:** [Sesión reutilizada / autenticación](./14-sesion-reutilizada.md)

@@ -59,7 +59,7 @@ export default defineConfig({
 `BASE_URL` sale de `.env` — nunca commiteado, cargado por `dotenv` antes de
 esta config. De dónde sale cada variable así, y cómo se maneja lo mismo en
 CI (sin archivo `.env`, vía Secrets), se desarrolla en
-[Parametrización de datos](./11-parametrizacion-de-datos.md).
+[Parametrización de datos](./10-parametrizacion-de-datos.md).
 
 ## El reporter de Allure, en particular
 
@@ -70,6 +70,6 @@ CI (sin archivo `.env`, vía Secrets), se desarrolla en
 Está en la lista de reporters junto al HTML nativo de Playwright, no en
 reemplazo — cada uno sirve un propósito distinto (desarrollo local vs.
 publicación de resultados). Se desarrolla en la entrada de
-[Reportes con Allure](./16-reportes-allure.md).
+[Reportes con Allure](./15-reportes-allure.md).
 
-**Siguiente:** [Las piezas de una suite de tests](./04-piezas-de-una-suite.md)
+**Siguiente:** [Page Object Model](./04-page-object-model.md)

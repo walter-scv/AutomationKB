@@ -62,4 +62,4 @@ normalmente significa que nadie definió todavía qué tan crítico es — vale
 la pena no dejar tests sin clasificar por mucho tiempo, porque "todo es
 p0" termina siendo lo mismo que no tener tags.
 
-**Siguiente:** [CI/CD: un pipeline que se mantiene verde](./19-ci-cd.md)
+**Siguiente:** [CI/CD: un pipeline que se mantiene verde](./18-ci-cd.md)

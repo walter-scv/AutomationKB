@@ -1,2 +1,5 @@
 # Playwright MCP scratch output (browser exploration logs/snapshots, not project content)
 .playwright-mcp/
+
+# macOS
+.DS_Store

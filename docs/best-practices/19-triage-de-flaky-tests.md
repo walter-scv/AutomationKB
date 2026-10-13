@@ -22,7 +22,7 @@ investigarlo, no solo dejar que el retry lo esconda.
 ## El proceso, paso a paso
 
 1. **Contá cuántas veces reintentó, no solo si al final pasó.** El reporte
-   de Allure ([entrada anterior](./16-reportes-allure.md)) muestra los
+   de Allure ([Reportes con Allure](./15-reportes-allure.md)) muestra los
    intentos de cada test — un test que necesita 2 de 2 reintentos cada vez
    que corre no es lo mismo que uno que reintentó una vez en 50 corridas.
 2. **Mirá el trace del intento que falló**, no solo el que pasó. El intento
@@ -32,7 +32,7 @@ investigarlo, no solo dejar que el retry lo esconda.
    - **Timing real** — una espera que debería ser explícita (`waitFor`) y
      no lo es. Se arregla en la Page Object, no subiendo el timeout.
    - **Estado compartido** — el test depende de datos que otra corrida
-     modificó mientras tanto (ver [Setup & Cleanup](./12-setup-and-cleanup.md)
+     modificó mientras tanto (ver [Setup & Cleanup](./11-setup-and-cleanup.md)
      para el caso de esta app en particular).
    - **Infraestructura del entorno de CI** — recursos limitados, red
      lenta. Legítimamente fuera del control del test.
@@ -44,7 +44,7 @@ investigarlo, no solo dejar que el retry lo esconda.
 
 Subir un timeout o agregar un retry extra sin haber completado el paso 3 no
 es una solución — es la misma práctica que ya se señaló como la más cara de
-todas en [Anti-patrones](./21-errores-que-se-pagan-caro.md): tapar el
-síntoma en vez de mirar la causa.
+todas en [Errores que se pagan caro](./20-errores-que-se-pagan-caro.md):
+tapar el síntoma en vez de mirar la causa.
 
-**Siguiente:** [Errores que se pagan caro](./21-errores-que-se-pagan-caro.md)
+**Siguiente:** [Errores que se pagan caro](./20-errores-que-se-pagan-caro.md)

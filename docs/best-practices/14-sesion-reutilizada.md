@@ -93,11 +93,11 @@ export const test = base.extend<{
 
 Tampoco aplica el segundo caso —sembrar un escenario sembrado y
 reutilizarlo—: el test real S8
-([Setup & Cleanup](./12-setup-and-cleanup.md)) necesita exactamente eso,
+([Setup & Cleanup](./11-setup-and-cleanup.md)) necesita exactamente eso,
 una posición grande en un activo, y aun así no usa `storageState`: siembra
 vía una sola llamada a la API (`buyAsset(...)`), que tarda milisegundos.
 `storageState` paga su costo cuando sembrar es caro; acá sembrar ya es una
 llamada directa y barata, así que agregar `globalSetup` y un archivo de
 sesión en disco sumaría una capa de infraestructura sin ahorrar nada real.
 
-**Siguiente:** [Reportes con Allure](./16-reportes-allure.md)
+**Siguiente:** [Reportes con Allure](./15-reportes-allure.md)

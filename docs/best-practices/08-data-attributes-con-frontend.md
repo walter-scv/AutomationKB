@@ -2,7 +2,7 @@
 
 ## El problema que ya vimos, visto de nuevo desde el otro lado
 
-En [Centralizando los selectores](./08-centralizando-selectores.md),
+En [Centralizando los selectores](./07-centralizando-selectores.md),
 `portfolioAssetButton(name)` termina apoyándose en una clase CSS
 (`.my-investments__items__name`) porque es la única forma disponible de
 acotar la búsqueda a la sección "Mi portfolio" y no a "Inversiones
@@ -126,4 +126,4 @@ inspeccionar el elemento en el navegador (o con una consulta al DOM) y
 comprobar que el atributo está en la etiqueta que se espera —un `BUTTON`,
 no un `DIV`— antes de escribir el selector que depende de él.
 
-**Siguiente:** [BaseTest — lo que comparten todos los tests](./10-basetest.md)
+**Siguiente:** [BaseTest — lo que comparten todos los tests](./09-basetest.md)

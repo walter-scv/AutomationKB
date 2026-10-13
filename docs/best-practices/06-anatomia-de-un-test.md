@@ -2,22 +2,22 @@
 
 ## Lo mínimo que tiene que tener un test
 
-Antes de entrar en Page Object Model, vale la pena mirar la estructura de
-un test en sí. En su forma más simple, un test tiene tres partes — conocidas
-como **AAA**:
+Ya vimos qué es una Page Object y de dónde hereda — ahora toca mirar la
+estructura del test en sí, el que termina usándola. En su forma más
+simple, un test tiene tres partes — conocidas como **AAA**:
 
 ```typescript
-test('clicking Realizar compra increases units owned', async ({ page }) => {
+test('clicking Buy increases units owned', async ({ page }) => {
   // ARRANGE — preparar lo necesario
-  const portfolioPage = new PortfolioPage(page);
-  await portfolioPage.navigate();
+  const dashboardPage = new DashboardPage(page);
+  await dashboardPage.navigate();
 
   // ACT — hacer la acción que se quiere probar
-  await portfolioPage.fillComprar(1);
-  await portfolioPage.clickRealizarCompra();
+  await dashboardPage.fillQuantity(1);
+  await dashboardPage.clickBuy();
 
   // ASSERT — verificar el resultado
-  expect(await portfolioPage.getUnitsOwned()).toBe(1);
+  expect(await dashboardPage.getUnitsOwned()).toBe(1);
 });
 ```
 
@@ -30,7 +30,7 @@ debería ser dos tests, no uno.
 
 El ejemplo de arriba alcanza para entender AAA, pero le faltan cosas que
 una suite real necesita: identificar cuán crítico es el test, y dejar un
-rastro de qué pasó paso a paso cuando algo falla. Así se ve ese mismo test
+rastro de qué pasó paso a paso cuando algo falla. Así se ve este mismo caso
 en el proyecto real,
 [`project/tests/portfolio/portfolio.spec.ts`](../../project/tests/portfolio/portfolio.spec.ts) —
 con los comentarios `ARRANGE`/`ACT`/`ASSERT` explícitos, tal como exige la
@@ -80,7 +80,7 @@ test.describe('Portfolio @portfolio', () => {
 
 - **`describe` con un tag de feature** (`@portfolio`): agrupa todos los
   tests de esta pantalla bajo un filtro que se puede correr aparte — se
-  desarrolla en [Tags y cómo correr subsets](./18-tags-y-subsets.md).
+  desarrolla en [Tags y cómo correr subsets](./17-tags-y-subsets.md).
 
 - **El título es una oración completa + tags.** Dice exactamente qué
   verifica sin tener que abrir el archivo. `@smoke @p0` son los tags que
@@ -140,8 +140,8 @@ Si para escribir una aserción tenés que calcular algo primero —parsear un
 texto, sumar, convertir un formato— esa lógica no pertenece acá.
 `unitsBefore`, igual que el saldo esperado que usa el paso 4 completo, son
 valores que la Page Object ya entrega listos para comparar (ver
-[Page Object Model](./06-page-object-model.md)). El test compara; no
-calcula — y el caso real de [Las piezas de una suite](./04-piezas-de-una-suite.md)
+[Page Object Model](./04-page-object-model.md)). El test compara; no
+calcula — y el caso real de [Estructura y capas](./02-estructura-y-capas.md)
 muestra qué pasa cuando esa regla no se respetó.
 
-**Siguiente:** [Page Object Model](./06-page-object-model.md)
+**Siguiente:** [Centralizando los selectores](./07-centralizando-selectores.md)

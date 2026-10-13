@@ -21,10 +21,10 @@ convención instalada en la industria, vale la pena conocerlas de nombre:
   palabras clave ya definidas.
 - **Screenplay.** Modela actores con habilidades, en vez de pantallas con
   selectores. Se desarrolla en
-  [Screenplay](./14-screenplay.md).
+  [Screenplay](./13-screenplay.md).
 
 Ninguna de estas reemplaza a POM — convive con él. POM sigue resolviendo
 cómo se organiza el código; estas convenciones resuelven cómo se redacta
 el caso que ese código termina ejecutando.
 
-**Siguiente:** [Screenplay](./14-screenplay.md)
+**Siguiente:** [Screenplay](./13-screenplay.md)

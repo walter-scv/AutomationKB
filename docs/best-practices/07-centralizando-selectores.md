@@ -8,44 +8,43 @@ cada método declara sus propios locators al vuelo, en vez de tenerlos
 agrupados:
 
 ```typescript
-class PortfolioPage {
+class ProductPage {
   constructor(private page: Page) {}
 
-  async clickRealizarCompra() {
-    await this.page.getByRole('button', { name: 'Realizar compra' }).click();  // ← selector #1
+  async clickAddToCart() {
+    await this.page.getByRole('button', { name: 'Agregar al carrito' }).click();  // ← selector #1
   }
 
-  async isBuyButtonVisible() {
-    return this.page.getByRole('button', { name: 'Realizar compra' }).isVisible();  // ← selector #2, idéntico
+  async isAddToCartVisible() {
+    return this.page.getByRole('button', { name: 'Agregar al carrito' }).isVisible();  // ← selector #2, idéntico
   }
 
-  async getBuyButtonText() {
-    return this.page.getByRole('button', { name: 'Realizar compra' }).textContent();  // ← selector #3, idéntico
+  async getAddToCartText() {
+    return this.page.getByRole('button', { name: 'Agregar al carrito' }).textContent();  // ← selector #3, idéntico
   }
 }
 ```
 
-El mismo selector del botón de compra aparece **tres veces**, repetido a
-mano. Si alguien necesita saber "qué selectores usa esta pantalla", tiene
-que leer la clase entera, método por método, buscando cada `page.getBy...`
-suelto.
+El mismo selector del botón aparece **tres veces**, repetido a mano. Si
+alguien necesita saber "qué selectores usa esta pantalla", tiene que leer
+la clase entera, método por método, buscando cada `page.getBy...` suelto.
 
 ## La solución: declarar cada locator una sola vez, como propiedad
 
 ```typescript
-class PortfolioPage {
-  readonly realizarCompraButton: Locator;
+class ProductPage {
+  readonly addToCartButton: Locator;
 
   constructor(private page: Page) {
-    this.realizarCompraButton = page.getByRole('button', { name: 'Realizar compra' });
+    this.addToCartButton = page.getByRole('button', { name: 'Agregar al carrito' });
   }
 
-  async clickRealizarCompra() {
-    await this.realizarCompraButton.click();
+  async clickAddToCart() {
+    await this.addToCartButton.click();
   }
 
-  async isBuyButtonVisible() {
-    return this.realizarCompraButton.isVisible();
+  async isAddToCartVisible() {
+    return this.addToCartButton.isVisible();
   }
 }
 ```
@@ -129,7 +128,7 @@ forma semántica de distinguir esa sección. Acá se resolvió así porque la
 app no es modificable para este ejercicio; qué pedirle a frontend para que
 ninguna Page Object futura tenga que resolverlo así, y cómo quedaría este
 mismo método con ese atributo ya en su lugar, se desarrolla en
-[Data-attributes: el contrato con frontend](./09-data-attributes-con-frontend.md).
+[Data-attributes: el contrato con frontend](./08-data-attributes-con-frontend.md).
 
 ## A futuro: cuando el mismo selector cruza varias pantallas
 
@@ -141,4 +140,4 @@ entre pantallas empieza a tener sentido, en vez de duplicarlo en cada Page
 Object. Esa es una herramienta para cuando la suite tenga varias Page
 Objects en juego — no hace falta todavía con una sola pantalla.
 
-**Siguiente:** [Data-attributes: el contrato con frontend](./09-data-attributes-con-frontend.md)
+**Siguiente:** [Data-attributes: el contrato con frontend](./08-data-attributes-con-frontend.md)

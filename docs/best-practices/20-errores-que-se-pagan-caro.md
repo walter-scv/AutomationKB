@@ -12,13 +12,13 @@ entrada.
 - **Timeouts mágicos.** `sleep(3000)` no documenta nada y es el primer
   sospechoso ante un test flaky — uno que falla de forma inconsistente sin
   que el comportamiento real haya cambiado. Usar constantes nombradas
-  (`TIMEOUTS.standard`, vistas en [BasePage](./07-basepage.md)) que se
+  (`TIMEOUTS.standard`, vistas en [BasePage](./05-basepage.md)) que se
   ajustan en un solo lugar.
 
 - **Datos fijos en un entorno compartido.** Un nombre de usuario o registro
   hardcodeado eventualmente colisiona con otra corrida. Datos únicos por
   ejecución, siempre — o, cuando no se puede controlar el dato (ver
-  [Setup & Cleanup](./12-setup-and-cleanup.md)), medir el estado real en
+  [Setup & Cleanup](./11-setup-and-cleanup.md)), medir el estado real en
   vez de asumirlo.
 
 - **Un test que depende del anterior.** Si el test B solo pasa porque el
@@ -56,6 +56,6 @@ test('buying beyond available balance results in negative balance (known bug) @p
 // ESTE test va a fallar — y esa falla es la señal correcta de actualizarlo.
 ```
 
-**Siguiente:** no hay — esta es la última entrada de la introducción al
-automation. Las próximas (risk-based testing, etc.) son independientes y
-explican de nuevo lo que necesiten.
+**Siguiente:** no hay — esta es la última entrada de buenas prácticas. Las
+próximas secciones de la base (risk-based testing, recomendaciones de IA)
+todavía no están escritas.

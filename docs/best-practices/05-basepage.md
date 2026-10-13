@@ -2,63 +2,83 @@
 
 ## El problema: código repetido entre pantallas
 
-Imaginá que la app de inversiones tuviera dos pantallas en vez de una —
-`PortfolioPage` y, digamos, `SettingsPage`. Las dos necesitan navegar a su
-URL y esperar a que la página cargue:
+Imaginá que una app tuviera dos pantallas — `DashboardPage` y, digamos,
+`SettingsPage`. Las dos necesitan navegar a su URL y esperar a que la
+página cargue — y las dos repiten el mismo dominio, cambiando solo la
+ruta final:
 
 ```typescript
-class PortfolioPage {
+class DashboardPage {
   constructor(private page: Page) {}
   async navigate() {
-    await this.page.goto('https://sea-lion-app-7celq.ondigitalocean.app', { waitUntil: 'networkidle' });
+    await this.page.goto('https://app.example.com/dashboard', { waitUntil: 'networkidle' });
   }
 }
 
 class SettingsPage {
   constructor(private page: Page) {}
   async navigate() {                                           // ← idéntico al de arriba, copiado
-    await this.page.goto('https://sea-lion-app-7celq.ondigitalocean.app/settings', { waitUntil: 'networkidle' });
+    await this.page.goto('https://app.example.com/settings', { waitUntil: 'networkidle' });
   }
 }
 ```
 
-El método `navigate()` es idéntico salvo por la URL. Con dos pantallas no
-duele; con veinte, es el mismo código pegado veinte veces — y si mañana
-hay que cambiar la estrategia de espera (`networkidle` por otra cosa), hay
-que encontrar y cambiar las veinte copias.
+El método `navigate()` es idéntico salvo por la URL — y el dominio
+(`https://app.example.com`) tampoco cambia entre pantallas, solo la ruta
+(`/dashboard`, `/settings`). Con dos pantallas no duele; con veinte, tanto
+el método como el dominio están pegados veinte veces — y si mañana la app
+se muda a otro dominio, o cambia la estrategia de espera (`networkidle`
+por otra cosa), hay que encontrar y cambiar las veinte copias de las dos
+cosas.
 
 ## La solución: una clase base de la que todas heredan
 
 `BasePage` es una clase abstracta que contiene **todo lo que es igual para
-cualquier pantalla** — cada Page Object concreta hereda de ella y solo
-agrega lo que le es propio:
+cualquier pantalla** — incluido el dominio base, que ninguna pantalla
+concreta debería tener que repetir. Cada Page Object hereda de ella y solo
+agrega su propia ruta:
 
 ```typescript
 abstract class BasePage {
-  constructor(protected page: Page, private url: string) {}
+  protected url: string;
+
+  constructor(protected page: Page) {
+    this.url = 'https://app.example.com';   // ← el dominio vive acá, UNA sola vez
+  }
 
   async navigate() {
-    await this.page.goto(this.url, { waitUntil: 'networkidle' }); // ← vive acá UNA sola vez
+    await this.page.goto(this.url, { waitUntil: 'networkidle' });
   }
 }
 
-class PortfolioPage extends BasePage {
+class DashboardPage extends BasePage {
   constructor(page: Page) {
-    super(page, 'https://sea-lion-app-7celq.ondigitalocean.app');  // ← solo pasa SU url
+    super(page);
+    this.url = this.url + '/dashboard';   // ← solo agrega SU ruta a la base heredada
   }
-  // PortfolioPage ya no necesita escribir su propio navigate()
+  // DashboardPage ya no necesita escribir su propio navigate()
+}
+
+class SettingsPage extends BasePage {
+  constructor(page: Page) {
+    super(page);
+    this.url = this.url + '/settings';
+  }
 }
 ```
 
-Ahora `navigate()` existe en un solo lugar. Si la estrategia de espera
-cambia, cambia ahí, y las veinte Page Objects que heredan de `BasePage` la
-reciben automáticamente, sin tocarlas.
+Ahora `navigate()` existe en un solo lugar, y el dominio también: si
+mañana la app se muda a otro dominio, se cambia una vez en `BasePage`, y
+las veinte Page Objects que heredan de ella lo reciben automáticamente,
+sin tocar ni una.
 
 ## Así se ve en el proyecto real
 
 El real, [`project/pages/BasePage.ts`](../../project/pages/BasePage.ts),
-creció más allá de `navigate()` — agrega timeouts nombrados y helpers de
-interacción comunes:
+no necesita separar dominio y ruta como el ejemplo — esta app tiene una
+sola pantalla, así que `BasePage` recibe directamente la URL completa.
+Donde sí creció más allá de `navigate()` es en timeouts nombrados y
+helpers de interacción comunes:
 
 ```typescript
 export const TIMEOUTS = {
@@ -131,7 +151,7 @@ en la Page Object concreta.
 - `navigate()`, `click()`, `fill()`, `waitForVisible()` — genéricos de
   Playwright, ninguno sabe nada de "portfolio" ni de ninguna otra feature.
 - `TIMEOUTS` — una sola fuente de verdad para los tiempos de espera de toda
-  la suite (ver [Errores que se pagan caro](./21-errores-que-se-pagan-caro.md)
+  la suite (ver [Errores que se pagan caro](./20-errores-que-se-pagan-caro.md)
   sobre timeouts mágicos).
 - En cambio, algo como `clickRealizarCompra()` o `getUnitsOwned()` no tiene
   lugar acá — es específico de la pantalla de portfolio y vive en
@@ -159,4 +179,4 @@ comentario en el código documenta exactamente por qué se desvía del
 helper común. Esa es la decisión correcta — no forzar un helper genérico
 donde no encaja, y dejar por escrito el motivo.
 
-**Siguiente:** [Centralizando los selectores](./08-centralizando-selectores.md)
+**Siguiente:** [Anatomía de un test](./06-anatomia-de-un-test.md)

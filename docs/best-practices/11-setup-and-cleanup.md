@@ -60,29 +60,29 @@ armar el objeto literal cada vez — valores por default para lo que casi
 nunca cambia, y un par de métodos encadenables para lo que sí varía:
 
 ```typescript
-class OrderBuilder {
-  private order = { itemId: 'default-item', amount: 1 };   // ← default razonable para el caso común
+class RecordBuilder {
+  private record = { id: 'default-id', amount: 1 };   // ← default razonable para el caso común
 
-  forItem(itemId: string): this {
-    this.order.itemId = itemId;
-    return this;                   // ← devuelve this: permite encadenar .forItem().withAmount()
+  forId(id: string): this {
+    this.record.id = id;
+    return this;                   // ← devuelve this: permite encadenar .forId().withAmount()
   }
 
   withAmount(amount: number): this {
-    this.order.amount = amount;
+    this.record.amount = amount;
     return this;
   }
 
   build() {
-    return { ...this.order };
+    return { ...this.record };
   }
 }
 
-const anOrder = () => new OrderBuilder();
+const aRecord = () => new RecordBuilder();
 ```
 
-`anOrder().withAmount(999)` dice "una orden de 999 unidades" y nada más —
-el ítem es el que el builder ya asume. Si el dato que armás tiene un solo
+`aRecord().withAmount(999)` dice "un registro de 999 unidades" y nada más —
+el id es el que el builder ya asume. Si el dato que armás tiene un solo
 campo que casi nunca cambia, ni este builder mínimo hace falta — un
 objeto literal ya es claro de por sí.
 
@@ -143,13 +143,13 @@ export const anOrder = () => new OrderBuilder();
 ```
 
 El default lee una variable de entorno en vez de un valor fijo — por qué,
-se desarrolla en [Parametrización de datos](./11-parametrizacion-de-datos.md);
+se desarrolla en [Parametrización de datos](./10-parametrizacion-de-datos.md);
 acá lo único que importa es que sigue siendo *un* default, declarado una
 sola vez.
 
 La fixture real que lo usa es `seedPosition`, en
 [`tests/base-test.ts`](../../project/tests/base-test.ts) — el mismo
-archivo del que ya se habla en [BaseTest](./10-basetest.md):
+archivo del que ya se habla en [BaseTest](./09-basetest.md):
 
 ```typescript
 // tests/base-test.ts
@@ -249,4 +249,4 @@ const expectedBalance = portfolioPage.getExpectedBalanceAfterPurchase(balanceBef
 expect(await portfolioPage.getSavingsBalance()).toBeCloseTo(expectedBalance, 2);
 ```
 
-**Siguiente:** [Otras formas de escribir tests](./13-otras-formas-de-escribir-tests.md)
+**Siguiente:** [Otras formas de escribir tests](./12-otras-formas-de-escribir-tests.md)

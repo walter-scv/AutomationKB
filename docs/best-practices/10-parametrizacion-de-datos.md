@@ -18,8 +18,8 @@ lugar nombrado, y el test lo referencia desde ahí:
 
 | Tipo de valor | Dónde vive, en general | Así se ve en esta base | Se desarrolla en |
 |---|---|---|---|
-| Timeouts de espera | Una constante nombrada en la clase base de la que heredan las Page Objects | `TIMEOUTS` en [`BasePage.ts`](../../project/pages/BasePage.ts) | [BasePage](./07-basepage.md) |
-| Selectores de una pantalla | Propiedades de la Page Object de esa pantalla | Propiedades `readonly` de `PortfolioPage` | [Centralizando los selectores](./08-centralizando-selectores.md) |
+| Timeouts de espera | Una constante nombrada en la clase base de la que heredan las Page Objects | `TIMEOUTS` en [`BasePage.ts`](../../project/pages/BasePage.ts) | [BasePage](./05-basepage.md) |
+| Selectores de una pantalla | Propiedades de la Page Object de esa pantalla | Propiedades `readonly` de `PortfolioPage` | [Centralizando los selectores](./07-centralizando-selectores.md) |
 | Datos conocidos que pueden volverse inválidos (ids de catálogo, usuarios) | Variable de entorno, nombrada por el rol que cumple el dato, leída directo donde se usa, con un default inline | `process.env.ASSET_PRIMARY_ID ?? 'a1'` en [`order.builder.ts`](../../project/helpers/order.builder.ts) y [`portfolio.spec.ts`](../../project/tests/portfolio/portfolio.spec.ts) | el resto de esta entrada |
 | Config de entorno y secretos | Variables de entorno — locales vía un archivo, en CI vía el mecanismo de secretos de la plataforma | `.env` localmente, Secrets de GitHub Actions en CI | el resto de esta entrada |
 
@@ -133,4 +133,4 @@ test — `unitsBefore - 1`, o el `1` que queda después de vender "casi
 todo". Eso no es algo para parametrizar: es la verificación en sí, la
 relación que el test comprueba, no una entrada configurable.
 
-**Siguiente:** [Setup & Cleanup — dónde nace y muere la data](./12-setup-and-cleanup.md)
+**Siguiente:** [Setup & Cleanup — dónde nace y muere la data](./11-setup-and-cleanup.md)
