@@ -1,26 +1,46 @@
-import type {ReactNode} from 'react';
+import type {MouseEvent, ReactNode} from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
+import {useHistory} from '@docusaurus/router';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
-import Heading from '@theme/Heading';
+import {playStartFanfare} from '@site/src/lib/sound';
 
 import styles from './index.module.css';
 
+const FIRST_LESSON = '/docs/01-que-es-automatizar';
+
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
+  const history = useHistory();
+  const firstLessonUrl = useBaseUrl(FIRST_LESSON);
+
+  // Si el sonido está activado, deja sonar la fanfarria de "arranca la
+  // partida" antes de navegar. Si está en silencio, playStartFanfare()
+  // devuelve 0 y el click se comporta como un <Link> normal.
+  function handleStart(e: MouseEvent<HTMLAnchorElement>): void {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    const delay = playStartFanfare();
+    if (delay === 0) {
+      history.push(firstLessonUrl);
+    } else {
+      setTimeout(() => history.push(firstLessonUrl), delay);
+    }
+  }
+
   return (
-    <header className={clsx('hero hero--primary', styles.heroBanner)}>
-      <div className="container">
-        <Heading as="h1" className="hero__title">
-          {siteConfig.title}
-        </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
-        <div className={styles.buttons}>
-          <Link className="button button--secondary button--lg" to="/docs/06-anatomia-de-un-test">
-            POC: Encontrá los tres problemas
-          </Link>
-        </div>
+    <header className={clsx('hero', styles.heroBanner)}>
+      <div className={styles.scanlines} aria-hidden="true" />
+      <div className={clsx('container', styles.menuPanel)}>
+        <p className={styles.kicker}>QA Automation</p>
+        <h1 className={styles.title}>{siteConfig.title}</h1>
+        <Link className={styles.playButton} to={FIRST_LESSON} onClick={handleStart}>
+          <span className={styles.playIcon} aria-hidden="true">▶</span>
+          Start!
+        </Link>
+        <p className={styles.hint}>6 niveles disponibles</p>
       </div>
     </header>
   );

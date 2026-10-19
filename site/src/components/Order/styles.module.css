@@ -27,6 +27,7 @@
 .item.dragOver {
   outline: 2px dashed var(--akb-accent);
   outline-offset: 2px;
+  box-shadow: var(--akb-glow-accent);
 }
 
 .grip {
@@ -36,16 +37,16 @@
 
 .item.ok {
   border-color: var(--akb-accent);
-  box-shadow: inset 3px 0 0 var(--akb-accent);
+  box-shadow: inset 3px 0 0 var(--akb-accent), var(--akb-glow-accent);
 }
 
 .item.bad {
   border-color: var(--akb-err);
-  box-shadow: inset 3px 0 0 var(--akb-err);
+  box-shadow: inset 3px 0 0 var(--akb-err), var(--akb-glow-err);
 }
 
 .item.header {
-  background: rgba(63, 197, 166, 0.1);
+  background: var(--akb-accent-tint);
   border-style: dashed;
 }
 
@@ -80,11 +81,17 @@
 .controls button {
   background: #222935;
   color: var(--akb-code-ink);
-  border: 0;
+  border: 1px solid var(--akb-code-line);
   border-radius: 5px;
   width: 30px;
   height: 28px;
   cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.controls button:hover:not(:disabled) {
+  border-color: var(--akb-accent);
+  box-shadow: var(--akb-glow-accent);
 }
 
 .controls button:disabled {

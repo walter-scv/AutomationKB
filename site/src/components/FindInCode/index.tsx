@@ -1,5 +1,6 @@
 import {useEffect, useState, type ReactNode} from 'react';
 import {highlightTs} from '@site/src/lib/highlightTs';
+import {playCorrect, playTick, playWrong} from '@site/src/lib/sound';
 import styles from './styles.module.css';
 
 export type CodeLine = {
@@ -49,6 +50,7 @@ export default function FindInCode({lines, ruleLabels, alreadyDone, onSolved}: F
       return;
     }
     setCurrent(i);
+    playTick();
     setFeedback(null);
   }
 
@@ -58,6 +60,7 @@ export default function FindInCode({lines, ruleLabels, alreadyDone, onSolved}: F
     const l = lines[i];
 
     if (choice === l.rule) {
+      playCorrect();
       setAnswers((prev) => ({...prev, [i]: choice}));
       setFeedback({kind: 'ok', text: `Línea ${i + 1}: correcto${l.rule ? '' : ', está bien'}. ${l.why}`});
       setCurrent(null);
@@ -66,6 +69,7 @@ export default function FindInCode({lines, ruleLabels, alreadyDone, onSolved}: F
 
     if (l.rule === 0) {
       // La línea está bien, el lector marcó cualquier regla: igual se da por resuelta.
+      playWrong();
       setAnswers((prev) => ({...prev, [i]: 0}));
       setFeedback({kind: 'warn', text: `Línea ${i + 1}: en realidad está bien. ${l.why}`});
       setCurrent(null);
@@ -73,6 +77,7 @@ export default function FindInCode({lines, ruleLabels, alreadyDone, onSolved}: F
     }
 
     // Línea con problema real, clasificada con la regla equivocada: pista, sin spoiler, se puede reintentar.
+    playWrong();
     setFeedback({
       kind: 'err',
       text:

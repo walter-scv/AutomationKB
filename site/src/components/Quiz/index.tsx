@@ -1,4 +1,5 @@
 import {useEffect, useState, type ReactNode} from 'react';
+import {playCorrect, playWrong} from '@site/src/lib/sound';
 import styles from './styles.module.css';
 
 export type QuizOption = {text: string; correct: boolean; why: string};
@@ -19,7 +20,11 @@ export default function Quiz({questions, onSolved}: QuizProps): ReactNode {
 
   function pick(qIndex: number, oIndex: number, correct: boolean): void {
     setRevealed((prev) => ({...prev, [`${qIndex}-${oIndex}`]: true}));
-    if (!correct) return;
+    if (!correct) {
+      playWrong();
+      return;
+    }
+    playCorrect();
     setSolved((prev) => {
       if (prev.has(qIndex)) return prev;
       const next = new Set(prev);

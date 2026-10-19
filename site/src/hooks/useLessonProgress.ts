@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
+import {playExtraLife} from '@site/src/lib/sound';
 
 type LessonProgress = Record<string, boolean>;
 
@@ -42,6 +43,7 @@ export function useLessonProgress(lessonSlug: string, activityIds: string[]) {
       const latest = readProgress(storageKey);
       if (!latest[activityId]) {
         writeProgress(storageKey, {...latest, [activityId]: true});
+        playExtraLife();
       }
       setDone((prev) => (prev[activityId] ? prev : {...prev, [activityId]: true}));
     },

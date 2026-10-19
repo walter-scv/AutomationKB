@@ -1,5 +1,6 @@
 import {useRef, useState, type DragEvent, type ReactNode} from 'react';
 import {highlightTs} from '@site/src/lib/highlightTs';
+import {playCorrect, playTick, playWrong} from '@site/src/lib/sound';
 import styles from './styles.module.css';
 
 export type OrderItem = {
@@ -36,6 +37,7 @@ export default function Order({items, correctOrder, rules, onSolved}: OrderProps
 
   function move(from: number, to: number, focusId?: string): void {
     if (from === to) return;
+    playTick();
     setOrder((prev) => {
       const next = [...prev];
       const [x] = next.splice(from, 1);
@@ -56,9 +58,11 @@ export default function Order({items, correctOrder, rules, onSolved}: OrderProps
 
     const broken = rules.filter((r) => order.indexOf(r.before) > order.indexOf(r.after));
     if (broken.length === 0) {
+      playCorrect();
       setFeedback({kind: 'ok', text: 'Orden correcto.'});
       onSolved?.();
     } else {
+      playWrong();
       setFeedback({
         kind: 'err',
         text: 'Todavía no — revisá esto: ' + broken.slice(0, 2).map((r) => r.why).join(' '),

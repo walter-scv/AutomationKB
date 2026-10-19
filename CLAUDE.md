@@ -92,8 +92,8 @@ bien y dónde estaban los errores, y los errores estaban juntos al final. Se res
 **Qué pasó:** la lista de reglas de "Corregí el test" se veía rota: el código inline quedaba en la
 columna angosta del layout y se mostraba letra por letra en vertical. Los tests de lógica pasaban.
 **Regla:** además de probar la lógica, revisá cada actividad renderizada en escritorio y en
-mobile, en modo claro y oscuro. En layouts de grid o flex, agrupá el texto mixto (texto más
-`<code>`) en un solo elemento.
+mobile, con la paleta neón única (ver aprendizaje 18). En layouts de grid o flex, agrupá el texto
+mixto (texto más `<code>`) en un solo elemento.
 
 ### 9. Continuidad entre actividades y guiar la atención
 **Qué pasó:** en "Corregí el test" el lector tenía que volver a buscar las líneas que ya había
@@ -199,6 +199,22 @@ con cada actividad de verdad (no solo leer el código), y reportar cualquier pun
 asumir que "seguramente es a propósito". Es un chequeo distinto al que uno mismo puede hacerse
 releyendo lo que escribió.
 
+### 18. El sitio pasó a un único tema oscuro "arcade neón" — no hay modo claro
+**Qué pasó:** Walter pidió una portada con estética de menú de videojuego (fondo oscuro, colores
+neón, botón "START!") y después pidió extender esa estética a toda la base, botones incluidos.
+Como un menú de arcade no tiene una versión "modo claro" razonable, la decisión fue un único tema
+oscuro con acentos neón en todo el sitio (`site/src/css/custom.css`, tokens `--akb-*` +
+`colorMode: {defaultMode: 'dark', disableSwitch: true}` en `docusaurus.config.ts`), no dos paletas
+alternables. El bloque `[data-theme='dark']` que existía en `custom.css` se eliminó: ahora todo
+vive en un único `:root`.
+**Regla:** no reintroduzcas un modo claro ni el switch de tema sin que Walter lo pida
+explícitamente — es una decisión de diseño, no un olvido. Los ítems del checklist que mencionaban
+"modo claro y oscuro" quedaron actualizados a "con la paleta neón única". Si agregás o tocás un
+componente, usá los tokens `--akb-*` (nunca colores hardcodeados) para que seguir cambiando la
+paleta siga siendo un cambio en un solo lugar, y las variables `--ifm-*` que Infima redefine por
+selector propio (ej. `.footer--dark`, `.navbar--dark`) hay que pisarlas con ese mismo selector en
+`custom.css`, no alcanza con cambiar el valor en `:root`.
+
 ## Checklist antes de dar por terminada una actividad
 
 - [ ] El orden es teoría genérica → actividad, con el mismo ejemplo inventado en las dos, nunca al revés.
@@ -216,7 +232,7 @@ releyendo lo que escribió.
 - [ ] El código (real o inventado) sigue las convenciones del proyecto — Page Object Model,
       TypeScript + Playwright, data-attributes de la entrada 08, `test.step`, tags.
 - [ ] Se completa con teclado (incluido ordenar, con arrastrar como agregado, no como reemplazo) y funciona en mobile.
-- [ ] Se ve bien en escritorio, mobile, modo claro y modo oscuro.
+- [ ] Se ve bien en escritorio y en mobile, con la paleta neón única del sitio (sin modo claro — ver aprendizaje 18), usando tokens `--akb-*` en vez de colores hardcodeados.
 - [ ] Tiene un test que la resuelve con la solución declarada y otro con respuestas incorrectas.
 - [ ] El "Lo que necesitás saber" y cualquier tabla de referencia coinciden exactamente con lo que el ejercicio acepta como correcto y con lo que usa — ninguna respuesta presentada como válida ahí es rechazada por el ejercicio, y ninguna propiedad/método que el ejercicio usa falta en la tabla.
 - [ ] No queda ninguna nota interna de desarrollo (alcance de POC, TODO, referencia a fases internas) visible en el contenido publicado.
