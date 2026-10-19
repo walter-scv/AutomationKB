@@ -1,6 +1,7 @@
 import {useEffect, type ReactNode} from 'react';
+import {useLocation} from '@docusaurus/router';
 import useBaseUrl from '@docusaurus/useBaseUrl';
-import {setMusicSrc} from '@site/src/lib/sound';
+import {MUSIC_VOLUME_LANDING, MUSIC_VOLUME_LESSON, setMusicSrc, setMusicVolume} from '@site/src/lib/sound';
 import {useSoundEnabledState} from '@site/src/hooks/useSoundEnabled';
 import styles from './styles.module.css';
 
@@ -10,10 +11,19 @@ import styles from './styles.module.css';
 export default function SoundToggle(): ReactNode {
   const [enabled, setEnabled] = useSoundEnabledState();
   const musicUrl = useBaseUrl('/audio/power-stage-loop.mp3');
+  const homeUrl = useBaseUrl('/');
+  const {pathname} = useLocation();
 
   useEffect(() => {
     setMusicSrc(musicUrl);
   }, [musicUrl]);
+
+  // La portada es una pantalla de menú (sin texto que leer): ahí el volumen
+  // más alto de antes suena bien. En una lección, de fondo mientras se lee,
+  // el mismo volumen distrae — se baja apenas se navega a una.
+  useEffect(() => {
+    setMusicVolume(pathname === homeUrl ? MUSIC_VOLUME_LANDING : MUSIC_VOLUME_LESSON);
+  }, [pathname, homeUrl]);
 
   return (
     <button

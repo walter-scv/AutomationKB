@@ -7,13 +7,19 @@
 // bloquean el audio si se intenta antes de eso.
 
 const STORAGE_KEY = 'akb:sound:v1';
-const MUSIC_VOLUME = 0.35;
+// En la portada (pantalla de menú, sin texto que leer) el volumen de la
+// portada original suena bien; en una lección, de fondo mientras se lee,
+// el mismo volumen distrae — por eso <SoundToggle> la baja según la ruta
+// (ver setMusicVolume más abajo).
+export const MUSIC_VOLUME_LANDING = 0.35;
+export const MUSIC_VOLUME_LESSON = 0.15;
 
 type Listener = (enabled: boolean) => void;
 
 let ctx: AudioContext | null = null;
 let musicEl: HTMLAudioElement | null = null;
 let musicSrc: string | null = null;
+let musicVolume = MUSIC_VOLUME_LANDING;
 let enabled = false;
 const listeners = new Set<Listener>();
 
@@ -46,7 +52,7 @@ function tone(
   audioCtx: AudioContext,
   opts: {freq: number; start: number; duration: number; type?: OscillatorType; volume?: number; slideTo?: number}
 ): void {
-  const {freq, start, duration, type = 'square', volume = 0.07, slideTo} = opts;
+  const {freq, start, duration, type = 'square', volume = 0.105, slideTo} = opts;
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.type = type;
@@ -66,13 +72,20 @@ export function setMusicSrc(src: string): void {
   musicSrc = src;
 }
 
+/** <SoundToggle> la llama cada vez que cambia de ruta (portada vs. lección),
+ * así el volumen se ajusta en caliente aunque la música ya esté sonando. */
+export function setMusicVolume(volume: number): void {
+  musicVolume = volume;
+  if (musicEl) musicEl.volume = volume;
+}
+
 function startMusic(): void {
   if (!musicSrc) return;
   if (!musicEl) {
     musicEl = new Audio(musicSrc);
     musicEl.loop = true;
-    musicEl.volume = MUSIC_VOLUME;
   }
+  musicEl.volume = musicVolume;
   void musicEl.play().catch(() => {
     // Autoplay bloqueado por el navegador — se reintenta en el próximo gesto.
   });
@@ -131,20 +144,20 @@ export function setSoundEnabled(value: boolean): void {
 
 export function playTick(): void {
   if (!enabled || !ctx) return;
-  tone(ctx, {freq: 880, start: ctx.currentTime, duration: 0.04, type: 'square', volume: 0.05});
+  tone(ctx, {freq: 880, start: ctx.currentTime, duration: 0.04, type: 'square', volume: 0.075});
 }
 
 export function playCorrect(): void {
   if (!enabled || !ctx) return;
   const now = ctx.currentTime;
   [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) =>
-    tone(ctx!, {freq, start: now + i * 0.07, duration: 0.12, type: 'square', volume: 0.07})
+    tone(ctx!, {freq, start: now + i * 0.07, duration: 0.12, type: 'square', volume: 0.105})
   );
 }
 
 export function playWrong(): void {
   if (!enabled || !ctx) return;
-  tone(ctx, {freq: 220, start: ctx.currentTime, duration: 0.2, type: 'square', volume: 0.08, slideTo: 100});
+  tone(ctx, {freq: 220, start: ctx.currentTime, duration: 0.2, type: 'square', volume: 0.12, slideTo: 100});
 }
 
 /** "Vida extra": se dispara una sola vez, la primera vez que una actividad
@@ -155,7 +168,7 @@ export function playExtraLife(): void {
   const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98];
   notes.forEach((freq, i) => {
     const isLast = i === notes.length - 1;
-    tone(ctx!, {freq, start: now + i * 0.07, duration: isLast ? 0.3 : 0.1, type: 'square', volume: 0.09});
+    tone(ctx!, {freq, start: now + i * 0.07, duration: isLast ? 0.3 : 0.1, type: 'square', volume: 0.135});
   });
 }
 
@@ -165,6 +178,6 @@ export function playStartFanfare(): number {
   if (!enabled || !ctx) return 0;
   const now = ctx.currentTime;
   const notes = [392, 523.25, 659.25, 783.99, 1046.5];
-  notes.forEach((freq, i) => tone(ctx!, {freq, start: now + i * 0.09, duration: 0.18, type: 'square', volume: 0.09}));
+  notes.forEach((freq, i) => tone(ctx!, {freq, start: now + i * 0.09, duration: 0.18, type: 'square', volume: 0.135}));
   return notes.length * 90 + 180;
 }
