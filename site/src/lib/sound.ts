@@ -161,15 +161,24 @@ export function playWrong(): void {
 }
 
 /** "Vida extra": se dispara una sola vez, la primera vez que una actividad
- * entera (no una sola pregunta) queda 100% completa. */
+ * entera (no una sola pregunta) queda 100% completa. Antes compartía notas y
+ * timbre con playCorrect() y sonaba como "más de lo mismo" pegado atrás del
+ * acierto de la última pregunta — ahora usa otra onda (triangle, más
+ * campana que blip), otra melodía, un acorde final sostenido, y arranca con
+ * una pequeña pausa después del acierto para que se perciba como un sonido
+ * aparte, no una continuación. */
 export function playExtraLife(): void {
   if (!enabled || !ctx) return;
-  const now = ctx.currentTime;
-  const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5, 1567.98];
-  notes.forEach((freq, i) => {
-    const isLast = i === notes.length - 1;
-    tone(ctx!, {freq, start: now + i * 0.07, duration: isLast ? 0.3 : 0.1, type: 'square', volume: 0.135});
-  });
+  const audioCtx = ctx;
+  // playCorrect() dura 0.33s (4 notas de 0.07s cada una + la última de 0.12s) y
+  // suele dispararse justo antes que esta — el offset tiene que cubrir ese
+  // tiempo completo, si no las dos se pisan en vez de sonar una después de la otra.
+  const start = audioCtx.currentTime + 0.42;
+  const run = [659.25, 783.99, 987.77, 1318.51]; // E5, G5, B5, E6
+  run.forEach((freq, i) => tone(audioCtx, {freq, start: start + i * 0.08, duration: 0.14, type: 'triangle', volume: 0.16}));
+  const chordAt = start + run.length * 0.08 + 0.02;
+  tone(audioCtx, {freq: 1318.51, start: chordAt, duration: 0.45, type: 'triangle', volume: 0.14});
+  tone(audioCtx, {freq: 1567.98, start: chordAt, duration: 0.45, type: 'triangle', volume: 0.11});
 }
 
 /** Fanfarria de "arranca la partida". Devuelve cuánto dura (ms), para que
