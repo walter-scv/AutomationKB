@@ -1,64 +1,131 @@
 /**
- * Tokens portados de site/reference/demo-06-anatomia.html. Prefijo `akb-`
- * para no chocar con las variables --ifm-* propias de Infima/Docusaurus.
- * El modo oscuro usa [data-theme='dark'], el que realmente setea
- * Docusaurus (con colorMode.respectPrefersColorScheme activado) — no hace
- * falta además un @media prefers-color-scheme como en la demo standalone.
+ * Paleta "arcade neón" única para toda la base (portada y lecciones): un
+ * solo tema oscuro con acentos neón, sin alternativa en modo claro (ver
+ * CLAUDE.md). Prefijo `akb-` para no chocar con las variables --ifm-* de
+ * Infima. Como no hay switch de tema, todo vive en un único :root — no
+ * hace falta un bloque [data-theme='dark'] aparte.
  */
 :root {
-  --akb-ink: #1b2230;
-  --akb-muted: #5a6474;
-  --akb-line: #dce2ea;
-  --akb-accent: #0e7c66;
-  --akb-accent-tint: rgba(14, 124, 102, 0.09);
-  --akb-err: #c2412d;
-  --akb-err-tint: rgba(194, 65, 45, 0.09);
-  --akb-warn: #8a5d00;
-  --akb-warn-tint: rgba(178, 124, 0, 0.11);
-  --akb-panel: #f2f7f5;
-  --akb-note: #fff8e6;
-  --akb-note-line: #e9d49a;
+  --akb-ink: #f2f3ff;
+  --akb-muted: #9b96c4;
+  --akb-line: #352a5c;
+  --akb-accent: #39f6ff;
+  --akb-accent-tint: rgba(57, 246, 255, 0.12);
+  --akb-err: #ff3b5c;
+  --akb-err-tint: rgba(255, 59, 92, 0.14);
+  --akb-warn: #ffd60a;
+  --akb-warn-tint: rgba(255, 214, 10, 0.12);
+  --akb-panel: #170f33;
+  --akb-note: #1b1140;
+  --akb-note-line: #4a3a7a;
 
-  --akb-code-bg: #12161c;
-  --akb-code-ink: #e3e8ef;
-  --akb-code-line: #262d38;
-  --akb-code-muted: #7c8796;
-  --akb-t-kw: #d6336c;
-  --akb-t-str: #2f9e44;
-  --akb-t-num: #e8590c;
-  --akb-t-fn: #1971c2;
-  --akb-t-type: #0ca678;
-  --akb-t-com: #868e96;
-}
+  --akb-code-bg: #0b0e1a;
+  --akb-code-ink: #e8ecff;
+  --akb-code-line: #2a2350;
+  --akb-code-muted: #8783ab;
+  --akb-t-kw: #ff7edb;
+  --akb-t-str: #72f1b8;
+  --akb-t-num: #fede5d;
+  --akb-t-fn: #36f9f6;
+  --akb-t-type: #c792ff;
+  --akb-t-com: #8690c7;
 
-[data-theme='dark'] {
-  --akb-ink: #e6ebf1;
-  --akb-muted: #9ba6b4;
-  --akb-line: #2a323d;
-  --akb-accent: #3fc5a6;
-  --akb-accent-tint: rgba(63, 197, 166, 0.12);
-  --akb-err: #ff8a75;
-  --akb-err-tint: rgba(255, 138, 117, 0.12);
-  --akb-warn: #e8b44c;
-  --akb-warn-tint: rgba(232, 180, 76, 0.13);
-  --akb-panel: #152024;
-  --akb-note: #211d12;
-  --akb-note-line: #5a4a22;
-
-  --akb-code-bg: #0b0e13;
-  --akb-code-line: #222935;
-  --akb-t-kw: #f49ac1;
-  --akb-t-str: #9fe0a7;
-  --akb-t-num: #f8c27a;
-  --akb-t-fn: #8ac7ff;
-  --akb-t-type: #7fe0d3;
-  --akb-t-com: #7c8796;
+  --akb-glow-accent: 0 0 10px rgba(57, 246, 255, 0.55);
+  --akb-glow-err: 0 0 10px rgba(255, 59, 92, 0.5);
+  --akb-glow-warn: 0 0 10px rgba(255, 214, 10, 0.45);
 }
 
 :root {
   --ifm-font-family-base: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --ifm-font-family-monospace: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --ifm-code-font-size: 0.86em;
+
+  --ifm-background-color: #0a0618;
+  --ifm-background-surface-color: var(--akb-panel);
+  --ifm-color-content: var(--akb-ink);
+  --ifm-color-content-secondary: var(--akb-muted);
+  --ifm-heading-color: var(--akb-ink);
+  --ifm-color-emphasis-300: var(--akb-line);
+  --ifm-color-emphasis-200: var(--akb-line);
+
+  --ifm-color-primary: #39f6ff;
+  --ifm-color-primary-dark: #14e9f6;
+  --ifm-color-primary-darker: #0ddfec;
+  --ifm-color-primary-darkest: #0bb8c4;
+  --ifm-color-primary-light: #5ef8ff;
+  --ifm-color-primary-lighter: #76f9ff;
+  --ifm-color-primary-lightest: #a9fcff;
+
+  --ifm-link-color: var(--akb-accent);
+  --ifm-link-hover-color: #9cfcff;
+
+  --ifm-navbar-background-color: #0a0618;
+  --ifm-navbar-shadow: 0 1px 0 rgba(57, 246, 255, 0.18);
+
+  --ifm-footer-background-color: #060412;
+  --ifm-footer-color: var(--akb-muted);
+  --ifm-footer-link-color: var(--akb-accent);
+  --ifm-footer-title-color: var(--akb-ink);
+
+  --ifm-toc-border-color: var(--akb-line);
+  --ifm-table-border-color: var(--akb-line);
+  --ifm-hr-border-color: var(--akb-line);
+
+  --ifm-menu-color-background-active: rgba(57, 246, 255, 0.08);
+  --ifm-menu-color-background-hover: rgba(57, 246, 255, 0.05);
+  --ifm-menu-color-active: var(--akb-accent);
+
+  --ifm-pre-background: var(--akb-code-bg);
+}
+
+html {
+  background: var(--ifm-background-color);
+}
+
+/* .footer--dark redefine estas variables a su paleta gris por defecto;
+   las pisamos acá (mismo selector, pero cargado después) para que el
+   footer quede en la misma paleta oscura que el resto del sitio. */
+.footer--dark {
+  --ifm-footer-background-color: #060412;
+  --ifm-footer-color: var(--akb-muted);
+  --ifm-footer-link-color: var(--akb-accent);
+  --ifm-footer-title-color: var(--akb-ink);
+}
+
+/* Links de cuerpo con glow sutil al pasar el mouse, en vez de solo cambiar de color */
+a:not(.menu__link):not(.navbar__link):not([class*='button']) {
+  text-shadow: none;
+  transition: text-shadow 0.15s ease;
+}
+a:not(.menu__link):not(.navbar__link):not([class*='button']):hover {
+  text-shadow: 0 0 8px rgba(57, 246, 255, 0.5);
+}
+
+/* Sidebar: ítem activo con borde + glow en vez del fondo plano de Infima */
+.menu__link--active:not(.menu__link--sublist) {
+  box-shadow: inset 3px 0 0 var(--akb-accent);
+  text-shadow: 0 0 6px rgba(57, 246, 255, 0.45);
+}
+
+/* Tabla de contenidos: igual criterio que el sidebar */
+.table-of-contents__link--active {
+  color: var(--akb-accent);
+  text-shadow: 0 0 6px rgba(57, 246, 255, 0.45);
+}
+
+/* Paginación entre lecciones (anterior/siguiente) */
+.pagination-nav__link {
+  border-color: var(--akb-line);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pagination-nav__link:hover {
+  border-color: var(--akb-accent);
+  box-shadow: var(--akb-glow-accent);
+}
+
+/* Botón "copiar" de los bloques de código */
+.clean-btn:hover {
+  color: var(--akb-accent);
 }
 
 .akb-feedback {
@@ -70,12 +137,15 @@
 .akb-feedback--ok {
   background: var(--akb-accent-tint);
   border-left: 3px solid var(--akb-accent);
+  box-shadow: var(--akb-glow-accent);
 }
 .akb-feedback--err {
   background: var(--akb-err-tint);
   border-left: 3px solid var(--akb-err);
+  box-shadow: var(--akb-glow-err);
 }
 .akb-feedback--warn {
   background: var(--akb-warn-tint);
   border-left: 3px solid var(--akb-warn);
+  box-shadow: var(--akb-glow-warn);
 }

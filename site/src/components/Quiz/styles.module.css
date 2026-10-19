@@ -29,18 +29,25 @@
   font-size: 0.98rem;
 }
 
+.option {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
 .option:hover {
   border-color: var(--akb-accent);
+  box-shadow: var(--akb-glow-accent);
 }
 
 .option.right {
   border-color: var(--akb-accent);
   background: var(--akb-accent-tint);
+  box-shadow: var(--akb-glow-accent);
 }
 
 .option.wrong {
   border-color: var(--akb-err);
   background: var(--akb-err-tint);
+  box-shadow: var(--akb-glow-err);
 }
 
 .why {

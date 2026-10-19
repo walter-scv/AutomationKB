@@ -75,10 +75,16 @@ const config: Config = {
   ],
 
   themeConfig: {
+    // Tema único "arcade neón" en toda la base (portada y lecciones) — sin
+    // alternativa en modo claro, por eso se deshabilita el switch en vez de
+    // mantener dos paletas (ver CLAUDE.md).
     colorMode: {
-      respectPrefersColorScheme: true,
+      defaultMode: 'dark',
+      disableSwitch: true,
+      respectPrefersColorScheme: false,
     },
     navbar: {
+      style: 'dark',
       title: 'Automation Knowledge Base',
       items: [
         {
@@ -90,11 +96,16 @@ const config: Config = {
     },
     footer: {
       style: 'dark',
+      logo: {
+        alt: 'SCVsoft',
+        src: 'img/scvsoft-logo.png',
+        width: 120,
+      },
       copyright: `AutomationKB — lecciones interactivas sobre docs/best-practices/`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      theme: prismThemes.synthwave84,
+      darkTheme: prismThemes.synthwave84,
     },
   } satisfies Preset.ThemeConfig,
 };

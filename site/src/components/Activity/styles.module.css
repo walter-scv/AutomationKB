@@ -5,6 +5,7 @@
   border-radius: 10px;
   padding: 20px 20px 18px;
   margin: 26px 0 34px;
+  box-shadow: -6px 0 18px -10px rgba(57, 246, 255, 0.35);
 }
 
 .head {
@@ -29,6 +30,7 @@
   font-size: 0.82rem;
   font-weight: 700;
   color: var(--akb-accent);
+  text-shadow: 0 0 8px rgba(57, 246, 255, 0.6);
 }
 
 .goal {

@@ -19,14 +19,24 @@
   font-size: 0.94rem;
 }
 
+.side:first-child {
+  border-color: rgba(255, 59, 92, 0.4);
+}
+
+.side:last-child {
+  border-color: rgba(57, 246, 255, 0.4);
+}
+
 .badHeading {
   color: var(--akb-err);
   font-weight: 700;
+  text-shadow: 0 0 8px rgba(255, 59, 92, 0.5);
 }
 
 .goodHeading {
   color: var(--akb-accent);
   font-weight: 700;
+  text-shadow: 0 0 8px rgba(57, 246, 255, 0.5);
 }
 
 .code {
