@@ -1,0 +1,81 @@
+/**
+ * Tokens portados de site/reference/demo-06-anatomia.html. Prefijo `akb-`
+ * para no chocar con las variables --ifm-* propias de Infima/Docusaurus.
+ * El modo oscuro usa [data-theme='dark'], el que realmente setea
+ * Docusaurus (con colorMode.respectPrefersColorScheme activado) — no hace
+ * falta además un @media prefers-color-scheme como en la demo standalone.
+ */
+:root {
+  --akb-ink: #1b2230;
+  --akb-muted: #5a6474;
+  --akb-line: #dce2ea;
+  --akb-accent: #0e7c66;
+  --akb-accent-tint: rgba(14, 124, 102, 0.09);
+  --akb-err: #c2412d;
+  --akb-err-tint: rgba(194, 65, 45, 0.09);
+  --akb-warn: #8a5d00;
+  --akb-warn-tint: rgba(178, 124, 0, 0.11);
+  --akb-panel: #f2f7f5;
+  --akb-note: #fff8e6;
+  --akb-note-line: #e9d49a;
+
+  --akb-code-bg: #12161c;
+  --akb-code-ink: #e3e8ef;
+  --akb-code-line: #262d38;
+  --akb-code-muted: #7c8796;
+  --akb-t-kw: #d6336c;
+  --akb-t-str: #2f9e44;
+  --akb-t-num: #e8590c;
+  --akb-t-fn: #1971c2;
+  --akb-t-type: #0ca678;
+  --akb-t-com: #868e96;
+}
+
+[data-theme='dark'] {
+  --akb-ink: #e6ebf1;
+  --akb-muted: #9ba6b4;
+  --akb-line: #2a323d;
+  --akb-accent: #3fc5a6;
+  --akb-accent-tint: rgba(63, 197, 166, 0.12);
+  --akb-err: #ff8a75;
+  --akb-err-tint: rgba(255, 138, 117, 0.12);
+  --akb-warn: #e8b44c;
+  --akb-warn-tint: rgba(232, 180, 76, 0.13);
+  --akb-panel: #152024;
+  --akb-note: #211d12;
+  --akb-note-line: #5a4a22;
+
+  --akb-code-bg: #0b0e13;
+  --akb-code-line: #222935;
+  --akb-t-kw: #f49ac1;
+  --akb-t-str: #9fe0a7;
+  --akb-t-num: #f8c27a;
+  --akb-t-fn: #8ac7ff;
+  --akb-t-type: #7fe0d3;
+  --akb-t-com: #7c8796;
+}
+
+:root {
+  --ifm-font-family-base: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --ifm-code-font-size: 0.86em;
+}
+
+.akb-feedback {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.akb-feedback--ok {
+  background: var(--akb-accent-tint);
+  border-left: 3px solid var(--akb-accent);
+}
+.akb-feedback--err {
+  background: var(--akb-err-tint);
+  border-left: 3px solid var(--akb-err);
+}
+.akb-feedback--warn {
+  background: var(--akb-warn-tint);
+  border-left: 3px solid var(--akb-warn);
+}

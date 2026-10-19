@@ -1,0 +1,100 @@
+.lines {
+  background: var(--akb-code-bg);
+  border-radius: 10px;
+  padding: 10px 0;
+  overflow-x: auto;
+}
+
+.line {
+  display: block;
+  min-width: 100%;
+  width: max-content;
+  text-align: left;
+  background: none;
+  border: 0;
+  color: var(--akb-code-ink);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  padding: 2px 16px 2px 12px;
+  white-space: pre;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+
+.line:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.line:focus-visible {
+  outline: 2px solid var(--akb-accent);
+  outline-offset: -2px;
+}
+
+.hit {
+  background: rgba(63, 197, 166, 0.16);
+  border-left-color: var(--akb-accent);
+}
+
+.cleared {
+  border-left-color: var(--akb-code-muted);
+  color: var(--akb-code-muted);
+}
+
+.currentLine {
+  background: #202838;
+  border-left-color: #8ac7ff;
+}
+
+.ln {
+  color: var(--akb-code-muted);
+  display: inline-block;
+  width: 2.2em;
+  user-select: none;
+}
+
+.classify {
+  margin-top: 12px;
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--akb-line);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.clLine {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+  background: var(--akb-code-bg);
+  color: var(--akb-code-ink);
+  padding: 6px 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 8px 0 10px;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.choices button {
+  border: 1px solid var(--akb-line);
+  background: var(--ifm-background-color);
+  color: var(--akb-ink);
+  border-radius: 20px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.choices button:hover {
+  border-color: var(--akb-accent);
+}
+
+.counter {
+  font-size: 0.9rem;
+  color: var(--akb-muted);
+  margin-top: 10px;
+}
