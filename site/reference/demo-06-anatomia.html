@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anatomía de un test · Demo con actividades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6F8FB; --paper:#FFFFFF; --ink:#1B2230; --muted:#5A6474; --line:#DCE2EA;
+  --accent:#0E7C66; --accent-tint:rgba(14,124,102,.09); --err:#C2412D; --err-tint:rgba(194,65,45,.09);
+  --warn:#8A5D00; --warn-tint:rgba(178,124,0,.11); --panel:#F2F7F5; --note:#FFF8E6; --note-line:#E9D49A;
+  --code-bg:#12161C; --code-ink:#E3E8EF; --code-line:#262D38; --code-muted:#7C8796;
+  --t-kw:#F49AC1; --t-str:#9FE0A7; --t-num:#F8C27A; --t-fn:#8AC7FF; --t-type:#7FE0D3; --t-com:#7C8796;
+  --app-side:#1E2A3B; --app-side-ink:#E4EAF3; --app-main:#FFFFFF; --app-ink:#1B2230; --app-line:#E1E6EE; --app-blue:#2F6BDE;
+  color-scheme:light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1318; --paper:#161B22; --ink:#E6EBF1; --muted:#9BA6B4; --line:#2A323D;
+    --accent:#3FC5A6; --accent-tint:rgba(63,197,166,.12); --err:#FF8A75; --err-tint:rgba(255,138,117,.12);
+    --warn:#E8B44C; --warn-tint:rgba(232,180,76,.13); --panel:#152024; --note:#211D12; --note-line:#5A4A22;
+    --code-bg:#0B0E13; --code-line:#222935;
+    --app-side:#121A26; --app-main:#1A212B; --app-ink:#E6EBF1; --app-line:#2C3542; --app-blue:#6E9BFF;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1318; --paper:#161B22; --ink:#E6EBF1; --muted:#9BA6B4; --line:#2A323D;
+  --accent:#3FC5A6; --accent-tint:rgba(63,197,166,.12); --err:#FF8A75; --err-tint:rgba(255,138,117,.12);
+  --warn:#E8B44C; --warn-tint:rgba(232,180,76,.13); --panel:#152024; --note:#211D12; --note-line:#5A4A22;
+  --code-bg:#0B0E13; --code-line:#222935;
+  --app-side:#121A26; --app-main:#1A212B; --app-ink:#E6EBF1; --app-line:#2C3542; --app-blue:#6E9BFF;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif; font-size:18px; line-height:1.6}
+code,pre,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+a{color:var(--accent)}
+button{font:inherit}
+
+.topbar{position:sticky; top:env(safe-area-inset-top,0px); z-index:10; background:var(--paper); border-bottom:1px solid var(--line)}
+body::before{content:""; position:fixed; inset:0 0 auto; height:env(safe-area-inset-top,0px); z-index:10; background:var(--paper)}
+.topbar-in{max-width:880px; margin:0 auto; padding:10px 20px; display:flex; align-items:center; gap:16px; font-size:.88rem; color:var(--muted)}
+.topbar-in strong{color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.track{flex:1; height:6px; border-radius:3px; background:var(--line); overflow:hidden; min-width:60px}
+.track span{display:block; height:100%; width:0; background:var(--accent); transition:width .35s}
+
+article{max-width:880px; margin:0 auto; padding:40px 20px 80px}
+.prose{max-width:66ch}
+h1{font-size:clamp(2rem,4.6vw,2.9rem); line-height:1.08; letter-spacing:-.02em; margin:0 0 14px}
+h2{font-size:1.45rem; margin:56px 0 10px; line-height:1.25}
+h2 .num{color:var(--muted); font-weight:400; margin-right:6px}
+.lede{font-size:1.15rem; color:var(--muted); margin:0 0 18px}
+p{margin:0 0 14px}
+p code, li code, td code, .need code, .consigna code, .fb code, summary code{font-size:.84em; background:var(--accent-tint); padding:1px 5px; border-radius:4px; overflow-wrap:anywhere}
+ol.steps, ul.plain{margin:0 0 16px; padding-left:24px}
+ol.steps li, ul.plain li{margin-bottom:6px}
+.outcomes{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:14px 18px; margin:0 0 8px}
+.outcomes strong{display:block; margin-bottom:4px}
+.outcomes ul{margin:0; padding-left:20px}
+
+pre.code{background:var(--code-bg); color:var(--code-ink); border-radius:10px; padding:16px 18px; font-size:.84rem; line-height:1.65; overflow-x:auto; margin:16px 0 22px}
+.t-kw{color:var(--t-kw)} .t-str{color:var(--t-str)} .t-num{color:var(--t-num)} .t-fn{color:var(--t-fn)} .t-type{color:var(--t-type)} .t-com{color:var(--t-com); font-style:italic}
+
+/* Tablas de referencia */
+.tablewrap{overflow-x:auto; margin:12px 0 20px}
+table.ref{border-collapse:collapse; width:100%; font-size:.92rem; background:var(--paper); border:1px solid var(--line); border-radius:8px}
+table.ref th, table.ref td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+table.ref th{font-size:.82rem; color:var(--muted)}
+table.ref td:first-child{white-space:nowrap}
+.compare{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:12px 0 20px}
+.compare > div{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--paper); font-size:.94rem}
+.compare .bad-h{color:var(--err); font-weight:700}
+.compare .good-h{color:var(--accent); font-weight:700}
+.compare pre.code{margin:8px 0; font-size:.78rem; padding:10px 12px}
+
+/* App simulada */
+.appdemo{margin:18px 0 10px}
+.modebar{display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap}
+.modebar button{border:1px solid var(--line); background:var(--paper); color:var(--ink); border-radius:20px; padding:6px 14px; cursor:pointer; font-size:.9rem}
+.modebar button[aria-pressed="true"]{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+.appframe{border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--app-main)}
+.appscroll{overflow-x:auto}
+.app{display:grid; grid-template-columns:220px 1fr; min-width:620px; min-height:330px; color:var(--app-ink); font-size:.9rem}
+.app aside{background:var(--app-side); color:var(--app-side-ink); padding:16px 14px}
+.app aside .lbl{font-size:.74rem; text-transform:uppercase; letter-spacing:.06em; opacity:.7; margin:0}
+.app aside .bal{font-size:1.25rem; font-weight:700; margin:2px 0 16px}
+.app aside h4{font-size:.8rem; margin:14px 0 6px; opacity:.8; font-weight:700}
+.app aside button.asset{display:block; width:100%; text-align:left; background:rgba(255,255,255,.06); color:inherit; border:1px solid transparent; border-radius:6px; padding:7px 9px; margin-bottom:5px; cursor:pointer; font-size:.86rem}
+.app aside button.asset.sel{border-color:#6E9BFF; background:rgba(110,155,255,.16)}
+.app main{padding:18px 20px}
+.app main h3{margin:0 0 4px; font-size:1.1rem}
+.app .muted{color:var(--muted); font-size:.85rem}
+.app .chart{height:120px; border-radius:8px; margin-top:12px; background:linear-gradient(135deg, rgba(47,107,222,.15), rgba(14,124,102,.15)); display:flex; align-items:flex-end; gap:6px; padding:12px}
+.app .chart i{flex:1; background:var(--app-blue); opacity:.55; border-radius:3px 3px 0 0; display:block}
+.app .detail p{margin:6px 0}
+.app .tx{display:flex; gap:10px; align-items:center; margin-top:14px; flex-wrap:wrap}
+.app .tx label{font-size:.85rem; font-weight:700}
+.app .tx input{width:80px; font:inherit; padding:5px 8px; border:1px solid var(--app-line); border-radius:6px; background:var(--app-main); color:var(--app-ink)}
+.app .tx button{font:inherit; font-size:.86rem; background:var(--app-blue); color:#fff; border:0; border-radius:6px; padding:6px 12px; cursor:pointer}
+.app .msg{margin-top:10px; font-size:.86rem; font-weight:700; color:var(--app-blue); min-height:1.3em}
+.inspect [data-po]{outline:2px dashed var(--accent); outline-offset:2px; cursor:help}
+.inspect [data-po].picked{outline-style:solid; outline-width:3px}
+.poinfo{margin-top:10px; border:1px solid var(--line); border-left:4px solid var(--accent); background:var(--paper); border-radius:8px; padding:12px 16px; font-size:.95rem}
+.poinfo h4{margin:0 0 6px; font-size:1rem}
+.poinfo pre.code{margin:8px 0; font-size:.78rem; padding:10px 12px}
+
+/* Actividad */
+.activity{background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:10px; padding:20px 20px 18px; margin:26px 0 34px}
+.act-head{display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap}
+.act-head h3{margin:0; font-size:1.18rem}
+.kind{font-size:.82rem; color:var(--muted)}
+.status{font-size:.82rem; font-weight:700; color:var(--accent); display:none}
+.activity.done .status{display:inline}
+.goal{margin:8px 0 12px; font-size:.98rem}
+.need{background:var(--note); border:1px solid var(--note-line); border-radius:8px; padding:10px 14px; font-size:.95rem; margin-bottom:12px}
+.need > strong{display:block; margin-bottom:4px}
+.need ul{margin:0; padding-left:20px}
+.need li{margin-bottom:4px}
+details.tools{background:var(--paper); border:1px solid var(--line); border-radius:8px; margin-bottom:14px; font-size:.92rem}
+details.tools summary{cursor:pointer; padding:9px 14px; font-weight:700}
+details.tools .tablewrap{margin:0 12px 12px}
+.consigna{margin:4px 0 14px; font-size:1rem}
+.consigna strong{color:var(--accent)}
+.btnrow{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; align-items:center}
+.btn{border:1px solid var(--accent); background:var(--accent); color:#fff; font-weight:700; font-size:.92rem; padding:8px 16px; border-radius:7px; cursor:pointer}
+:root[data-theme="dark"] .btn{color:#0B1A16}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#0B1A16}}
+.btn.ghost{background:transparent; color:var(--accent)}
+.fb{margin-top:14px; padding:10px 14px; border-radius:8px; font-size:.95rem; display:none}
+.fb.show{display:block}
+.fb.ok{background:var(--accent-tint); border-left:3px solid var(--accent)}
+.fb.err{background:var(--err-tint); border-left:3px solid var(--err)}
+.fb.warn{background:var(--warn-tint); border-left:3px solid var(--warn)}
+.fb ul{margin:6px 0 0; padding-left:20px}
+.fb pre.code{margin:10px 0 0}
+
+.order{list-style:none; margin:0; padding:0}
+.order li{display:grid; grid-template-columns:22px minmax(0,1fr) auto; align-items:center; gap:8px; background:var(--code-bg); color:var(--code-ink); border:1px solid var(--code-line); border-radius:8px; padding:6px 8px 6px 10px; margin-bottom:6px; cursor:grab}
+.order li.dragging{opacity:.4}
+.order li.over{outline:2px dashed var(--accent)}
+.order li.ok{border-color:var(--accent); box-shadow:inset 3px 0 0 var(--accent)}
+.order li.bad{border-color:var(--err); box-shadow:inset 3px 0 0 var(--err)}
+.grip{color:var(--code-muted); user-select:none}
+.order .what{display:block; font-family:"Atkinson Hyperlegible",system-ui,sans-serif; font-size:.88rem; color:#C9D3E0}
+.order .code-line{display:block; overflow-x:auto; white-space:pre; font-size:.8rem; color:var(--code-muted); padding:2px 0}
+.mv{display:flex; gap:4px}
+.mv button{background:#222935; color:var(--code-ink); border:0; border-radius:5px; width:32px; height:30px; cursor:pointer}
+.mv button:disabled{opacity:.3; cursor:default}
+
+.lines{background:var(--code-bg); border-radius:10px; padding:10px 0; overflow-x:auto}
+.lines button{display:block; min-width:100%; width:max-content; text-align:left; background:none; border:0; color:var(--code-ink); font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.82rem; line-height:1.6; padding:2px 16px 2px 12px; white-space:pre; cursor:pointer; border-left:3px solid transparent}
+.lines button:hover{background:#1C222C}
+.lines button.hit{background:rgba(63,197,166,.16); border-left-color:var(--accent)}
+.lines button.miss{background:rgba(255,138,117,.14); border-left-color:var(--err)}
+.lines .ln{color:var(--code-muted); display:inline-block; width:2.2em; user-select:none}
+.lines.console button{font-size:.78rem}
+.counter{font-size:.9rem; color:var(--muted); margin-top:10px}
+.classify{margin-top:12px; background:var(--paper); border:1px solid var(--line); border-radius:8px; padding:12px 14px}
+.classify .cl-line{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.8rem; background:var(--code-bg); color:var(--code-ink); padding:6px 10px; border-radius:6px; overflow-x:auto; white-space:pre; margin:8px 0 10px}
+.classify .choices{display:flex; flex-wrap:wrap; gap:8px}
+.classify .choices button{border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:20px; padding:6px 14px; cursor:pointer; font-size:.9rem}
+.classify .choices button:hover{border-color:var(--accent)}
+.lines button.current{background:#202838; border-left-color:#8AC7FF}
+.lines button.cleared{border-left-color:var(--code-muted); color:var(--code-muted)}
+
+.editor{position:relative; background:var(--code-bg); border-radius:10px; border:1px solid var(--code-line)}
+.editor pre, .editor textarea{margin:0; padding:14px 16px; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.82rem; line-height:1.65; white-space:pre; tab-size:2; letter-spacing:0; word-spacing:0}
+.editor pre{color:var(--code-ink); overflow:hidden}
+.editor pre .row{display:block; width:max-content; min-width:calc(100% + 32px); margin:0 -16px; padding:0 16px}
+.editor pre .row.mark{background:rgba(232,180,76,.17); box-shadow:inset 3px 0 0 #E8B44C}
+.marklegend{display:inline-block; width:12px; height:12px; border-radius:2px; background:rgba(232,180,76,.35); border-left:3px solid #E8B44C; vertical-align:-1px; margin-right:4px}
+.editor textarea{position:absolute; inset:0; width:100%; height:100%; color:transparent; background:transparent; caret-color:#fff; border:0; resize:none; outline:none; overflow:auto}
+.editor textarea::selection{background:rgba(138,199,255,.35)}
+.editor:focus-within{outline:3px solid var(--accent); outline-offset:2px}
+.rules{list-style:none; padding:0; margin:14px 0 0; font-size:.95rem}
+.rules li{display:grid; grid-template-columns:24px 1fr; gap:6px; padding:4px 0}
+.rules li::before{content:"○"; color:var(--muted)}
+.rules li.pass::before{content:"✓"; color:var(--accent); font-weight:700}
+.rules li.pass{color:var(--muted)}
+
+.fill input{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.82rem; background:#222935; color:#fff; border:1px solid #3A4454; border-radius:4px; padding:1px 5px; margin:0 1px}
+.fill input::placeholder{color:#8D99AA}
+.fill input.ok{border-color:var(--accent); background:rgba(63,197,166,.18)}
+.fill input.bad{border-color:var(--err); background:rgba(255,138,117,.16)}
+.blanks{list-style:none; margin:0; padding:0; counter-reset:b}
+.blanks li{counter-increment:b; display:grid; grid-template-columns:30px 1fr; gap:6px; padding:6px 0; border-top:1px solid var(--line); font-size:.95rem}
+.blanks li::before{content:"[" counter(b) "]"; font-family:"JetBrains Mono",monospace; font-size:.82rem; color:var(--muted); padding-top:2px}
+.blanks .hintbtn{background:none; border:0; color:var(--accent); text-decoration:underline; cursor:pointer; padding:0; font-size:.88rem}
+.blanks .hinttext{display:block; color:var(--muted); font-size:.9rem; margin-top:2px}
+
+.anatomy{list-style:none; margin:12px 0 18px; padding:0; counter-reset:a}
+.anatomy li{counter-increment:a; display:grid; grid-template-columns:32px 1fr; gap:8px; margin-bottom:8px}
+.anatomy li::before{content:counter(a); width:24px; height:24px; border-radius:50%; background:var(--ink); color:var(--paper); font-size:.8rem; font-weight:700; display:grid; place-items:center; margin-top:2px}
+
+.opts{display:grid; gap:8px}
+.opt{display:block; text-align:left; background:var(--paper); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:10px 14px; cursor:pointer; font-size:.98rem}
+.opt:hover{border-color:var(--accent)}
+.opt.right{border-color:var(--accent); background:var(--accent-tint)}
+.opt.wrong{border-color:var(--err); background:var(--err-tint)}
+.opt .why{display:block; font-size:.9rem; color:var(--muted); margin-top:4px}
+.q + .q{margin-top:22px}
+.q-title{font-weight:700; margin-bottom:10px}
+.step-q{margin-bottom:12px; font-weight:700}
+.hidden{display:none !important}
+
+.endnav{border-top:1px solid var(--line); margin-top:56px; padding-top:20px; font-size:.98rem}
+.reset{background:none; border:0; color:var(--muted); text-decoration:underline; cursor:pointer; padding:0; font-size:.88rem; margin-top:14px}
+@media (max-width:640px){ body{font-size:17px} .activity{padding:16px 14px} .compare{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-in">
+  <strong>06 · Anatomía de un test</strong>
+  <span class="track" aria-hidden="true"><span id="bar"></span></span>
+  <span id="bar-text">0 de 6 actividades</span>
+</div></div>
+
+<article>
+  <h1>Anatomía de un test</h1>
+  <p class="lede prose">Vas a tomar un caso de prueba que ya sabés ejecutar a mano, comprar una unidad de un activo, y ver cómo se convierte en un test automatizado claro, estable y fácil de diagnosticar cuando falla.</p>
+  <div class="outcomes prose">
+    <strong>Al terminar vas a poder:</strong>
+    <ul>
+      <li>Traducir un caso manual a un test con la estructura Arrange, Act, Assert.</li>
+      <li>Escribir asserts que no se rompan cuando cambian los datos.</li>
+      <li>Usar <code>test.step</code>, tags y el matcher correcto según el dato.</li>
+      <li>Leer un error de Playwright y saber qué pasó.</li>
+    </ul>
+  </div>
+  <p class="muted" style="color:var(--muted); font-size:.92rem">Unos 20 minutos. Las actividades se guardan en tu navegador.</p>
+
+  <!-- ============ 1. EL ESCENARIO ============ -->
+  <h2><span class="num">1</span>El escenario: comprar una unidad</h2>
+  <div class="prose">
+    <p>Todos los ejemplos de la knowledge base usan "Show me the money!", una app de inversiones. A la izquierda tiene la caja de ahorro con tu saldo, los activos que ya tenés (<strong>Mi portfolio</strong>) y los que podés comprar (<strong>Inversiones disponibles</strong>). Al elegir un activo, el panel principal muestra su detalle y te deja comprar o vender.</p>
+    <p>Si tuvieras que probar la compra a mano, tu caso de prueba sería este:</p>
+    <ol class="steps">
+      <li>Entrar a la app.</li>
+      <li>En Mi portfolio, seleccionar <strong>Ternium Argentina</strong>.</li>
+      <li>Anotar cuántas unidades tenés en "Cantidad adquirida".</li>
+      <li>Escribir 1 en el campo Comprar.</li>
+      <li>Hacer click en <strong>Realizar compra</strong> y esperar a que termine la operación.</li>
+      <li><strong>Resultado esperado:</strong> la cantidad adquirida es la que anotaste más 1.</li>
+    </ol>
+    <p>Probalo en esta versión simplificada de la app. Fijate que el paso 3 es clave: sin anotar el valor de antes, no tenés contra qué comparar el de después.</p>
+  </div>
+
+  <div class="appdemo" id="appdemo">
+    <div class="modebar" role="group" aria-label="Modo de la app">
+      <button type="button" data-mode="use" aria-pressed="true">Usar la app</button>
+      <button type="button" data-mode="inspect" aria-pressed="false">Ver qué hay detrás (Page Object)</button>
+    </div>
+    <div class="appframe"><div class="appscroll"><div class="app" id="app"></div></div></div>
+    <div class="poinfo hidden" id="poinfo" aria-live="polite"></div>
+  </div>
+
+  <!-- ============ 2. PAGE OBJECT ============ -->
+  <h2><span class="num">2</span>Quién habla con la pantalla: la Page Object</h2>
+  <div class="prose">
+    <p>Un test no busca botones ni lee textos por su cuenta. Todo lo que tiene que ver con la pantalla vive en una clase llamada <strong>Page Object</strong>. Para esta pantalla es <code>PortfolioPage</code>, en <code>project/pages/PortfolioPage.ts</code>.</p>
+    <p>La Page Object ofrece dos tipos de cosas. Los <strong>locators</strong> le dicen a Playwright cómo encontrar un elemento, por ejemplo el botón de Ternium. Los <strong>métodos</strong> hacen una acción completa o leen un dato y lo devuelven listo para usar: <code>getUnitsOwned()</code> lee el texto "Cantidad adquirida: 10 unidades" y te devuelve el número <code>10</code>.</p>
+    <p>Así el test queda corto y legible, y si mañana cambia la pantalla, se corrige un solo lugar. Cambiá la app de arriba al modo <strong>Ver qué hay detrás</strong> y hacé click en los elementos marcados para ver qué parte de <code>PortfolioPage</code> los maneja.</p>
+    <p>Estos son los que vas a usar en las actividades:</p>
+  </div>
+  <div class="tablewrap" id="po-table"></div>
+
+  <!-- ============ 3. AAA ============ -->
+  <h2><span class="num">3</span>Arrange, Act, Assert</h2>
+  <div class="prose">
+    <p>Un test automatizado tiene las mismas tres partes que tu caso manual, conocidas como <strong>AAA</strong>:</p>
+    <ul class="plain">
+      <li><strong>Arrange (preparar):</strong> todo lo necesario para poder hacer la acción. En el caso manual, los pasos 1 a 3. Anotar las unidades de antes también es preparación: es el punto de partida contra el que vas a comparar.</li>
+      <li><strong>Act (actuar):</strong> la acción que querés probar. Pasos 4 y 5: la compra.</li>
+      <li><strong>Assert (verificar):</strong> comparar el resultado con lo esperado. Paso 6.</li>
+    </ul>
+    <p>Si un test no se puede dividir así de limpio, casi siempre está probando más de una cosa y conviene separarlo en dos.</p>
+  </div>
+
+  <section class="activity" id="act-order" aria-labelledby="t-order">
+    <div class="act-head"><h3 id="t-order">Traducí el caso manual a código</h3><span><span class="kind">Ordenar</span> <span class="status">· Completada</span></span></div>
+    <p class="goal"><strong>Qué practicás:</strong> reconocer que cada paso manual es una línea del test y que el orden importa.</p>
+    <div class="need"><strong>Lo que necesitás saber</strong>
+      <ul>
+        <li>Primero se crea la Page Object (<code>new PortfolioPage(page)</code>): sin ella, el test no tiene cómo hablar con la pantalla.</li>
+        <li>Cada una de las otras líneas corresponde a un paso del caso manual de la sección 1.</li>
+      </ul>
+    </div>
+    <p class="consigna"><strong>Tu tarea:</strong> estas son las líneas del test, mezcladas. Cada una dice en lenguaje común qué hace. Ordenalas arrastrándolas o con las flechas, siguiendo el caso manual.</p>
+    <ol class="order" id="order-list"></ol>
+    <div class="btnrow"><button class="btn" id="order-check">Comprobar orden</button></div>
+    <div class="fb" id="order-fb" role="status"></div>
+  </section>
+
+  <!-- ============ 4. ASSERTS ============ -->
+  <h2><span class="num">4</span>Qué hace bueno a un assert</h2>
+  <div class="prose">
+    <p>El assert es la verificación: <code>expect(valorReal).toBe(valorEsperado)</code>. Si no coinciden, el test falla. Que exista no alcanza; tiene que estar bien armado. Estas tres reglas son las que vas a aplicar en las próximas actividades.</p>
+    <p><strong>Regla 1. El test no toca la pantalla directamente.</strong> Si necesitás un dato de la pantalla, se lo pedís a la Page Object. Si el test busca elementos por su cuenta, el día que cambie la pantalla hay que arreglar cada test en lugar de un solo lugar.</p>
+    <p><strong>Regla 2. El test no calcula.</strong> Sacar palabras de un texto, convertirlo a número o sumar montos es trabajo de la Page Object. El test solo compara.</p>
+    <p><strong>Regla 3. Se compara contra un valor calculado, nunca contra un número fijo.</strong> Si hoy tenés 10 unidades y escribís <code>toBe(11)</code>, el test pasa una vez. Mañana, con 11 unidades, falla aunque la app funcione bien. Por eso se lee <code>unitsBefore</code> antes de comprar y se compara contra <code>unitsBefore + 1</code>.</p>
+  </div>
+  <div class="compare">
+    <div><span class="bad-h">Así no</span><pre class="code" data-hl>const texto = await page.locator('p', { hasText: 'Cantidad adquirida' }).textContent();
+const unidades = parseInt(texto.replace('Cantidad adquirida: ', ''));
+expect(unidades).toBe(11);</pre>Rompe las tres reglas: busca el elemento, parsea el texto y usa un número fijo.</div>
+    <div><span class="good-h">Así sí</span><pre class="code" data-hl>// antes de comprar
+const unitsBefore = await portfolioPage.getUnitsOwned();
+// después de comprar
+expect(await portfolioPage.getUnitsOwned()).toBe(unitsBefore + 1);</pre>La Page Object busca y convierte; el test solo compara contra el punto de partida.</div>
+  </div>
+
+  <section class="activity" id="act-find" aria-labelledby="t-find">
+    <div class="act-head"><h3 id="t-find">Encontrá los tres problemas</h3><span><span class="kind">Buscar en el código</span> <span class="status">· Completada</span></span></div>
+    <p class="goal"><strong>Qué practicás:</strong> revisar un test línea por línea y decidir, para cada una, si respeta las reglas de la sección 4.</p>
+    <div class="need"><strong>Lo que necesitás saber</strong>
+      <ul>
+        <li><strong>Regla 1:</strong> el test no busca elementos por su cuenta con <code>page.…</code>; usa los locators y métodos de la Page Object.</li>
+        <li><strong>Regla 2:</strong> el test no convierte ni parsea textos; eso lo hacen los métodos <code>get…()</code> de la Page Object.</li>
+        <li><strong>Regla 3:</strong> el resultado se compara contra un valor calculado a partir del estado de antes, nunca contra un número fijo.</li>
+        <li>Para saber si algo ya existe en la Page Object, revisá la tabla de abajo. Ojo: no todo lo que parece sospechoso está mal.</li>
+      </ul>
+    </div>
+    <details class="tools"><summary>Métodos de <code>PortfolioPage</code> disponibles</summary><div class="tablewrap" data-po-table></div></details>
+    <p class="consigna"><strong>Tu tarea:</strong> este test compra una unidad y verifica unidades y saldo. Pasa hoy, pero tres de sus líneas rompen alguna regla. Hacé click en una línea que te parezca sospechosa y decí qué regla rompe, o si está bien.</p>
+    <div class="lines" id="find-lines"></div>
+    <div class="classify hidden" id="find-classify"></div>
+    <div class="counter" id="find-counter"></div>
+    <div class="fb" id="find-fb" role="status"></div>
+  </section>
+
+  <section class="activity" id="act-fix" aria-labelledby="t-fix">
+    <div class="act-head"><h3 id="t-fix">Corregí el test</h3><span><span class="kind">Escribir código</span> <span class="status">· Completada</span></span></div>
+    <p class="goal"><strong>Qué practicás:</strong> corregir el test del ejercicio anterior para que respete las tres reglas.</p>
+    <div class="need"><strong>Lo que necesitás saber</strong>
+      <ul>
+        <li>Vas a corregir las tres líneas que encontraste. El resto del test ya está bien: lee <code>balanceBefore</code>, <code>unitsBefore</code> y <code>precio</code> antes de comprar.</li>
+        <li>Para el botón de Ternium, la Page Object ya tiene un locator. Se usa así: <code>await portfolioPage.terniumArgentinaButton.click();</code></li>
+        <li>Para el saldo, <code>getSavingsBalance()</code> devuelve el número ya convertido, y <code>getExpectedBalanceAfterPurchase(balanceBefore, 1, precio)</code> calcula cuánto debería quedar.</li>
+        <li>Como el saldo tiene decimales, se compara con <code>toBeCloseTo(valor, 2)</code> en lugar de <code>toBe</code>. Lo explicamos en detalle en la sección 5.</li>
+      </ul>
+    </div>
+    <details class="tools"><summary>Métodos de <code>PortfolioPage</code> disponibles</summary><div class="tablewrap" data-po-table></div></details>
+    <p class="consigna"><strong>Tu tarea:</strong> editá el código. Las líneas resaltadas (<span class="marklegend" aria-hidden="true"></span>) son las tres que encontraste en el ejercicio anterior; el resaltado desaparece cuando la línea ya no rompe ninguna regla. Las reglas de abajo se van tildando a medida que las cumplís.</p>
+    <div class="editor" id="fix-editor"><pre aria-hidden="true"></pre><textarea spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Código del test a corregir"></textarea></div>
+    <ul class="rules" id="fix-rules"></ul>
+    <div class="btnrow"><button class="btn ghost" id="fix-hint">Ver una pista</button><button class="btn ghost" id="fix-sol">Ver solución</button><button class="btn ghost" id="fix-reset">Volver al código original</button></div>
+    <div class="fb" id="fix-fb" role="status"></div>
+  </section>
+
+  <!-- ============ 5. SUITE REAL ============ -->
+  <h2><span class="num">5</span>Lo que agrega una suite real</h2>
+  <div class="prose">
+    <p>El test que corregiste funciona, pero en el proyecto real cada test lleva tres cosas más. Así se ven:</p>
+  </div>
+  <pre class="code" data-hl>test.describe('Portfolio @portfolio', () => {                         // (a) grupo con tag de feature
+  test('buy asset increases units @smoke @p0 @portfolio', async ({ page }) => {   // (b) título + tags
+    const portfolioPage = new PortfolioPage(page);
+
+    await test.step('1- User navigates to the app', async () => {      // (c) paso con nombre
+      await portfolioPage.navigate();
+    });
+    // ...
+  });
+});</pre>
+  <div class="tablewrap"><table class="ref">
+    <thead><tr><th>Qué</th><th>Para qué sirve</th></tr></thead>
+    <tbody>
+      <tr><td>(a) <code>test.describe</code> con <code>@portfolio</code></td><td>Agrupa todos los tests de una pantalla. El tag <code>@portfolio</code> permite correr solo esos tests: <code>npx playwright test --grep @portfolio</code>.</td></tr>
+      <tr><td>(b) Título + tags</td><td>El título es una oración que dice qué verifica. Los tags indican importancia: <code>@smoke</code> se corre en cada cambio, <code>@p0</code> es prioridad máxima.</td></tr>
+      <tr><td>(c) <code>test.step('N- ...')</code></td><td>Envuelve cada paso con un nombre numerado. Si el test falla, el reporte dice "falló en el paso 4" en lugar de mostrar solo una línea de código.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="prose">
+    <p>Y un detalle sobre los matchers, la función que compara después de <code>expect</code>. <code>toBe()</code> exige igualdad exacta, perfecto para contar unidades. Pero el saldo tiene decimales, y las computadoras redondean los decimales de forma imperfecta: <code>0.1 + 0.2</code> da <code>0.30000000000000004</code>. Para montos se usa <code>toBeCloseTo(valor, 2)</code>, que compara hasta 2 decimales.</p>
+  </div>
+
+  <section class="activity" id="act-fill" aria-labelledby="t-fill">
+    <div class="act-head"><h3 id="t-fill">Completá el test de la suite</h3><span><span class="kind">Escribir código</span> <span class="status">· Completada</span></span></div>
+    <p class="goal"><strong>Qué practicás:</strong> aplicar las convenciones de la sección 5 y el matcher correcto para cada dato.</p>
+    <div class="need"><strong>Lo que necesitás saber</strong>
+      <ul>
+        <li>En el Arrange (que acá está resumido en un comentario) ya se leyeron <code>unitsBefore</code> y <code>expectedBalance</code>, el saldo que debería quedar después de comprar.</li>
+        <li>Cada hueco tiene un número entre corchetes. Abajo del código está qué va en cada uno; si te trabás, abrí la pista de ese hueco.</li>
+      </ul>
+    </div>
+    <p class="consigna"><strong>Tu tarea:</strong> escribí en cada hueco lo que corresponde y apretá Comprobar.</p>
+    <pre class="code fill" id="fill-code"></pre>
+    <ol class="blanks" id="fill-blanks"></ol>
+    <div class="btnrow"><button class="btn" id="fill-check">Comprobar</button><button class="btn ghost" id="fill-sol">Ver solución</button></div>
+    <div class="fb" id="fill-fb" role="status"></div>
+  </section>
+
+  <!-- ============ 6. LEER UN ERROR ============ -->
+  <h2><span class="num">6</span>Cómo leer un error de Playwright</h2>
+  <div class="prose">
+    <p>Cuando un test falla en la terminal, Playwright muestra siempre la misma estructura. Leerla en este orden te dice qué pasó sin abrir el código:</p>
+  </div>
+  <ol class="anatomy prose">
+    <li><span><strong>La línea con ✘:</strong> qué test falló, en qué archivo y en qué navegador.</span></li>
+    <li><span><strong>La línea <code>Error:</code></strong> qué tipo de verificación falló, por ejemplo <code>toBe</code>. Si dice <code>Timeout</code>, el problema fue que no encontró un elemento a tiempo.</span></li>
+    <li><span><strong><code>Expected</code> y <code>Received</code>:</strong> lo que esperaba el test y lo que realmente devolvió la app. Si el test usaba un cálculo como <code>unitsBefore + 1</code>, acá ves el resultado ya calculado.</span></li>
+    <li><span><strong>El fragmento de código:</strong> la línea marcada con <code>&gt;</code> es la que falló, y las de alrededor muestran el contexto, incluido el <code>test.step</code> donde estaba.</span></li>
+  </ol>
+
+  <section class="activity" id="act-console" aria-labelledby="t-console">
+    <div class="act-head"><h3 id="t-console">Diagnosticá el test que falló</h3><span><span class="kind">Buscar en la consola</span> <span class="status">· Completada</span></span></div>
+    <p class="goal"><strong>Qué practicás:</strong> encontrar en la salida de la terminal la información que necesitás para reportar o investigar una falla.</p>
+    <div class="need"><strong>Lo que necesitás saber</strong>
+      <ul>
+        <li>Corriste el test de compra de la sección 5 y falló. Antes de comprar, la cuenta tenía 10 unidades de Ternium.</li>
+        <li>Usá los cuatro puntos de la sección 6 como guía para recorrer la salida.</li>
+      </ul>
+    </div>
+    <p class="consigna"><strong>Tu tarea:</strong> respondé las preguntas haciendo click en la línea de la salida que contiene la respuesta.</p>
+    <div class="step-q" id="console-q"></div>
+    <div class="lines console" id="console-lines"></div>
+    <div class="fb" id="console-fb" role="status"></div>
+    <div class="hidden" id="console-mc">
+      <div class="q-title" style="margin-top:18px">3. Con lo que encontraste: ¿qué pasó?</div>
+      <div class="opts" id="console-opts"></div>
+    </div>
+  </section>
+
+  <!-- ============ CIERRE ============ -->
+  <h2><span class="num">7</span>Repaso</h2>
+  <section class="activity" id="act-quiz" aria-labelledby="t-quiz">
+    <div class="act-head"><h3 id="t-quiz">Comprobá lo que aprendiste</h3><span><span class="kind">Elegir la opción</span> <span class="status">· Completada</span></span></div>
+    <p class="goal"><strong>Qué practicás:</strong> aplicar lo visto a situaciones nuevas. Cada respuesta explica el porqué y te indica en qué sección repasarlo.</p>
+    <div id="quiz"></div>
+  </section>
+
+  <div class="endnav prose">
+    <p>Para seguir: leé la <a href="https://github.com/walter-scv/AutomationKB/blob/main/docs/best-practices/06-anatomia-de-un-test.md" target="_blank" rel="noopener">entrada completa</a> y el <a href="https://github.com/walter-scv/AutomationKB/blob/main/project/tests/portfolio/portfolio.spec.ts" target="_blank" rel="noopener">test real en portfolio.spec.ts</a>. La próxima entrada es <a href="https://github.com/walter-scv/AutomationKB/blob/main/docs/best-practices/07-centralizando-selectores.md" target="_blank" rel="noopener">Centralizando los selectores</a>.</p>
+    <button class="reset" id="reset">Reiniciar mi progreso</button>
+  </div>
+</article>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const KW = new Set(["const", "let", "await", "async", "new", "return", "import", "from", "export", "class", "readonly", "if", "else", "true", "false"]);
+function hlLine(s) {
+  const re = /(\/\/.*)|('(?:[^'\\]|\\.)*'?|"(?:[^"\\]|\\.)*"?|`(?:[^`\\]|\\.)*`?)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_$][\w$]*)/g;
+  let out = "", last = 0, m;
+  while ((m = re.exec(s))) {
+    out += esc(s.slice(last, m.index));
+    const t = m[0];
+    if (m[1]) out += `<span class="t-com">${esc(t)}</span>`;
+    else if (m[2]) out += `<span class="t-str">${esc(t)}</span>`;
+    else if (m[3]) out += `<span class="t-num">${esc(t)}</span>`;
+    else if (KW.has(t)) out += `<span class="t-kw">${t}</span>`;
+    else if (/^\s*\(/.test(s.slice(re.lastIndex))) out += `<span class="t-fn">${t}</span>`;
+    else if (/^[A-Z]/.test(t)) out += `<span class="t-type">${t}</span>`;
+    else out += esc(t);
+    last = re.lastIndex;
+  }
+  return out + esc(s.slice(last));
+}
+const hl = code => code.split("\n").map(hlLine).join("\n");
+document.querySelectorAll("pre[data-hl]").forEach(p => { p.innerHTML = hl(p.textContent); });
+
+/* ---------- Referencia de PortfolioPage ---------- */
+const PO_ROWS = [
+  ["navigate()", "Abre la app y espera a que termine de cargar.", "nada"],
+  ["terniumArgentinaButton", "Locator del botón Ternium Argentina en Mi portfolio. Se usa con <code>.click()</code>.", "un locator"],
+  ["getUnitsOwned()", "Lee \"Cantidad adquirida: 10 unidades\" y devuelve solo el número.", "<code>10</code>"],
+  ["getSavingsBalance()", "Lee el saldo \"$ 42.000,00\" y lo devuelve como número.", "<code>42000</code>"],
+  ["fillComprar(cantidad)", "Escribe la cantidad en el campo Comprar.", "nada"],
+  ["clickRealizarCompra()", "Hace click en Realizar compra y espera a que la operación termine.", "nada"],
+  ["getAssetPrice()", "Lee la cotización del activo seleccionado y la devuelve como número.", "<code>126.25</code>"],
+  ["getExpectedBalanceAfterPurchase(saldo, unidades, precio)", "Calcula cuánto debería quedar de saldo después de comprar.", "un número"],
+  ["detailCantidadAdquirida", "Locator del párrafo \"Cantidad adquirida\" del panel de detalle.", "un locator"],
+  ["savingsBalance", "Locator del saldo de la caja de ahorro.", "un locator"]
+];
+const poTable = `<table class="ref"><thead><tr><th>Miembro de PortfolioPage</th><th>Qué hace</th><th>Devuelve</th></tr></thead><tbody>${
+  PO_ROWS.map(r => `<tr><td><code>${r[0]}</code></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("")}</tbody></table>
+  <p style="font-size:.88rem;color:var(--muted);margin:8px 0 0">Los métodos que interactúan con la pantalla se llaman con <code>await</code> delante: <code>await portfolioPage.navigate();</code></p>`;
+$("#po-table").innerHTML = poTable;
+document.querySelectorAll("[data-po-table]").forEach(el => el.innerHTML = poTable);
+
+/* ---------- App simulada ---------- */
+const fmt = n => { const [i, d] = Math.abs(n).toFixed(2).split("."); return "$ " + i.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "," + d; };
+const ASSETS = {
+  ternium: { name: "Ternium Argentina", price: 126.25, units: 10 },
+  tgn: { name: "Transportadora Gas del Norte", price: 980.5, units: 5 },
+  macro: { name: "Banco Macro", price: 2150, units: 0 }
+};
+let balance = 42000, selected = null, mode = "use", busy = false, msg = "", picked = null;
+const PO_INFO = {
+  balance: { t: "savingsBalance y getSavingsBalance()", c: "this.savingsBalance = page.getByRole('complementary').locator('p').nth(1);",
+    d: "El locator apunta al segundo párrafo de la barra lateral, donde está el saldo. <code>getSavingsBalance()</code> lee ese texto (\"$ 42.000,00\") y lo devuelve como el número <code>42000</code>, listo para comparar." },
+  ternium: { t: "terniumArgentinaButton", c: "this.terniumArgentinaButton = page.getByRole('button', { name: 'Ternium Argentina' }).first();",
+    d: "Es el botón del activo en Mi portfolio. En el test se usa así: <code>await portfolioPage.terniumArgentinaButton.click();</code>. Lleva <code>.first()</code> porque hay otro botón con el mismo nombre más abajo." },
+  terniumAvail: { t: "El otro botón \"Ternium Argentina\"", c: "page.getByRole('button', { name: 'Ternium Argentina' })  // encuentra 2 botones",
+    d: "Este botón tiene el mismo nombre que el de Mi portfolio. Por eso <code>terniumArgentinaButton</code> necesita <code>.first()</code>: sin eso, el locator encuentra dos botones y Playwright no sabe a cuál hacer click." },
+  cantidad: { t: "detailCantidadAdquirida y getUnitsOwned()", c: "this.detailCantidadAdquirida = page.locator('p', { hasText: /Cantidad adquirida/ });",
+    d: "El locator encuentra el párrafo \"Cantidad adquirida: 10 unidades\". <code>getUnitsOwned()</code> lee ese texto, le saca las palabras y devuelve el número <code>10</code>. Por eso el test nunca tiene que parsear nada." },
+  cotizacion: { t: "detailCotizacion y getAssetPrice()", c: "this.detailCotizacion = page.locator('p', { hasText: /Cotización:/ });",
+    d: "<code>getAssetPrice()</code> lee \"Cotización: $ 126,25 / unidad\" y devuelve <code>126.25</code>. Se usa para calcular cuánto debería bajar el saldo." },
+  comprar: { t: "comprarSpinbutton y fillComprar(cantidad)", c: "this.comprarSpinbutton = page.getByRole('spinbutton').first();",
+    d: "Es el campo donde se escribe cuántas unidades comprar. <code>fillComprar(1)</code> lo vacía y escribe la cantidad tecla por tecla, porque este campo solo reacciona a teclas reales." },
+  realizar: { t: "realizarCompraButton y clickRealizarCompra()", c: "this.realizarCompraButton = page.getByRole('button', { name: 'Realizar compra' });",
+    d: "<code>clickRealizarCompra()</code> hace click y además espera a que aparezcan y desaparezcan los mensajes \"Operación en proceso\" y \"Operación realizada\". Cuando termina, la compra ya impactó y el test puede leer los valores nuevos." }
+};
+function renderApp() {
+  const a = selected && ASSETS[selected];
+  const btn = (key, po, extra = "") => `<button type="button" class="asset ${selected === key ? "sel" : ""}" data-asset="${key}" ${po ? `data-po="${po}"` : ""} ${extra}>${ASSETS[key].name}</button>`;
+  $("#app").innerHTML = `
+    <aside>
+      <p class="lbl">Caja de ahorro</p>
+      <p class="bal" data-po="balance">${fmt(balance)}</p>
+      <h4>Mi portfolio</h4>
+      ${btn("ternium", "ternium")}${btn("tgn")}
+      <h4>Inversiones disponibles</h4>
+      ${btn("ternium", "terniumAvail")}${btn("macro")}
+    </aside>
+    <main>${a ? `
+      <div class="detail">
+        <h3>${a.name}</h3>
+        <p data-po="cotizacion"><strong>Cotización:</strong> ${fmt(a.price)} / unidad</p>
+        <p data-po="cantidad"><strong>Cantidad adquirida:</strong> ${a.units} unidades</p>
+        <p><strong>Valor total:</strong> ${fmt(a.units * a.price)}</p>
+        <div class="tx">
+          <label for="qty">Comprar</label>
+          <input id="qty" type="number" min="0" value="0" data-po="comprar" ${busy ? "disabled" : ""}>
+          <button type="button" id="buy" data-po="realizar" ${busy ? "disabled" : ""}>Realizar compra</button>
+        </div>
+        <div class="msg">${msg}</div>
+      </div>` : `
+      <h3>Valor total cartera</h3>
+      <p class="muted">Elegí un activo de la izquierda para ver su detalle.</p>
+      <div class="chart" aria-hidden="true"><i style="height:40%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:70%"></i><i style="height:62%"></i><i style="height:85%"></i></div>`}
+    </main>`;
+  $("#app").classList.toggle("inspect", mode === "inspect");
+  if (picked) { const el = $(`#app [data-po="${picked}"]`); if (el) el.classList.add("picked"); }
+}
+function showInfo(key) {
+  const i = PO_INFO[key]; picked = key;
+  $("#poinfo").innerHTML = `<h4>${i.t}</h4><pre class="code">${hl(i.c)}</pre><div>${i.d}</div>`;
+  $("#poinfo").classList.remove("hidden"); renderApp();
+}
+$("#app").addEventListener("click", e => {
+  if (mode === "inspect") {
+    const el = e.target.closest("[data-po]");
+    if (el) { e.preventDefault(); showInfo(el.dataset.po); }
+    return;
+  }
+  const asset = e.target.closest("[data-asset]");
+  if (asset && !busy) { selected = asset.dataset.asset; msg = ""; renderApp(); return; }
+  if (e.target.closest("#buy") && !busy) {
+    const q = parseInt($("#qty").value, 10) || 0, a = ASSETS[selected];
+    if (q <= 0) { msg = "Ingresá una cantidad mayor a 0."; renderApp(); return; }
+    if (q * a.price > balance) { msg = "Saldo insuficiente."; renderApp(); return; }
+    busy = true; msg = "Operación en proceso..."; renderApp();
+    setTimeout(() => { msg = "Operación realizada"; a.units += q; balance -= q * a.price; renderApp(); }, 800);
+    setTimeout(() => { busy = false; msg = ""; renderApp(); }, 1700);
+  }
+});
+$("#appdemo .modebar").addEventListener("click", e => {
+  const b = e.target.closest("[data-mode]"); if (!b) return;
+  mode = b.dataset.mode;
+  document.querySelectorAll("#appdemo .modebar button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  if (mode === "inspect") {
+    if (!selected) selected = "ternium";
+    $("#poinfo").innerHTML = "<div>Hacé click en cualquier elemento con borde punteado.</div>";
+    $("#poinfo").classList.remove("hidden");
+  } else { picked = null; $("#poinfo").classList.add("hidden"); }
+  renderApp();
+});
+renderApp();
+
+/* ---------- Progreso ---------- */
+const KEY = "kb:06-anatomia-v2";
+const ACTS = ["order", "find", "fix", "fill", "console", "quiz"];
+let done = {};
+try { done = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {} };
+function markDone(id) { done[id] = true; save(); renderProgress(); }
+function renderProgress() {
+  const n = ACTS.filter(a => done[a]).length;
+  $("#bar").style.width = (n / ACTS.length * 100) + "%";
+  $("#bar-text").textContent = n + " de " + ACTS.length + " actividades";
+  ACTS.forEach(a => $("#act-" + a).classList.toggle("done", !!done[a]));
+}
+function fb(id, kind, html) { const f = $(id); f.className = "fb show " + kind; f.innerHTML = html; }
+
+/* ==================== 1. ORDENAR ==================== */
+const ORDER = {
+  A: ["Crea la Page Object para poder hablar con la pantalla", "const portfolioPage = new PortfolioPage(page);"],
+  B: ["Entra a la app", "await portfolioPage.navigate();"],
+  C: ["Selecciona Ternium Argentina en Mi portfolio", "await portfolioPage.terniumArgentinaButton.click();"],
+  D: ["Anota cuántas unidades hay ahora", "const unitsBefore = await portfolioPage.getUnitsOwned();"],
+  E: ["Escribe 1 en el campo Comprar", "await portfolioPage.fillComprar(1);"],
+  F: ["Confirma la compra y espera a que termine", "await portfolioPage.clickRealizarCompra();"],
+  G: ["Verifica que haya una unidad más que antes", "expect(await portfolioPage.getUnitsOwned()).toBe(unitsBefore + 1);"]
+};
+const ORDER_RIGHT = ["A", "B", "C", "D", "E", "F", "G"];
+const ORDER_RULES = [
+  ["A", "B", "La Page Object se crea primero: todas las demás líneas la usan (<code>portfolioPage.…</code>)."],
+  ["B", "C", "Para seleccionar Ternium primero hay que estar en la app (paso 1 del caso manual)."],
+  ["C", "D", "\"Cantidad adquirida\" aparece en el panel de detalle, que se abre recién al seleccionar el activo."],
+  ["D", "E", "Las unidades se anotan antes de comprar. Si se leen después, ya incluyen la compra y no hay punto de partida."],
+  ["E", "F", "Como en el caso manual: primero se escribe la cantidad y después se confirma."],
+  ["F", "G", "La verificación va al final: compara el resultado de la compra, que tiene que haber ocurrido."]
+];
+let order = ["D", "F", "A", "G", "C", "E", "B"], dragFrom = null;
+function renderOrder(marks) {
+  $("#order-list").innerHTML = order.map((id, i) => `
+    <li draggable="true" data-i="${i}" class="${marks ? (marks[i] ? "ok" : "bad") : ""}">
+      <span class="grip" aria-hidden="true">⋮⋮</span>
+      <span><span class="what">${ORDER[id][0]}</span><span class="code-line">${hlLine(ORDER[id][1])}</span></span>
+      <span class="mv">
+        <button type="button" data-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Subir: ${ORDER[id][0]}">↑</button>
+        <button type="button" data-down="${i}" ${i === order.length - 1 ? "disabled" : ""} aria-label="Bajar: ${ORDER[id][0]}">↓</button>
+      </span>
+    </li>`).join("");
+}
+const move = (f, t) => { const [x] = order.splice(f, 1); order.splice(t, 0, x); };
+$("#order-list").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.up !== undefined) { const i = +b.dataset.up; move(i, i - 1); renderOrder(); ($(`#order-list [data-up="${i - 1}"]`) || $(`#order-list [data-down="${i - 1}"]`)).focus(); }
+  if (b.dataset.down !== undefined) { const i = +b.dataset.down; move(i, i + 1); renderOrder(); ($(`#order-list [data-down="${i + 1}"]`) || $(`#order-list [data-up="${i + 1}"]`)).focus(); }
+  $("#order-fb").className = "fb";
+});
+$("#order-list").addEventListener("dragstart", e => { const li = e.target.closest("li"); dragFrom = +li.dataset.i; li.classList.add("dragging"); });
+$("#order-list").addEventListener("dragover", e => { e.preventDefault(); document.querySelectorAll(".order li.over").forEach(x => x.classList.remove("over")); const li = e.target.closest("li"); if (li) li.classList.add("over"); });
+$("#order-list").addEventListener("drop", e => { e.preventDefault(); const li = e.target.closest("li"); if (li && dragFrom !== null) move(dragFrom, +li.dataset.i); dragFrom = null; renderOrder(); $("#order-fb").className = "fb"; });
+$("#order-list").addEventListener("dragend", () => { dragFrom = null; renderOrder(); });
+$("#order-check").addEventListener("click", () => {
+  renderOrder(order.map((id, i) => ORDER_RIGHT[i] === id));
+  const broken = ORDER_RULES.filter(([a, b]) => order.indexOf(a) > order.indexOf(b));
+  if (!broken.length) {
+    fb("#order-fb", "ok", "<strong>Correcto.</strong> Así queda el test, con sus tres partes marcadas. Fijate que el Arrange ocupa cuatro líneas, igual que los pasos 1 a 3 del caso manual:<pre class=\"code\">" + hl(
+`// ARRANGE
+const portfolioPage = new PortfolioPage(page);
+await portfolioPage.navigate();
+await portfolioPage.terniumArgentinaButton.click();
+const unitsBefore = await portfolioPage.getUnitsOwned();
+
+// ACT
+await portfolioPage.fillComprar(1);
+await portfolioPage.clickRealizarCompra();
+
+// ASSERT
+expect(await portfolioPage.getUnitsOwned()).toBe(unitsBefore + 1);`) + "</pre>");
+    markDone("order");
+  } else {
+    fb("#order-fb", "err", "<strong>Todavía no.</strong> Las líneas en rojo no están en su lugar. Revisá esto:<ul>" + broken.slice(0, 2).map(r => "<li>" + r[2] + "</li>").join("") + "</ul>");
+  }
+});
+renderOrder();
+
+/* ==================== 2. ENCONTRÁ ==================== */
+const BAD_TEST = [
+  { c: "test('compra de una unidad', async ({ page }) => {", rule: 0, why: "Es la declaración del test. No rompe ninguna regla (los tags los vemos en la sección 5)." },
+  { c: "  const portfolioPage = new PortfolioPage(page);", rule: 0, why: "Crear la Page Object es justamente lo que permite cumplir la regla 1." },
+  { c: "  await portfolioPage.navigate();", rule: 0, why: "Entra a la app con un método de la Page Object. Correcto." },
+  { c: "  const balanceBefore = await portfolioPage.getSavingsBalance();", rule: 0, why: "Anota el saldo de antes con un método de la Page Object, que ya lo devuelve como número. Puede leerse antes de seleccionar el activo porque el saldo siempre está visible en la barra lateral." },
+  { c: "  await page.getByRole('button', { name: 'Ternium Argentina' }).first().click();", rule: 1, why: "Rompe la <strong>regla 1</strong>: arma su propio locator con <code>page.getByRole(...)</code>. La Page Object ya tiene <code>terniumArgentinaButton</code>, con el mismo <code>.first()</code> incluido. Si mañana cambia el botón, este test queda roto aunque la Page Object esté actualizada.", hint: "Fijate cómo empieza la línea: ¿usa <code>portfolioPage</code> o <code>page</code>? Buscá en la tabla si la Page Object ya tiene algo para ese botón." },
+  { c: "  await expect(portfolioPage.detailCantidadAdquirida).toBeVisible();", rule: 0, why: "Parece sospechosa porque usa un locator dentro de un <code>expect</code>, pero está bien: el locator viene de la Page Object (regla 1) y verifica que el panel de detalle apareció antes de leer las unidades. Es una verificación de precondición." },
+  { c: "  const unitsBefore = await portfolioPage.getUnitsOwned();", rule: 0, why: "Anota las unidades de antes, después de seleccionar el activo y antes de comprar. Es el punto de partida que pide la regla 3." },
+  { c: "  const precio = await portfolioPage.getAssetPrice();", rule: 0, why: "Lee la cotización con un método de la Page Object, ya convertida a número. Correcto." },
+  { c: "  await portfolioPage.fillComprar(1);", rule: 0, why: "Escribe la cantidad con un método de la Page Object. Correcto." },
+  { c: "  await portfolioPage.clickRealizarCompra();", rule: 0, why: "Confirma la compra y espera a que termine. Correcto." },
+  { c: "  expect(await portfolioPage.getUnitsOwned()).toBe(unitsBefore + 1);", rule: 0, why: "El <code>+ 1</code> puede parecer un cálculo prohibido, pero no rompe la regla 2: no convierte ningún texto, solo arma el valor esperado a partir del punto de partida. Es exactamente lo que pide la regla 3." },
+  { c: "  const saldo = Number((await portfolioPage.savingsBalance.textContent()).replace(/[$.\\s]/g, '').replace(',', '.'));", rule: 2, why: "Rompe la <strong>regla 2</strong>: toma el texto del saldo y lo convierte a número con <code>replace</code> y <code>Number</code>. Eso ya lo hace <code>getSavingsBalance()</code>, que el test incluso usó en la línea 4. Como usa un locator de la Page Object, la regla 1 no la rompe.", hint: "Usa un locator de la Page Object (<code>portfolioPage.savingsBalance</code>), así que no es la regla 1. Mirá qué hace con el texto que obtiene." },
+  { c: "  expect(saldo).toBe(41873.75);", rule: 3, why: "Rompe la <strong>regla 3</strong>: <code>41873.75</code> es el saldo que quedó hoy. Con otro saldo inicial, el test falla aunque la compra funcione. El test ya tiene <code>balanceBefore</code> y <code>precio</code> para calcular el valor esperado. Además, por tener decimales, debería usar <code>toBeCloseTo</code>.", hint: "Preguntate: ¿este número seguiría siendo correcto mañana, si la cuenta arranca con otro saldo?" },
+  { c: "});", rule: 0, why: "Es el cierre del test." }
+];
+const findAns = {}; let findCur = null;
+const findFound = () => Object.keys(findAns).filter(i => BAD_TEST[i].rule && findAns[i] === BAD_TEST[i].rule).length;
+function renderFind() {
+  $("#find-lines").innerHTML = BAD_TEST.map((l, i) => {
+    let cls = "";
+    if (findAns[i] !== undefined) cls = l.rule ? "hit" : "cleared";
+    else if (i === findCur) cls = "current";
+    return `<button type="button" data-i="${i}" class="${cls}"><span class="ln">${i + 1}</span>${hlLine(l.c)}</button>`;
+  }).join("");
+  $("#find-counter").textContent = findFound() + " de 3 problemas encontrados";
+}
+function renderClassify() {
+  const box = $("#find-classify");
+  if (findCur === null) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+  const l = BAD_TEST[findCur];
+  box.classList.remove("hidden");
+  box.innerHTML = `<strong>Línea ${findCur + 1}: ¿rompe alguna regla?</strong><div class="cl-line">${hlLine(l.c.trim())}</div><div class="choices">${[1, 2, 3, 0].map(r => `<button type="button" data-r="${r}">${r ? "Rompe la regla " + r : "Está bien"}</button>`).join("")}</div>`;
+}
+$("#find-lines").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const i = +b.dataset.i;
+  if (findAns[i] !== undefined) { const l = BAD_TEST[i]; fb("#find-fb", l.rule ? "ok" : "warn", `<strong>Línea ${i + 1}:</strong> ${l.why}`); return; }
+  findCur = i; $("#find-fb").className = "fb"; renderFind(); renderClassify();
+  $("#find-classify .choices button").focus();
+});
+$("#find-classify").addEventListener("click", e => {
+  const b = e.target.closest("[data-r]"); if (!b || findCur === null) return;
+  const r = +b.dataset.r, i = findCur, l = BAD_TEST[i];
+  if (r === l.rule) {
+    findAns[i] = r;
+    fb("#find-fb", "ok", `<strong>Línea ${i + 1}: correcto${l.rule ? "" : ", está bien"}.</strong> ${l.why}`);
+  } else if (l.rule === 0) {
+    findAns[i] = 0;
+    fb("#find-fb", "warn", `<strong>Línea ${i + 1}: en realidad está bien.</strong> ${l.why}`);
+  } else {
+    fb("#find-fb", "err", (r === 0 ? "<strong>Mirá de nuevo:</strong> esta línea sí rompe una regla. " : `<strong>Rompe una regla, pero no la ${r}.</strong> `) + l.hint);
+    return;
+  }
+  findCur = null; renderClassify(); renderFind();
+  if (findFound() === 3) {
+    markDone("find");
+    $("#find-fb").innerHTML += "<br><br><strong>Encontraste los tres problemas.</strong> En la próxima actividad vas a corregirlos.";
+  }
+  $(`#find-lines [data-i="${i}"]`).focus();
+});
+renderFind();
+
+/* ==================== 3. CORREGÍ ==================== */
+const FIX_START = BAD_TEST.map(l => l.c).join("\n");
+const FIX_SOLUTION = `test('compra de una unidad', async ({ page }) => {
+  const portfolioPage = new PortfolioPage(page);
+  await portfolioPage.navigate();
+  const balanceBefore = await portfolioPage.getSavingsBalance();
+  await portfolioPage.terniumArgentinaButton.click();
+  await expect(portfolioPage.detailCantidadAdquirida).toBeVisible();
+  const unitsBefore = await portfolioPage.getUnitsOwned();
+  const precio = await portfolioPage.getAssetPrice();
+  await portfolioPage.fillComprar(1);
+  await portfolioPage.clickRealizarCompra();
+  expect(await portfolioPage.getUnitsOwned()).toBe(unitsBefore + 1);
+  const expectedBalance = portfolioPage.getExpectedBalanceAfterPurchase(balanceBefore, 1, precio);
+  expect(await portfolioPage.getSavingsBalance()).toBeCloseTo(expectedBalance, 2);
+});`;
+const strip = s => s.replace(/\/\/.*$/gm, "");
+const after = (c, re, ref) => { const m = re.exec(c), r = c.search(ref); return !!m && r > -1 && m.index > r; };
+const FIX_RULES = [
+  { t: "Sigue haciendo la compra: <code>fillComprar(1)</code> y <code>clickRealizarCompra()</code>.", f: c => /fillComprar\(\s*1\s*\)/.test(c) && /clickRealizarCompra\(\s*\)/.test(c) },
+  { t: "Selecciona Ternium con el locator de la Page Object: <code>portfolioPage.terniumArgentinaButton.click()</code>.", f: c => /portfolioPage\.terniumArgentinaButton\.click\(\s*\)/.test(c) },
+  { t: "Regla 1: no busca elementos por su cuenta (sin <code>page.locator</code> ni <code>page.getBy…</code>).", f: c => !/\bpage\s*\.\s*(locator|getBy\w+)\s*\(/.test(c) },
+  { t: "Regla 2: no convierte textos (sin <code>textContent</code>, <code>replace</code>, <code>Number</code> ni <code>parse…</code>).", f: c => !/parseInt|parseFloat|Number\(|\.replace\(|textContent\(/.test(c) },
+  { t: "Mantiene la verificación de unidades: <code>toBe(unitsBefore + 1)</code> después de comprar.", f: c => after(c, /expect\(\s*await\s+portfolioPage\.getUnitsOwned\(\s*\)\s*\)\s*\.toBe\(\s*unitsBefore\s*\+\s*1\s*\)/, /clickRealizarCompra\(/) },
+  { t: "Regla 3: calcula el saldo esperado con <code>getExpectedBalanceAfterPurchase(balanceBefore, 1, precio)</code>.", f: c => /getExpectedBalanceAfterPurchase\(\s*balanceBefore\s*,\s*1\s*,\s*precio\s*\)/.test(c) },
+  { t: "Compara <code>getSavingsBalance()</code> contra ese valor con <code>toBeCloseTo(…, 2)</code>, después de comprar.", f: c => after(c, /expect\(\s*await\s+portfolioPage\.getSavingsBalance\(\s*\)\s*\)\s*\.toBeCloseTo\([^;]*,\s*2\s*\)/, /clickRealizarCompra\(/) },
+  { t: "No queda ningún número fijo en los asserts, como <code>toBe(41873.75)</code>.", f: c => !/toBe(?:CloseTo)?\(\s*\d/.test(c) }
+];
+const FIX_HINTS = [
+  "Línea 5: reemplazala por <code>await portfolioPage.terniumArgentinaButton.click();</code>",
+  "Línea 12: borrala. El saldo ya convertido lo da <code>getSavingsBalance()</code>, que podés usar directamente en el assert.",
+  "Línea 13: calculá el esperado con <code>const expectedBalance = portfolioPage.getExpectedBalanceAfterPurchase(balanceBefore, 1, precio);</code> y compará con <code>expect(await portfolioPage.getSavingsBalance()).toBeCloseTo(expectedBalance, 2);</code>"
+];
+let hintN = 0;
+const ta = $("#fix-editor textarea"), pre = $("#fix-editor pre");
+const MARK = [/\bpage\s*\.\s*(locator|getBy\w+)\s*\(/, /textContent\(|\.replace\(|Number\(|parse(?:Int|Float)\(/, /toBe(?:CloseTo)?\(\s*\d/];
+function paint() {
+  pre.innerHTML = ta.value.split("\n").map(l => `<span class="row${MARK.some(r => r.test(strip(l))) ? " mark" : ""}">${hlLine(l) || " "}</span>`).join("") + '<span class="row"> </span>';
+  pre.scrollLeft = ta.scrollLeft;
+}
+function checkFix() {
+  const c = strip(ta.value), res = FIX_RULES.map(r => r.f(c));
+  $("#fix-rules").innerHTML = FIX_RULES.map((r, i) => `<li class="${res[i] ? "pass" : ""}"><span>${r.t}</span></li>`).join("");
+  if (res.every(Boolean)) {
+    if (!done.fix) markDone("fix");
+    fb("#fix-fb", "ok", "<strong>Listo, el test quedó bien.</strong> Ahora todo lo que toca la pantalla pasa por la Page Object, el test no convierte textos y tanto las unidades como el saldo se comparan contra valores calculados a partir del estado de antes. Funciona con cualquier saldo y cualquier cantidad inicial.");
+  } else if ($("#fix-fb").classList.contains("ok")) $("#fix-fb").className = "fb";
+}
+ta.value = FIX_START;
+ta.addEventListener("input", () => { paint(); checkFix(); });
+ta.addEventListener("scroll", () => { pre.scrollLeft = ta.scrollLeft; });
+ta.addEventListener("keydown", e => { if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); ta.setRangeText("  ", ta.selectionStart, ta.selectionEnd, "end"); paint(); checkFix(); } });
+$("#fix-hint").addEventListener("click", () => {
+  fb("#fix-fb", "warn", `<strong>Pista ${hintN + 1} de ${FIX_HINTS.length}:</strong> ${FIX_HINTS[hintN]}`);
+  hintN = Math.min(hintN + 1, FIX_HINTS.length - 1);
+  $("#fix-hint").textContent = "Ver otra pista";
+});
+$("#fix-sol").addEventListener("click", () => fb("#fix-fb", "warn", "<strong>Una solución posible:</strong><pre class=\"code\">" + hl(FIX_SOLUTION) + "</pre>"));
+$("#fix-reset").addEventListener("click", () => { ta.value = FIX_START; paint(); checkFix(); $("#fix-fb").className = "fb"; hintN = 0; $("#fix-hint").textContent = "Ver una pista"; });
+paint(); checkFix();
+
+/* ==================== 4. COMPLETÁ ==================== */
+const FILL_TEMPLATE = `test.describe('Portfolio {{tag}}', () => {
+  test('buy asset increases units and decreases balance @smoke @p0 @portfolio', async ({ page }) => {
+    const portfolioPage = new PortfolioPage(page);
+    // ARRANGE: navegar, seleccionar Ternium y leer unitsBefore y expectedBalance
+
+    // ACT
+    await test.{{step}}('3- User enters quantity 1 and clicks Realizar compra', async () => {
+      await portfolioPage.fillComprar(1);
+      await portfolioPage.clickRealizarCompra();
+    });
+
+    // ASSERT
+    await test.step('4- Validate units and balance', async () => {
+      expect(await portfolioPage.getUnitsOwned()).toBe({{units}});
+      expect(await portfolioPage.getSavingsBalance()).{{matcher}}(expectedBalance, 2);
+    });
+  });
+});`;
+const BLANKS = [
+  { id: "tag", a: ["@portfolio"], what: "El tag de feature del grupo, para poder correr solo los tests de esta pantalla.", hint: "Es el mismo tag que aparece al final del título del test. Empieza con @." },
+  { id: "step", a: ["step"], what: "La función de <code>test</code> que crea un paso con nombre en el reporte.", hint: "Mirá el paso 4 más abajo: usa la misma función." },
+  { id: "units", a: ["unitsBefore+1", "1+unitsBefore"], what: "Cuántas unidades debería haber después de comprar una.", hint: "Regla 3: el punto de partida que anotaste en el Arrange, más la unidad comprada." },
+  { id: "matcher", a: ["toBeCloseTo"], what: "El matcher para comparar el saldo, que tiene decimales.", hint: "No es toBe. Es el que compara hasta una cantidad de decimales (el 2 que sigue)." }
+];
+(function () {
+  const marked = FILL_TEMPLATE.replace(/\{\{(\w+)\}\}/g, "\u0001$1\u0002");
+  $("#fill-code").innerHTML = hl(marked).replace(/\u0001(\w+)\u0002/g, (_, id) => {
+    const n = BLANKS.findIndex(b => b.id === id), b = BLANKS[n];
+    return `<input type="text" data-b="${n}" placeholder="[${n + 1}]" size="${Math.max(6, b.a[0].length + 2)}" aria-label="Hueco ${n + 1}: ${b.what.replace(/<[^>]+>/g, "")}" autocomplete="off" autocapitalize="off" spellcheck="false">`;
+  });
+  $("#fill-blanks").innerHTML = BLANKS.map((b, n) => `<li><span>${b.what} <button type="button" class="hintbtn" data-h="${n}">Ver pista</button><span class="hinttext hidden" id="h-${n}">${b.hint}</span></span></li>`).join("");
+})();
+$("#fill-blanks").addEventListener("click", e => { const b = e.target.closest("[data-h]"); if (b) { $("#h-" + b.dataset.h).classList.remove("hidden"); b.remove(); } });
+$("#fill-check").addEventListener("click", () => {
+  const wrong = [];
+  document.querySelectorAll("#fill-code input").forEach(inp => {
+    const n = +inp.dataset.b, b = BLANKS[n], ok = b.a.includes(inp.value.replace(/\s+/g, ""));
+    inp.classList.toggle("ok", ok); inp.classList.toggle("bad", !ok);
+    if (!ok) wrong.push(`<li>Hueco [${n + 1}]: ${b.hint}</li>`);
+  });
+  if (!wrong.length) { fb("#fill-fb", "ok", "<strong>Perfecto.</strong> Este test se puede correr con <code>--grep @portfolio</code>, se lee paso a paso en el reporte y compara cada dato con el matcher adecuado."); markDone("fill"); }
+  else fb("#fill-fb", "err", "<strong>Revisá los huecos en rojo.</strong><ul>" + wrong.join("") + "</ul>");
+});
+$("#fill-sol").addEventListener("click", () => {
+  document.querySelectorAll("#fill-code input").forEach(inp => { const a = BLANKS[+inp.dataset.b].a[0]; inp.value = a === "unitsBefore+1" ? "unitsBefore + 1" : a; inp.classList.remove("bad"); });
+  fb("#fill-fb", "warn", "Completé los huecos con la solución. Apretá <strong>Comprobar</strong> para verlos validados.");
+});
+
+/* ==================== 5. CONSOLA ==================== */
+const CONSOLE = [
+  { t: "Running 1 test using 1 worker" }, { t: "" },
+  { t: "  ✘  1 [chromium] › tests/portfolio/portfolio.spec.ts:42:7 › Portfolio @portfolio › buy asset increases units and decreases balance (8.4s)", id: "test" },
+  { t: "" },
+  { t: "    Error: expect(received).toBe(expected) // Object.is equality", id: "matcher" }, { t: "" },
+  { t: "    Expected: 11", id: "expected" },
+  { t: "    Received: 10", id: "received" }, { t: "" },
+  { t: "      67 |" },
+  { t: "      68 |     await test.step('4- Validate units and balance', async () => {", id: "step" },
+  { t: "    > 69 |       expect(await portfolioPage.getUnitsOwned()).toBe(unitsBefore + 1);", id: "line" },
+  { t: "         |                                                    ^" },
+  { t: "      70 |       expect(await portfolioPage.getSavingsBalance()).toBeCloseTo(expectedBalance, 2);" },
+  { t: "" }, { t: "        at tests/portfolio/portfolio.spec.ts:69:52" }, { t: "" }, { t: "  1 failed" }
+];
+const CONSOLE_QS = [
+  { q: "1. ¿En qué paso del test ocurrió la falla? Hacé click en la línea que lo dice.", want: "step",
+    ok: "Exacto: la línea que falló está dentro de <code>test.step('4- Validate units and balance')</code>. Es la ventaja de nombrar los pasos (sección 5): en el reporte vas a ver ese mismo paso marcado en rojo.",
+    hints: { line: "Esa es la línea exacta que falló (la marcada con &gt;). Buscás el paso que la contiene: está un poco más arriba en el fragmento de código.", test: "Esa línea dice qué test falló, no en qué paso. Mirá el fragmento de código (punto 4 de la sección 6).", matcher: "Esa línea dice qué tipo de verificación falló. El paso está en el fragmento de código." } },
+  { q: "2. ¿Cuántas unidades tenía realmente la cuenta después de la compra? Hacé click en la línea con ese valor.", want: "received",
+    ok: "Bien: <code>Received</code> es lo que devolvió la app. <code>Expected: 11</code> es lo que esperaba el test, o sea <code>unitsBefore + 1</code> ya calculado.",
+    hints: { expected: "Esa es la que esperaba el test. Lo que devolvió la app está en la línea de abajo (punto 3 de la sección 6)." } }
+];
+let cStep = 0; const cMarks = {};
+function renderConsole() {
+  $("#console-q").textContent = cStep < CONSOLE_QS.length ? CONSOLE_QS[cStep].q : "";
+  $("#console-lines").innerHTML = CONSOLE.map((l, i) => `<button type="button" data-i="${i}" class="${cMarks[i] || ""}">${esc(l.t) || " "}</button>`).join("");
+}
+$("#console-lines").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b || cStep >= CONSOLE_QS.length) return;
+  const i = +b.dataset.i, l = CONSOLE[i], q = CONSOLE_QS[cStep];
+  if (l.id === q.want) { cMarks[i] = "hit"; fb("#console-fb", "ok", q.ok); cStep++; if (cStep === CONSOLE_QS.length) $("#console-mc").classList.remove("hidden"); }
+  else {
+    cMarks[i] = "miss";
+    fb("#console-fb", "err", (l.id && q.hints[l.id]) || "Esa línea no tiene la respuesta. Recorré la salida con los cuatro puntos de la sección 6.");
+    setTimeout(() => { if (cMarks[i] === "miss") { delete cMarks[i]; renderConsole(); } }, 1600);
+  }
+  renderConsole();
+});
+const CONSOLE_MC = [
+  ["La compra no sumó la unidad: la cuenta quedó con las mismas 10 unidades que tenía antes.", true, "Correcto. Antes había 10, el test esperaba 11 y la app devolvió 10. Puede ser un bug de la app o que la compra no se haya confirmado; el siguiente paso es abrir el trace para ver qué mostraba la pantalla."],
+  ["El test tiene un número fijo: el 11.", false, "No: el test usa <code>unitsBefore + 1</code>, que es correcto (regla 3). Playwright muestra el resultado ya calculado. Repasá el punto 3 de la sección 6."],
+  ["No se encontró el elemento de Cantidad adquirida.", false, "Si no hubiera encontrado el elemento, la línea de error diría <code>Timeout</code> y no habría un valor recibido. Repasá el punto 2 de la sección 6."],
+  ["Falló la verificación del saldo.", false, "La línea marcada con &gt; es la 69, la de unidades. Cuando un expect falla, el test se detiene ahí: la línea 70, la del saldo, no llegó a ejecutarse."]
+];
+$("#console-opts").innerHTML = CONSOLE_MC.map((o, i) => `<button type="button" class="opt" data-i="${i}">${o[0]}<span class="why hidden">${o[2]}</span></button>`).join("");
+$("#console-opts").addEventListener("click", e => {
+  const b = e.target.closest(".opt"); if (!b) return;
+  const o = CONSOLE_MC[+b.dataset.i];
+  b.classList.add(o[1] ? "right" : "wrong"); b.querySelector(".why").classList.remove("hidden");
+  if (o[1]) markDone("console");
+});
+renderConsole();
+
+/* ==================== 6. QUIZ ==================== */
+const QUIZ = [
+  { q: "Un compañero escribió un test que compra Ternium, después vende Transportadora Gas del Norte, y verifica las dos cosas al final. ¿Qué le sugerís?", o: [
+    ["Separarlo en dos tests: uno para la compra y otro para la venta.", true, "Exacto. Tiene dos acciones (dos Act) con sus resultados. Si falla, no sabés cuál de las dos se rompió. Sección 3."],
+    ["Agregarle comentarios ARRANGE, ACT y ASSERT.", false, "Los comentarios ayudan a leerlo, pero no resuelven que esté probando dos cosas a la vez. Sección 3."],
+    ["Envolver cada parte en un test.step.", false, "Los pasos ordenan el reporte, pero el test seguiría probando dos acciones distintas. Sección 3."]] },
+  { q: "Tenés que verificar que el saldo bajó lo correcto después de una compra. ¿Qué matcher usás?", o: [
+    ["toBe(expectedBalance)", false, "El saldo tiene decimales y toBe exige igualdad exacta: puede fallar por un error de redondeo aunque el cálculo esté bien. Sección 5."],
+    ["toBeCloseTo(expectedBalance, 2)", true, "Correcto: compara hasta 2 decimales, tolera el redondeo y sigue detectando un error real de cálculo. Sección 5."],
+    ["toBe(41873.75)", false, "Además del problema de decimales, es un número fijo que solo vale para el saldo de hoy (regla 3). Sección 4."]] },
+  { q: "En un test ves: const precio = parseFloat(texto.replace('$', '')). ¿Qué está mal?", o: [
+    ["Nada, es la forma correcta de leer un precio.", false, "Funciona, pero rompe la regla 2: el test no debería convertir textos. Sección 4."],
+    ["El test está calculando: esa conversión tiene que estar en la Page Object.", true, "Exacto, regla 2. De hecho PortfolioPage ya tiene getAssetPrice(), que hace esa conversión. Sección 4."],
+    ["Falta un await delante de parseFloat.", false, "parseFloat no interactúa con la pantalla, así que no necesita await. El problema es otro: regla 2 de la sección 4."]] }
+];
+const quizRight = new Set();
+$("#quiz").innerHTML = QUIZ.map((q, qi) => `<div class="q"><div class="q-title">${esc(q.q)}</div><div class="opts">${q.o.map((o, oi) =>
+  `<button type="button" class="opt" data-q="${qi}" data-o="${oi}">${esc(o[0])}<span class="why hidden">${esc(o[2])}</span></button>`).join("")}</div></div>`).join("");
+$("#quiz").addEventListener("click", e => {
+  const b = e.target.closest(".opt"); if (!b) return;
+  const o = QUIZ[+b.dataset.q].o[+b.dataset.o];
+  b.classList.add(o[1] ? "right" : "wrong"); b.querySelector(".why").classList.remove("hidden");
+  if (o[1]) quizRight.add(+b.dataset.q);
+  if (quizRight.size === QUIZ.length) markDone("quiz");
+});
+
+$("#reset").addEventListener("click", () => { done = {}; save(); location.reload(); });
+renderProgress();
+</script>
+</body>
+</html>

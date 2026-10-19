@@ -1,0 +1,131 @@
+---
+title: ¿Qué es automatizar, y qué no resuelve?
+sidebar_position: 1
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  FIRST_LINES, FIRST_RULE_LABELS,
+  WORTH_IT_LINES, WORTH_IT_RULE_LABELS,
+  LESSON_01_QUIZ,
+} from '@site/src/content/lessons/01-que-es-automatizar';
+
+export const LESSON_SLUG = '01-que-es-automatizar';
+
+export function FirstActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['first']);
+  return (
+    <Activity
+      title="¿Qué regla de F.I.R.S.T. rompe?"
+      kind="Buscar en el código"
+      goal="reconocer, en una descripción de test, cuál de las propiedades de F.I.R.S.T. está rota — o si no rompe ninguna."
+      done={isDone('first')}
+      need={
+        <ul>
+          <li><strong>Independent:</strong> no depende del orden ni del resultado de otro test.</li>
+          <li><strong>Fast:</strong> corre en segundos, no en minutos.</li>
+          <li><strong>Self-validating:</strong> decide solo si pasó, sin que alguien lea un log.</li>
+        </ul>
+      }
+      consigna="elegí una descripción que te parezca sospechosa y decí qué propiedad rompe, o si está bien."
+    >
+      <FindInCode lines={FIRST_LINES} ruleLabels={FIRST_RULE_LABELS} alreadyDone={isDone('first')} onSolved={() => markDone('first')} />
+    </Activity>
+  );
+}
+
+export function WorthItActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['worth-it']);
+  return (
+    <Activity
+      title="¿Vale la pena automatizarlo?"
+      kind="Buscar en el código"
+      goal="aplicar los tres criterios para decidir si un caso amortiza el costo de automatizarlo."
+      done={isDone('worth-it')}
+      need={
+        <ul>
+          <li>¿Se va a correr más de un puñado de veces?</li>
+          <li>¿Hay un resultado exacto contra el cual comparar?</li>
+          <li>¿La feature ya se estabilizó, o todavía cambia seguido?</li>
+        </ul>
+      }
+      consigna="elegí un caso y decí qué criterio no cumple, o si vale la pena automatizarlo."
+    >
+      <FindInCode lines={WORTH_IT_LINES} ruleLabels={WORTH_IT_RULE_LABELS} alreadyDone={isDone('worth-it')} onSolved={() => markDone('worth-it')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuiz() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Repaso"
+      kind="Elegí la opción"
+      goal="aplicar F.I.R.S.T. y el criterio de 'vale la pena' a situaciones nuevas."
+      done={isDone('quiz')}
+      need={<p>Nada nuevo — son los mismos conceptos de arriba, en situaciones distintas.</p>}
+      consigna="elegí la opción correcta en cada pregunta."
+    >
+      <Quiz questions={LESSON_01_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Automatizar un test es codificar una verificación para que se ejecute
+sola, de forma repetible, y dé el mismo resultado si nada cambió. El valor
+no está en "usar código" — está en la repetibilidad: la misma
+verificación, corrida cien veces, sin desgaste ni variación humana.
+
+Pero no cualquier test automatizado aporta ese valor. Dos preguntas
+distintas conviene separar: **¿este test es confiable?** y **¿vale la pena
+haberlo automatizado?**
+
+## Qué hace confiable a un test
+
+Un test en el que no confiás es peor que no tener test: entrena al equipo
+a ignorar el rojo, y el día que encuentre un bug real nadie le va a
+prestar atención. Cinco propiedades lo hacen confiable — el acrónimo
+**F.I.R.S.T.**:
+
+| Propiedad | Qué significa |
+|---|---|
+| **F**ast | Corre en segundos. Lento = se corre cada vez menos. |
+| **I**ndependent | No depende del orden ni del resultado de otro test. |
+| **R**epeatable | Mismo resultado en tu máquina, en CI, hoy y en 6 meses. |
+| **S**elf-validating | Pasa o falla solo, sin que alguien lea un log. |
+| **T**imely | Se escribe cerca de cuando se escribe la feature. |
+
+De las cinco, **Independent** es la que más dolores de cabeza causa
+cuando se rompe: es, en la práctica, la causa más común de un test
+**flaky** — uno que falla de forma inconsistente, sin que el
+comportamiento real haya cambiado. Si un test falla una vez y pasa al
+reintentar, sin que nadie haya tocado el código, no es "normal": es una
+señal pendiente de investigar, no algo para ignorar porque "total, pasó
+en el reintento". Preferí una suite más chica y confiable a una grande e
+inconsistente.
+
+<FirstActivity />
+
+## Cuándo vale la pena automatizar
+
+Un test puede ser perfectamente confiable y, aun así, no justificar el
+tiempo que llevó escribirlo. Tres preguntas deciden esto:
+
+- **¿Se va a correr más de un puñado de veces?** Un flujo de una sola vez
+  no amortiza el costo de mantenerlo.
+- **¿Hay un resultado exacto contra el cual comparar?** "El total es
+  $1.250,00" tiene un valor fijo. "El diseño se ve bien" no — automatizar
+  eso termina en un assert tan exacto que falla por nada, o tan relajado
+  que no verifica nada real.
+- **¿La feature ya se estabilizó?** Automatizar algo que todavía cambia
+  seguido puede significar reescribir el test varias veces en una semana.
+
+<WorthItActivity />
+
+## Repaso
+
+<ClosingQuiz />

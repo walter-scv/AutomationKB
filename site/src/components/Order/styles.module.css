@@ -1,0 +1,93 @@
+.list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  background: var(--akb-code-bg);
+  color: var(--akb-code-ink);
+  border: 1px solid var(--akb-code-line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: grab;
+}
+
+.item.dragging {
+  opacity: 0.4;
+}
+
+.item.dragOver {
+  outline: 2px dashed var(--akb-accent);
+  outline-offset: 2px;
+}
+
+.grip {
+  color: var(--akb-code-muted);
+  user-select: none;
+}
+
+.item.ok {
+  border-color: var(--akb-accent);
+  box-shadow: inset 3px 0 0 var(--akb-accent);
+}
+
+.item.bad {
+  border-color: var(--akb-err);
+  box-shadow: inset 3px 0 0 var(--akb-err);
+}
+
+.item.header {
+  background: rgba(63, 197, 166, 0.1);
+  border-style: dashed;
+}
+
+.headerLine {
+  display: block;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--akb-accent);
+}
+
+.what {
+  display: block;
+  font-size: 0.88rem;
+  color: #c9d3e0;
+}
+
+.codeLine {
+  display: block;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8rem;
+  color: var(--akb-code-muted);
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.controls {
+  display: flex;
+  gap: 4px;
+}
+
+.controls button {
+  background: #222935;
+  color: var(--akb-code-ink);
+  border: 0;
+  border-radius: 5px;
+  width: 30px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.controls button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
