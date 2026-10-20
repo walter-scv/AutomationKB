@@ -1,7 +1,7 @@
 import {useEffect, type ReactNode} from 'react';
 import {useLocation} from '@docusaurus/router';
 import useBaseUrl from '@docusaurus/useBaseUrl';
-import {MUSIC_VOLUME_LANDING, MUSIC_VOLUME_LESSON, setMusicSrc, setMusicVolume} from '@site/src/lib/sound';
+import {MUSIC_VOLUME_LANDING, MUSIC_VOLUME_LESSON, resumeIfPending, setMusicSrc, setMusicVolume} from '@site/src/lib/sound';
 import {useSoundEnabledState} from '@site/src/hooks/useSoundEnabled';
 import styles from './styles.module.css';
 
@@ -25,14 +25,25 @@ export default function SoundToggle(): ReactNode {
     setMusicVolume(pathname === homeUrl ? MUSIC_VOLUME_LANDING : MUSIC_VOLUME_LESSON);
   }, [pathname, homeUrl]);
 
+  // Si el sonido ya estaba "prendido" de una sesión anterior pero el audio
+  // nunca llegó a arrancar (bloqueado por autoplay hasta un gesto nuevo),
+  // este primer click lo retoma — no lo apaga. Sin este chequeo, un solo
+  // click alcanzaba a la vez para resumir la reproducción Y, con el mismo
+  // click, apagarla de nuevo (enabled ya era true antes de tocar nada).
+  function handleClick(): void {
+    if (resumeIfPending()) return;
+    setEnabled(!enabled);
+  }
+
   return (
     <button
       type="button"
       className={styles.toggle}
+      data-akb-sound-toggle="true"
       aria-pressed={enabled}
       aria-label={enabled ? 'Silenciar sonido' : 'Activar sonido y música 8-bit'}
       title={enabled ? 'Silenciar' : 'Sonido 8-bit'}
-      onClick={() => setEnabled(!enabled)}
+      onClick={handleClick}
     >
       {enabled ? '🔊' : '🔇'}
     </button>
