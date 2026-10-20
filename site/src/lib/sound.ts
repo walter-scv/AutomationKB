@@ -21,6 +21,12 @@ let musicEl: HTMLAudioElement | null = null;
 let musicSrc: string | null = null;
 let musicVolume = MUSIC_VOLUME_LANDING;
 let enabled = false;
+// true recién después de que getContext()+startMusic() corrieron al menos
+// una vez. Separado de `enabled` porque, al recargar con el sonido ya
+// activado en una sesión anterior, enabled es true desde el primer render
+// (viene de localStorage) pero el audio todavía no arrancó — el navegador
+// lo bloquea hasta un gesto nuevo. Ver resumeIfPending().
+let playbackStarted = false;
 const listeners = new Set<Listener>();
 
 function readStoredPreference(): boolean {
@@ -95,6 +101,12 @@ function stopMusic(): void {
   musicEl?.pause();
 }
 
+function activatePlayback(): void {
+  getContext();
+  startMusic();
+  playbackStarted = true;
+}
+
 export function isSoundEnabled(): boolean {
   return enabled;
 }
@@ -111,15 +123,19 @@ function notify(): void {
 /** Sincroniza el estado del módulo con lo guardado en localStorage, y deja
  * todo listo para retomar la música sin un nuevo toggle si la página se
  * recargó con el sonido ya activado (el primer click/tecla en la página la
- * resume, porque crear el AudioContext todavía necesita un gesto nuevo). */
+ * resume, porque crear el AudioContext todavía necesita un gesto nuevo).
+ * Si ese primer gesto es un click en el propio <SoundToggle>, se lo dejamos
+ * a su manejador (resumeIfPending) — si lo resolviéramos acá también,
+ * terminaba disparando la reactivación Y el toggle-a-apagado en el mismo
+ * click (el bug de "hay que tocarlo 2 veces"). */
 export function initSoundPreference(): void {
   enabled = readStoredPreference();
   notify();
   if (enabled && typeof document !== 'undefined') {
-    const resume = () => {
-      if (enabled && !ctx) {
-        getContext();
-        startMusic();
+    const resume = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest('[data-akb-sound-toggle]')) {
+        resumeIfPending();
       }
       document.removeEventListener('pointerdown', resume);
       document.removeEventListener('keydown', resume);
@@ -129,12 +145,24 @@ export function initSoundPreference(): void {
   }
 }
 
+/** La llama <SoundToggle> antes de decidir si el click prende/apaga.
+ * Devuelve true si el click era justo el que faltaba para retomar un
+ * sonido que ya estaba "prendido" (de una sesión anterior) pero nunca
+ * había arrancado — en ese caso el toggle no debe además apagarlo. */
+export function resumeIfPending(): boolean {
+  if (enabled && !playbackStarted) {
+    activatePlayback();
+    notify();
+    return true;
+  }
+  return false;
+}
+
 export function setSoundEnabled(value: boolean): void {
   enabled = value;
   writeStoredPreference(value);
   if (value) {
-    getContext();
-    startMusic();
+    activatePlayback();
     playTick();
   } else {
     stopMusic();
