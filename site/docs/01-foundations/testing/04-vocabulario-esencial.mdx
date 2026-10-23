@@ -1,0 +1,144 @@
+---
+title: 'Vocabulario esencial: error, defecto, fallo, causa raíz'
+sidebar_position: 4
+---
+
+import Activity from '@site/src/components/Activity';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import FindInCode from '@site/src/components/FindInCode';
+import {
+  VOCAB_QUIZ,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/04-vocabulario-esencial';
+
+export const LESSON_SLUG = 'foundations-vocabulario-esencial';
+
+export function VocabActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['vocab']);
+  return (
+    <Activity
+      title="¿Error, defecto, fallo o causa raíz?"
+      kind="Elegí la opción"
+      goal="ubicar cada parte de un mismo incidente en la cadena error → defecto → fallo, e identificar su causa raíz."
+      done={isDone('vocab')}
+      consigna="Son 4 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 4 están bien."
+    >
+      <Quiz questions={VOCAB_QUIZ} onSolved={() => markDone('vocab')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Dónde se mezclaron los términos?"
+      kind="Clasificar"
+      goal="reconocer, en un incidente nuevo, cuándo se confunde fallo con defecto, se corrige un síntoma sin buscar la causa raíz o se nombra una causa sin evidencia."
+      done={isDone('practice')}
+      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Fallo, defecto y causa raíz"
+      kind="Elegí la opción"
+      goal="aplicar la cadena error → defecto → fallo → causa raíz a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Los capítulos anteriores ya usaron las palabras "defecto" y "fallo" de
+forma informal. Antes de seguir, conviene precisarlas — junto con otras
+dos que todavía no aparecieron — porque se usan todo el tiempo al
+reportar y diagnosticar problemas.
+
+## Conceptos
+
+Un mismo incidente se describe con cuatro términos distintos, cada uno en
+un momento distinto de la cadena:
+
+1. **Error:** la acción humana que produce un resultado incorrecto — por
+   ejemplo, interpretar mal un requisito.
+2. **Defecto:** la falla que ese error deja en el código o el sistema
+   (también llamado "bug"). Todavía no se manifestó en ningún
+   comportamiento visible.
+3. **Fallo:** la desviación observable entre el comportamiento esperado y
+   el real, que aparece recién cuando el defecto se ejecuta.
+4. **Causa raíz:** el origen subyacente del defecto — si se elimina, se
+   elimina (o reduce) el defecto.
+
+Ejemplo: un desarrollador entiende mal un requisito de "mínimo 8
+caracteres" (**error**) y escribe la condición con `>` en vez de `>=`
+(**defecto**). Un usuario ingresa una contraseña de exactamente 8
+caracteres, que debería ser válida, y el sistema la rechaza (**fallo**).
+La **causa raíz** no es el operador en sí — es el malentendido original
+del requisito, que podría repetirse en otra condición parecida si no se
+corrige en origen.
+
+## Cuándo usarlo
+
+Esta distinción importa al reportar y al corregir. Un reporte de testing
+describe el **fallo** (el síntoma observado), sin necesidad de saber
+todavía cuál es el defecto ni la causa raíz. Identificar la causa raíz
+importa después, durante la corrección: corregir solo el síntoma deja
+abierta la posibilidad de que el mismo error se repita en otro lugar.
+
+## Buenas prácticas
+
+- **Reportar el fallo como un hecho observable** ("se esperaba X, pasó
+  Y"), no como una suposición sobre la causa. Quien reporta casi nunca
+  tiene, en ese momento, la evidencia para afirmar cuál es el defecto.
+- **Investigar la causa raíz antes de dar por cerrado un defecto**, no
+  solo corregir el síntoma puntual. Un defecto "corregido" que en
+  realidad solo tapó el síntoma deja la puerta abierta a que el mismo
+  problema vuelva a aparecer en otro lugar.
+- **Usar los cuatro términos con precisión** en reportes y
+  conversaciones, para que el equipo hable del mismo punto de la cadena
+  — confundirlos genera discusiones donde cada persona está hablando de
+  una cosa distinta sin darse cuenta.
+- **Esperar a tener evidencia del código antes de nombrar un defecto
+  específico.** Afirmar "el defecto está en tal función" sin haberla
+  revisado puede mandar a quien investiga en la dirección equivocada.
+- **Preguntar, ante un defecto corregido, si el mismo patrón puede
+  repetirse en otro lugar del sistema** — es la forma práctica de
+  perseguir la causa raíz en vez de quedarse en el síntoma.
+
+## Anti-patrones
+
+- **Confundir fallo con defecto** en un reporte ("el código tiene un
+  defecto en la validación" cuando en realidad todavía no se identificó
+  el defecto, solo se observó un fallo) — adelanta una conclusión que
+  todavía no tiene respaldo.
+- **Corregir el síntoma sin investigar la causa raíz**, dejando la puerta
+  abierta a que el mismo error se repita en otra parte del sistema.
+- **Dar por conocido el error humano sin haber investigado el defecto en
+  el código** — salta dos pasos de la cadena basándose en una suposición,
+  no en evidencia.
+- **Mezclar en una sola frase el síntoma observado con la causa
+  sospechada**, sin distinguir cuál es cuál — dificulta que otra persona
+  entienda qué es un hecho y qué es una hipótesis.
+- **Dar por cerrado un reporte apenas se corrige algo**, sin confirmar que
+  lo corregido es realmente la causa raíz y no solo un síntoma parecido.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<VocabActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

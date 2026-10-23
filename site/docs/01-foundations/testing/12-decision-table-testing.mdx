@@ -1,0 +1,168 @@
+---
+title: Decision Table Testing
+sidebar_position: 12
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  COMBINATION_LINES, COMBINATION_RULE_LABELS,
+  WHEN_QUIZ,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/12-decision-table-testing';
+
+export const LESSON_SLUG = 'foundations-decision-table-testing';
+
+export function CombinationActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['combination']);
+  return (
+    <Activity
+      title="¿Esta fila suma cobertura nueva?"
+      kind="Clasificar"
+      goal="reconocer qué combinaciones ya están cubiertas, cuáles faltan y cuándo una condición no aporta a la lógica."
+      done={isDone('combination')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode
+        lines={COMBINATION_LINES}
+        ruleLabels={COMBINATION_RULE_LABELS}
+        alreadyDone={isDone('combination')}
+        onSolved={() => markDone('combination')}
+      />
+    </Activity>
+  );
+}
+
+export function WhenActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['when']);
+  return (
+    <Activity
+      title="¿Hace falta una decision table acá?"
+      kind="Elegí la opción"
+      goal="distinguir cuándo dos condiciones interactúan (y hace falta combinarlas) de cuándo son independientes."
+      done={isDone('when')}
+      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+    >
+      <Quiz questions={WHEN_QUIZ} onSolved={() => markDone('when')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esta tabla está bien armada?"
+      kind="Clasificar"
+      goal="reconocer, en una decision table ya armada, cuál de los anti-patrones de la sección anterior aparece."
+      done={isDone('practice')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Cuándo armar la tabla"
+      kind="Elegí la opción"
+      goal="aplicar decision table testing a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Ya sabés elegir buenos valores para un campo (equivalence partitioning y
+boundary value analysis). Pero un formulario no tiene un campo solo —
+tiene varios, y a veces el resultado depende de cómo se **combinan** entre
+sí, no de cada uno por separado. Equivalence partitioning no cubre esto:
+trata cada campo de forma aislada.
+
+**Decision table testing** enumera las combinaciones relevantes entre dos
+o más condiciones, y el resultado esperado para cada una. Para el
+formulario de registro, combinando la validez de la contraseña con el
+estado del checkbox de términos:
+
+| Contraseña válida | Checkbox tildado | Resultado |
+|---|---|---|
+| Sí | Sí | Crea la cuenta |
+| Sí | No | No crea la cuenta |
+| No | Sí | No crea la cuenta |
+| No | No | No crea la cuenta |
+
+Si solo se probara cada campo por separado, se podría dejar sin cubrir la
+combinación "contraseña válida + checkbox destildado" — una combinación
+real que un usuario puede encontrar, y que equivalence partitioning, al
+mirar cada campo de forma aislada, no obliga a probar.
+
+## Cuándo usarlo
+
+Decision table testing aplica cuando dos o más condiciones **interactúan**
+en la lógica de negocio: el resultado cambia según cómo se combinen, no
+solo según el valor de una sola. Si dos campos son independientes entre sí
+(ninguno afecta el resultado del otro), combinar sus valores en una tabla
+no agrega cobertura real — ahí alcanza con equivalence partitioning sobre
+cada uno por separado.
+
+## Buenas prácticas
+
+- **Identificar primero qué condiciones realmente interactúan** en la
+  lógica de negocio, antes de armar la tabla. Si no está claro, conviene
+  preguntarse: "¿cambiar el valor de esta condición cambia el resultado
+  cuando la otra ya está fija?" — si la respuesta es no, no interactúan.
+- **Incluir solo esas condiciones.** Combinar campos que no interactúan
+  infla la tabla sin agregar cobertura real: con 2 condiciones hay 4
+  combinaciones posibles, pero con 4 condiciones independientes ya son
+  16 — la mayoría, ruido.
+- **Reducir combinaciones imposibles o sin sentido en el dominio**, pero
+  marcándolas explícitamente en vez de omitirlas en silencio — así quien
+  lea la tabla después sabe que se excluyeron a propósito, no que se
+  olvidaron.
+- **Revisar la tabla cuando se agregue una condición nueva al
+  formulario.** Cada condición nueva puede duplicar el tamaño de la
+  tabla — vale la pena confirmar si sigue siendo manejable o si conviene
+  dividirla en tablas más chicas.
+- **Nombrar cada fila con la combinación que representa**, no solo con un
+  número — "contraseña inválida + checkbox tildado" se entiende sin mirar
+  el resto de la tabla; "fila 3" no.
+
+## Anti-patrones
+
+- **Armar una decision table para campos independientes** que no
+  interactúan entre sí — es trabajo de más; equivalence partitioning
+  alcanza.
+- **Dejar afuera una combinación relevante** por apurarse a completar la
+  tabla, dejando sin cubrir justo el caso que un usuario real puede
+  encontrar.
+- **Repetir una combinación ya cubierta** con datos distintos pero el
+  mismo patrón de condiciones — no agrega una fila nueva a la tabla.
+- **Armar una tabla gigante combinando todas las condiciones del
+  formulario**, sin filtrar primero cuáles interactúan de verdad — el
+  número de filas crece exponencialmente, y la mayoría termina siendo
+  ruido que nadie revisa en serio.
+- **Dejar implícito qué pasa con una combinación inválida en el dominio**
+  (como "edad negativa + cuenta premium"), en vez de decidir y documentar
+  explícitamente el resultado esperado ahí.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<CombinationActivity />
+
+<WhenActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

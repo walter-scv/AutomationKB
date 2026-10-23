@@ -1,0 +1,145 @@
+---
+title: Severidad vs. prioridad de un defecto
+sidebar_position: 7
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {SEVERITY_LINES, SEVERITY_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/07-severidad-vs-prioridad';
+
+export const LESSON_SLUG = 'foundations-severidad-vs-prioridad';
+
+export const SEVERITY_COLUMNS = ['Severidad y prioridad coinciden', ...SEVERITY_RULE_LABELS];
+export const SEVERITY_ITEMS = SEVERITY_LINES.map((l) => ({code: l.code, column: l.rule, why: l.why, hint: l.hint}));
+
+export function SeverityActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['severity']);
+  return (
+    <Activity
+      title="¿Coinciden severidad y prioridad acá?"
+      kind="Clasificar"
+      goal="distinguir severidad (impacto técnico) de prioridad (urgencia de negocio), y reconocer cuándo no coinciden."
+      done={isDone('severity')}
+      consigna="Son 7 casos. Arrastrá cada uno a la caja que corresponde. La actividad se completa cuando ubicaste los 7 en su caja."
+    >
+      <Classify
+        items={SEVERITY_ITEMS}
+        columns={SEVERITY_COLUMNS}
+        itemLabel="Caso"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('severity')}
+        onSolved={() => markDone('severity')}
+      />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esta decisión de priorización está bien?"
+      kind="Clasificar"
+      goal="reconocer formas comunes de priorizar mal un defecto y distinguirlas de una priorización bien fundada."
+      done={isDone('practice')}
+      consigna="Son 7 casos. Si la priorización está mal fundada, elegí cuál de estas tres causas aplica: «Copia el número de severidad en la prioridad sin analizar», «Prioriza solo por visibilidad, ignora la gravedad real» u «Ordena por gravedad e ignora la frecuencia con la que ocurre». Si está bien fundada, elegí «Priorización bien fundada». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} okLabel="Priorización bien fundada" prompt="¿La priorización está bien fundada?" counterLabel="priorizaciones mal fundadas" itemLabel="Caso" alreadyDone={isDone('practice')}
+        onSolved={() => markDone('practice')}
+      />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Prioridad no es severidad"
+      kind="Elegí la opción"
+      goal="aplicar la distinción entre severidad y prioridad a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Al reportar un defecto, dos preguntas se contestan por separado. La
+**severidad** es el impacto técnico o funcional del defecto en el sistema:
+qué tan grave es el malfuncionamiento en sí mismo, sin importar nada más
+— ¿tira abajo el sistema? ¿Es solo un detalle cosmético? La **prioridad**
+es la urgencia con la que conviene corregirlo, una decisión de negocio que
+no depende solo de la gravedad técnica.
+
+Las dos no siempre coinciden. Un typo en el logo de la empresa, en la
+home, no rompe ninguna funcionalidad (severidad baja) — pero lo ve cada
+visitante y daña la imagen de marca (prioridad alta). Un defecto que borra
+datos del usuario, pero que solo ocurre bajo una combinación de
+condiciones rarísima (severidad alta, porque el impacto si ocurre es
+grave), puede tener prioridad baja si en la práctica casi nunca se da esa
+combinación.
+
+## Cuándo usarlo
+
+Separar severidad de prioridad importa en cualquier momento en que haya
+que decidir qué defecto corregir primero con tiempo limitado. Reportar
+solo una de las dos (por ejemplo, "esto es grave" sin aclarar si urge
+corregirlo ya) deja a quien prioriza el trabajo sin la información
+completa para decidir.
+
+## Buenas prácticas
+
+- **Reportar las dos dimensiones por separado, nunca una sola.** Un
+  reporte que solo dice "esto es grave" deja a quien prioriza el trabajo
+  sin la mitad de la información — grave no dice si conviene arreglarlo
+  hoy o el mes que viene.
+- **Justificar la prioridad con un argumento de negocio** (cuánta gente lo
+  ve, qué tan seguido ocurre, qué tan visible es), no solo con la
+  gravedad técnica. "Es severo" no explica por qué debería ir antes que
+  otro defecto igual de severo.
+- **Revisar periódicamente defectos de severidad alta y prioridad baja.**
+  La frecuencia real con la que ocurren puede cambiar con el tiempo — algo
+  que casi nunca pasaba puede volverse común si cambia el contexto (más
+  usuarios, un dato límite que ahora se alcanza seguido).
+- **Separar "qué tan grave es" de "cuántas veces lo vimos esta semana".**
+  Un defecto grave puede no haberse notado todavía simplemente porque la
+  combinación de condiciones que lo dispara no se dio — eso no lo hace
+  menos grave si ocurre.
+- **Dejar por escrito el razonamiento de la prioridad**, no solo el
+  número final. Si alguien pregunta "¿por qué esto es prioridad media?",
+  tiene que poder leerse la justificación, no reconstruirla de memoria.
+
+## Anti-patrones
+
+- **Igualar severidad y prioridad por default**, asumiendo que todo lo
+  grave es automáticamente urgente (o viceversa) — así se pierde la
+  posibilidad real de decidir con criterio de negocio.
+- **Priorizar solo por severidad**, ignorando qué tan seguido ocurre el
+  defecto en la práctica — un bug catastrófico pero casi imposible puede
+  terminar consumiendo tiempo que convenía usar en algo más frecuente.
+- **Priorizar solo por visibilidad**, ignorando defectos graves pero poco
+  visibles hasta que causan un problema serio — para cuando se nota, ya
+  causó el daño que la prioridad baja no anticipó.
+- **No volver a mirar un defecto de prioridad baja.** Las condiciones que
+  lo hacían poco frecuente pueden cambiar, y nadie se entera si no hay una
+  revisión periódica.
+- **Reportar solo un número de prioridad sin explicar por qué**, lo que
+  obliga a quien revisa la lista de pendientes después a adivinar el criterio, o a
+  volver a investigar algo que ya se había decidido antes.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<SeverityActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

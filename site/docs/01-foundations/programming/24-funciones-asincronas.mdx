@@ -1,0 +1,253 @@
+---
+title: "Funciones asíncronas: async/await"
+sidebar_position: 24
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {ASYNC_LINES, ASYNC_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/24-funciones-asincronas';
+
+export const LESSON_SLUG = 'foundations-funciones-asincronas';
+
+export function AsyncActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['async']);
+  return (
+    <Activity
+      title="¿Falta esperar acá?"
+      kind="Clasificar"
+      goal="reconocer cuándo falta `await` antes de una operación que tarda en responder."
+      done={isDone('async')}
+      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={ASYNC_LINES} ruleLabels={ASYNC_RULE_LABELS} alreadyDone={isDone('async')} onSolved={() => markDone('async')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Se podría esperar más rápido?"
+      kind="Buscar en el código"
+      goal="reconocer operaciones independientes que se esperan de a una pudiendo ir en paralelo, y una función marcada `async` sin necesidad."
+      done={isDone('practice')}
+      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Por qué importa esperar"
+      kind="Elegí la opción"
+      goal="aplicar async/await a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Con esto se cierran los fundamentos de programación de esta guía: variables,
+operadores, condicionales, funciones, arrays, loops, objetos y tipos
+propios. Falta un último par de piezas, necesarias para cualquier track
+que elijas después — empezando por esta: qué hacer cuando una operación
+tarda en responder.
+
+## Conceptos
+
+Algunas operaciones no dan el resultado al instante: pedir datos a un
+servidor, leer un archivo, esperar a que algo termine de cargar. Una
+**Promise** representa un valor que va a estar disponible más adelante.
+`async` y `await` son la forma de trabajar con esa espera sin bloquear todo
+el programa.
+
+Una función marcada `async` siempre devuelve una Promise. Adentro puede usar
+`await` para esperar el resultado de otra operación que tarda:
+
+```ts
+async function obtenerDatos(): Promise<string> {
+  const respuesta = await fetch('https://ejemplo.com/datos');
+  return respuesta.text();
+}
+```
+
+`fetch` devuelve una Promise; `await` espera a que se resuelva y entrega la
+respuesta. `respuesta.text()` también devuelve una Promise, y como la función
+es `async`, el `return` la resuelve con el texto final. Si la respuesta es
+JSON, se usa `await respuesta.json()` para obtener el objeto.
+
+Quien llama a la función también tiene que esperar:
+
+```ts
+async function mostrarDatos(): Promise<void> {
+  const datos = await obtenerDatos();
+  console.log(datos.toUpperCase());
+}
+```
+
+### Qué pasa si falta `await`
+
+Sin `await`, la variable guarda la Promise, no el valor:
+
+```ts
+async function mostrarDatos(): Promise<void> {
+  const datos = obtenerDatos(); // Promise<string>, no string
+  console.log(datos.toUpperCase()); // Error: una Promise no tiene toUpperCase
+}
+```
+
+TypeScript marca el error porque el tipo de `datos` es `Promise<string>`, no
+`string`. En JavaScript sin tipos, el error aparecería recién al ejecutar.
+La corrección es agregar `await` en la llamada que tarda:
+
+```ts
+const datos = await obtenerDatos();
+```
+
+### `async` sin `await`
+
+Si una función se marca `async` pero no usa `await`, está devolviendo una
+Promise sin necesidad:
+
+```ts
+async function saludar(): Promise<string> {
+  return 'Hola';
+}
+```
+
+Alcanza con una función normal que devuelva el valor:
+
+```ts
+function saludar(): string {
+  return 'Hola';
+}
+```
+
+`async` tiene sentido cuando hay al menos una operación que esperar. Si no,
+solo agrega una capa que quien llama tiene que desenvolver.
+
+### Operaciones independientes
+
+Cuando dos operaciones no dependen una de la otra, esperarlas de a una hace
+perder tiempo:
+
+```ts
+const usuario = await obtenerUsuario(id);
+const pedidos = await obtenerPedidos(id);
+```
+
+La segunda no empieza hasta que termina la primera, aunque podría haber
+empezado antes. `Promise.all` las lanza juntas y espera a las dos:
+
+```ts
+const [usuario, pedidos] = await Promise.all([
+  obtenerUsuario(id),
+  obtenerPedidos(id),
+]);
+```
+
+La parte `const [usuario, pedidos] = ...` es **desestructuración**: toma el
+primer resultado del array y lo guarda en `usuario`, el segundo en
+`pedidos`. Es una forma corta de asignar varios valores a la vez.
+
+Si una necesita el resultado de la otra, tienen que ir en orden. Si son
+independientes, `Promise.all` es la forma de no sumar las esperas.
+
+### Errores en una operación asíncrona
+
+Un `await` que falla rechaza la Promise. Para manejarlo, se envuelve en
+`try/catch`, igual que cualquier operación que puede fallar:
+
+```ts
+try {
+  const datos = await obtenerDatos();
+  console.log(datos);
+} catch (error) {
+  console.error('No se pudieron obtener los datos:', error);
+}
+```
+
+Sin `try/catch`, el error se propaga a quien llamó a la función. La entrada
+de manejo de errores lo desarrolla en detalle.
+
+### Esperar dentro de un loop
+
+Un `await` dentro de un `for...of` espera una operación por vuelta:
+
+```ts
+for (const id of ids) {
+  const usuario = await obtenerUsuario(id);
+  console.log(usuario);
+}
+```
+
+Eso es correcto si cada vuelta depende de la anterior. Si las llamadas son
+independientes y no hace falta el orden, se pueden lanzar juntas con
+`Promise.all` y un `map`:
+
+```ts
+const usuarios = await Promise.all(ids.map((id) => obtenerUsuario(id)));
+```
+
+## Cuándo usarlo
+
+Siempre que el código dependa de una operación cuyo resultado no está
+disponible al instante: pedir datos a un servidor, esperar a que una
+pantalla termine de cargar, leer un archivo. Esto es relevante para
+cualquier track que elijas después — UI, API, Mobile y Performance
+trabajan todos con operaciones que tardan en responder.
+
+## Buenas prácticas
+
+- **Poner `await` antes de toda operación que tarde en responder.** Sin
+  él, el programa sigue antes de tener el resultado real, y el error que
+  provoca aparece de forma inconsistente — a veces pasa desapercibido
+  porque el resultado llegó a tiempo por casualidad.
+- **Marcar como `async` solo las funciones que realmente usan `await`
+  adentro.** Una función `async` siempre devuelve una `Promise`, aunque no
+  tenga ninguna operación que esperar — eso obliga a quien la usa a tratar
+  el resultado como asíncrono sin necesidad real.
+- **Correr en paralelo las operaciones que son independientes entre sí**,
+  con `Promise.all`. Esperarlas una por una cuando ninguna depende de la
+  otra hace que el programa tarde la suma de los tiempos, en vez de tardar
+  solo lo que tarda la más lenta.
+- **Esperar en secuencia solo cuando una operación necesita el resultado
+  de la anterior.** Forzar el paralelismo ahí no funciona: la segunda
+  operación no tiene con qué arrancar hasta que la primera termine.
+- **Nunca asumir que un resultado ya está listo sin haberlo esperado.** Un
+  valor que viene de una operación asíncrona solo es confiable después de
+  un `await` — antes de eso, es una promesa pendiente, no el dato final.
+
+## Anti-patrones
+
+- **Olvidarse del `await`** antes de una operación asíncrona: el código
+  sigue sin esperar el resultado real, y falla de forma inconsistente — a
+  veces el resultado llega a tiempo por casualidad, a veces no.
+- **Usar el resultado de una función `async` sin `await`**, como si ya
+  fuera el valor final, cuando en realidad todavía es una promesa
+  pendiente.
+- **Esperar operaciones independientes una por una** en vez de con
+  `Promise.all`, haciendo que el programa tarde mucho más de lo
+  necesario sin ninguna razón real.
+- **Marcar `async` una función que no tiene ningún `await` adentro**,
+  agregando una `Promise` innecesaria que obliga a tratar un resultado
+  inmediato como si tardara.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<AsyncActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

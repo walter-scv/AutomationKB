@@ -1,0 +1,8 @@
+{
+  "label": "IV. Delivery & Infrastructure",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "CI/CD, Docker, cloud, distributed systems y continuous testing. Integrar la automatización al ciclo real de entrega."
+  }
+}

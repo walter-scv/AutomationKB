@@ -1,0 +1,151 @@
+---
+title: Testing vs. debugging
+sidebar_position: 2
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  ACTIVITY_LINES, ACTIVITY_RULE_LABELS,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/02-testing-vs-debugging';
+
+export const LESSON_SLUG = 'foundations-testing-vs-debugging';
+
+export const ACTIVITY_COLUMNS = ['Es testing', ...ACTIVITY_RULE_LABELS];
+export const ACTIVITY_ITEMS = ACTIVITY_LINES.map((l) => ({code: l.code, column: l.rule, why: l.why, hint: l.hint}));
+
+export function ActivityKindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['kind']);
+  return (
+    <Activity
+      title="¿Testing o debugging?"
+      kind="Clasificar"
+      goal="distinguir una actividad que identifica un fallo (testing), una que investiga o corrige su causa (debugging) y una que no es ninguna de las dos."
+      done={isDone('kind')}
+      consigna="Son 8 situaciones: pueden ser testing, debugging o ninguna de las dos. Arrastrá cada una a la caja que corresponde. La actividad se completa cuando ubicaste las 8 en su caja."
+    >
+      <Classify
+        items={ACTIVITY_ITEMS}
+        columns={ACTIVITY_COLUMNS}
+        itemLabel="Situación"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('kind')}
+        onSolved={() => markDone('kind')}
+      />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Este reporte o cierre está bien?"
+      kind="Clasificar"
+      goal="reconocer un reporte sin pasos reproducibles, una causa adivinada, un cierre sin volver a testear y una entrada mezclada con el resultado."
+      done={isDone('practice')}
+      consigna="Son 8 situaciones. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Reporte sin pasos reproducibles"
+      kind="Elegí la opción"
+      goal="aplicar la diferencia entre testing y debugging a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Ya viste qué es testing y para qué sirve. Hay una confusión común que vale
+la pena resolver antes de seguir: testing y debugging no son la misma
+actividad, aunque a veces las haga la misma persona.
+
+## Conceptos
+
+**Testing** identifica un **fallo**: una diferencia entre el
+comportamiento esperado de un sistema y su comportamiento real. Lo hace,
+típicamente, el equipo de QA.
+
+**Debugging** es el proceso de encontrar la causa — el **defecto** en el
+código — que provocó ese fallo, y corregirla. Lo hace, típicamente, el
+equipo de desarrollo.
+
+Son actividades complementarias, pero cada una cubre una mitad distinta
+del problema: testing no corrige nada, solo revela que algo anda mal.
+Debugging no busca fallos nuevos — parte de uno ya encontrado, para
+investigar por qué pasa y resolverlo. En equipos chicos, una misma persona
+puede hacer las dos cosas, pero siguen siendo dos actividades distintas,
+con objetivos distintos.
+
+## Cuándo usarlo
+
+Testing se aplica continuamente, durante todo el desarrollo, para
+confirmar si algo funciona como se espera. Debugging arranca recién
+después de que un testing (o un reporte) ya identificó un fallo concreto
+y reproducible — no tiene sentido debuggear sin un síntoma confirmado del
+cual partir.
+
+## Buenas prácticas
+
+- **Reportar un fallo con pasos reproducibles**: qué dato se usó, qué se
+  esperaba y qué pasó en realidad, no solo "a veces falla". Sin esto,
+  quien debuggea no tiene de dónde partir y pierde tiempo tratando de
+  reproducir el problema antes de poder investigarlo.
+- **Mantener el reporte de testing enfocado en el síntoma observado**, sin
+  mezclarlo con una causa sin confirmar. Una causa adivinada puede llevar
+  a investigar en la dirección equivocada, mientras el defecto real sigue
+  sin encontrarse.
+- **Antes de cerrar un defecto como corregido, volver a testear que el
+  fallo original ya no ocurre.** Confiar solo en que "el código cambió"
+  no confirma que el síntoma reportado desapareció — a veces el cambio
+  corrige otra cosa y el fallo original sigue ahí.
+- **Separar, en el reporte, el dato de entrada del resultado observado.**
+  Si los dos quedan mezclados en una sola frase, quien debuggea tiene que
+  adivinar cuál de los dos es cuál antes de empezar.
+- **Avisar apenas se detecta un fallo, en vez de acumular varios para
+  reportar juntos al final.** Un fallo reportado tarde puede estar
+  escondido detrás de cambios posteriores, lo que hace mucho más difícil
+  encontrar en qué commit se originó.
+
+## Anti-patrones
+
+- **Reportar un fallo sin pasos para reproducirlo**, lo que hace
+  imposible empezar el debugging — quien lo recibe tiene que volver a
+  buscar el camino para que el fallo vuelva a aparecer.
+- **Adivinar la causa de un fallo** en el reporte de testing, en vez de
+  describir el síntoma observado. Si la causa adivinada es incorrecta,
+  encima desvía la investigación real.
+- **Cerrar un defecto como corregido sin volver a testearlo**, confiando
+  solo en que el código cambió — el cambio puede no resolver exactamente
+  el síntoma que se había reportado.
+- **Mezclar el dato de entrada con el resultado en una sola oración
+  ambigua** ("probé con una contraseña y no anduvo bien"), en vez de
+  separarlos con claridad.
+- **Dejar que el equipo de desarrollo adivine qué probar** para confirmar
+  que el defecto está resuelto, en vez de indicar el caso exacto que hay
+  que volver a correr.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ActivityKindActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

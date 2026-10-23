@@ -49,5 +49,6 @@
   padding: 10px 12px;
   margin: 8px 0;
   overflow-x: auto;
-  white-space: pre;
+  white-space: pre-wrap;
+  word-break: break-word;
 }

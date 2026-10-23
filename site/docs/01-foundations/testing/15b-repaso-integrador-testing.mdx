@@ -1,0 +1,99 @@
+---
+title: "Integrador: Testing"
+sidebar_position: 15.5
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {DIAGNOSIS_LINES, DIAGNOSIS_RULE_LABELS, INTEGRATIVE_QUIZ} from '@site/src/content/lessons/15b-repaso-integrador-testing';
+
+export const LESSON_SLUG = 'foundations-repaso-integrador-testing';
+
+export function DiagnosisActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['diagnosis']);
+  return (
+    <Activity
+      title="Diagnosticá el problema real"
+      kind="Clasificar"
+      goal="combinar varias técnicas de las últimas 15 entradas para diagnosticar correctamente un problema, en vez de reconocer una sola técnica aislada."
+      done={isDone('diagnosis')}
+      need={
+        <div>
+          <p>Esto combina conceptos de todo el bloque de Testing. Resumen:</p>
+          <table>
+            <thead>
+              <tr><th>Entrada</th><th>Idea clave</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>01-02</td><td>Testing encuentra el fallo; debugging corrige la causa.</td></tr>
+              <tr><td>03</td><td>7 principios (defectos no ausencia, exhaustivo imposible, depende del contexto, etc.).</td></tr>
+              <tr><td>04</td><td>Error (humano) → defecto (en el sistema) → fallo (síntoma observado).</td></tr>
+              <tr><td>05</td><td>Verificación: ¿cumple la spec? Validación: ¿resuelve lo que el usuario necesita?</td></tr>
+              <tr><td>06</td><td>Planificación → análisis → diseño → implementación → ejecución → cierre.</td></tr>
+              <tr><td>07</td><td>Severidad: impacto técnico. Prioridad: urgencia de negocio. No siempre coinciden.</td></tr>
+              <tr><td>08-09</td><td>Un caso bueno es Claro, Verificable, Independiente y Repetible.</td></tr>
+              <tr><td>10</td><td>Técnicas black-box (EP, BVA, decision tables, state transition), white-box, basadas en experiencia.</td></tr>
+              <tr><td>11</td><td>Equivalence partitioning (una partición, un representante) + boundary value analysis (los límites).</td></tr>
+              <tr><td>12</td><td>Decision tables: cuando el resultado depende de combinar varias condiciones.</td></tr>
+              <tr><td>13</td><td>State transition: estados y qué transiciones son válidas o inválidas.</td></tr>
+              <tr><td>14</td><td>Error guessing, testing exploratorio, checklists: cuando no alcanza (o no hace falta) lo formal.</td></tr>
+              <tr><td>15</td><td>Risk-based testing: impacto × probabilidad decide qué cubrir primero y con cuánto detalle.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      }
+      consigna="Son 8 situaciones. En las que tengan un problema, elegí cuál de los cuatro diagnósticos lo explica (BVA en el límite, priorización, decision table o caso impreciso); en las que no tengan problema, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode
+        lines={DIAGNOSIS_LINES}
+        ruleLabels={DIAGNOSIS_RULE_LABELS}
+        alreadyDone={isDone('diagnosis')}
+        onSolved={() => markDone('diagnosis')}
+      />
+    </Activity>
+  );
+}
+
+export function IntegrativeQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Escenarios que combinan varias técnicas"
+      kind="Elegí la opción"
+      goal="aplicar dos o más técnicas de diseño o criterios de priorización juntos a un mismo escenario, no una sola a la vez."
+      done={isDone('quiz')}
+      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+    >
+      <Quiz questions={INTEGRATIVE_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Ya viste, una por una, las 15 entradas de testing manual: qué es testing,
+los principios que lo sostienen, cómo se escribe y se diseña un buen caso,
+las técnicas de diseño (equivalence partitioning, boundary value analysis,
+decision tables, state transition, basadas en experiencia), y cómo
+priorizar con criterio de riesgo. En la vida real, un problema casi nunca
+llega etiquetado con "esto es un caso de boundary value analysis" — hay que
+reconocer **cuál técnica (o combinación de técnicas) aplica**, y encima
+decidir qué tan urgente es.
+
+Este repaso no enseña nada nuevo: junta varias entradas anteriores en los
+mismos escenarios, a propósito.
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<DiagnosisActivity />
+
+Las situaciones anteriores pedían reconocer una técnica por vez. Estas
+piden combinar dos o más:
+
+<IntegrativeQuizActivity />
+
+Con esto cerrás el bloque de Testing manual. Lo que sigue es programación:
+los fundamentos de código que vas a necesitar para cualquier track (UI,
+API, Mobile o Performance) que elijas más adelante.

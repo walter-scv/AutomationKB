@@ -9,7 +9,7 @@ import {playStartFanfare} from '@site/src/lib/sound';
 
 import styles from './index.module.css';
 
-const FIRST_LESSON = '/docs/01-que-es-automatizar';
+const FIRST_LESSON = '/docs/01-foundations/testing/01-que-es-testing';
 
 function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
@@ -40,7 +40,7 @@ function HomepageHeader() {
           <span className={styles.playIcon} aria-hidden="true">▶</span>
           Start!
         </Link>
-        <p className={styles.hint}>6 niveles disponibles</p>
+        <p className={styles.hint}>I. Foundations — 35 capítulos disponibles</p>
       </div>
     </header>
   );

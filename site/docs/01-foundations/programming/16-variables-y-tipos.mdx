@@ -1,0 +1,244 @@
+---
+title: Variables y tipos de datos básicos
+sidebar_position: 16
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  VARIABLE_LINES,
+  VARIABLE_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+} from '@site/src/content/lessons/16-variables-y-tipos';
+
+export const LESSON_SLUG = 'foundations-variables-y-tipos';
+
+export function VariableActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['variable']);
+  return (
+    <Activity
+      title="¿Esta variable está bien declarada?"
+      kind="Buscar en el código"
+      goal="reconocer cuándo una variable debería ser `const` en vez de `let`, cuándo su nombre no describe qué contiene, y cuándo un `any` apaga el chequeo de tipos."
+      done={isDone('variable')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={VARIABLE_LINES} ruleLabels={VARIABLE_RULE_LABELS} alreadyDone={isDone('variable')} onSolved={() => markDone('variable')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Este tipo es confiable?"
+      kind="Buscar en el código"
+      goal="reconocer un `any` que apaga el chequeo de tipos, un intento de reasignar una variable `const` y un tipo `object` que no describe la forma del dato."
+      done={isDone('practice')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+Esto abre un bloque nuevo de la guía: programación. Todo lo que viene
+después de Foundations — sin importar qué track elijas (UI, API, Mobile o
+Performance) — va a pedirte escribir código. Empezamos por lo más chico:
+qué es una variable.
+
+## Conceptos
+
+Una **variable** es un nombre que guarda un valor para poder usarlo después.
+Al declararla se crea ese nombre; al asignarle un valor, el nombre pasa a
+representar ese valor. En TypeScript se declara con `const` o `let`, y el
+tipo se puede escribir explícitamente o dejar que TypeScript lo infiera.
+
+### `const` y `let`
+
+`const` se usa cuando el valor no se va a reasignar. Una vez declarada, la
+variable no puede apuntar a otro valor:
+
+```ts
+const nombre = 'Ana';
+// nombre = 'Beto'; // Error: no se puede reasignar una constante
+```
+
+`let` se usa cuando el valor cambia durante la ejecución. Por ejemplo, un
+contador que suma uno en cada intento:
+
+```ts
+let intentos = 0;
+intentos = intentos + 1;
+intentos = intentos + 1;
+console.log(intentos); // 2
+```
+
+Una variable `let` también puede declararse sin valor y asignarse después:
+
+```ts
+let resultado: string;
+resultado = 'ok';
+```
+
+`const` no significa que el contenido del valor sea inmutable. Si guarda un
+objeto, la variable no puede apuntar a otro objeto, pero sus propiedades sí
+pueden cambiar:
+
+```ts
+const usuario = {nombre: 'Ana'};
+usuario.nombre = 'Beto'; // válido: cambia una propiedad
+// usuario = {nombre: 'Beto'}; // Error: reasigna la variable
+```
+
+Esa distinción importa: `const` protege la referencia, no el contenido. Más
+adelante, cuando veas objetos y arrays, vas a volver sobre esta diferencia.
+
+### Tipos básicos
+
+El **tipo** describe qué clase de valor guarda la variable. Los tres tipos
+básicos son `string` (texto), `number` (números) y `boolean` (verdadero o
+falso):
+
+```ts
+const nombre: string = 'Ana';
+const edad: number = 30;
+const activo: boolean = true;
+```
+
+Además de esos tres, existen `null` y `undefined` para representar
+ausencia de valor, y tipos compuestos como arrays y objetos. Los vas a ver
+a medida que aparezcan; por ahora alcanza con reconocer que no son
+`string`, `number` ni `boolean`.
+
+TypeScript revisa los tipos **antes de ejecutar nada**. Si en algún lugar
+del código se intenta tratar `nombre` como si fuera un número, el error
+aparece al escribir el código, no recién cuando el programa corre. Esa es
+la diferencia principal con JavaScript, que no exige tipos.
+
+### Tipo explícito o inferido
+
+No siempre hace falta escribir el tipo: si el valor inicial es obvio,
+TypeScript lo infiere solo.
+
+```ts
+const nombre = 'Ana';        // TypeScript infiere string
+const edad = 30;             // TypeScript infiere number
+const activo = true;         // TypeScript infiere boolean
+```
+
+Conviene escribir el tipo cuando la inferencia no alcanza para expresar la
+intención. Por ejemplo, una lista vacía no dice qué va a contener, y una
+variable que se asigna después no tiene un valor del que inferir:
+
+```ts
+const candidatos: string[] = [];
+let resultado: string;
+resultado = 'ok';
+```
+
+Los parámetros y el valor de retorno de una función también se declaran
+explícitamente; lo vas a ver en la entrada de funciones.
+
+### El problema de `any`
+
+`any` le dice a TypeScript que no revise el tipo de ese valor. A primera
+vista parece cómodo, pero apaga justamente la ventaja de usar TypeScript:
+
+```ts
+const edad: any = '30';
+const siguiente = edad + 1;
+console.log(siguiente); // '301', y TypeScript no avisó nada
+```
+
+Con el tipo correcto, el error aparece antes:
+
+```ts
+const edad: number = 30;
+const siguiente = edad + 1; // 31
+```
+
+Si el valor viene de afuera (por ejemplo, de un JSON), no lo declares
+`any` para evitar pensar: convertilo o validalo antes de usarlo.
+
+### `object` tampoco describe la forma
+
+`object` acepta cualquier objeto, pero no dice qué propiedades tiene. Para
+TypeScript, un valor de tipo `object` no permite acceder a `timeout` sin
+quejarse, porque esa propiedad no está declarada:
+
+```ts
+const configuracion: object = {timeout: 5000};
+configuracion.timeout; // Error: `object` no declara `timeout`
+```
+
+Si se conoce la forma, conviene declararla:
+
+```ts
+const configuracion: {timeout: number} = {timeout: 5000};
+configuracion.timeout; // válido
+```
+
+`object` es tan amplio como `any` para el chequeo: no aporta información
+sobre el contenido. Los objetos y las interfaces se ven más adelante; por
+ahora alcanza con saber que un tipo tiene que describir lo que se va a usar.
+
+### Nombres que describen el valor
+
+El nombre es la primera documentación que alguien lee. `terminosAceptados`
+dice qué guarda; `dato1` obliga a rastrear el resto del archivo para
+averiguarlo. Un buen nombre describe el contenido, no el tipo ni la
+posición: `longitudMinima`, no `numero1`.
+
+## Cuándo usarlo
+
+`const` es la opción por default para cualquier variable. `let` se reserva
+para los casos en los que el valor realmente va a cambiar (por ejemplo, un
+contador que se incrementa en un loop — lo vas a ver en el capítulo de
+loops). Si no estás seguro de cuál usar, empezá con `const`: si más
+adelante hace falta reasignar el valor, TypeScript va a marcar un error
+ahí mismo, y recién ahí se cambia a `let`.
+
+## Buenas prácticas
+
+- **Usar `const` por default; `let` solo cuando el valor se reasigna.**
+  Ver `const` en una declaración ya le dice a quien lee el código "esto no
+  va a cambiar" — una garantía que ahorra tener que rastrear el resto del
+  archivo para confirmarlo.
+- **Elegir nombres que describan qué contiene la variable**
+  (`terminosAceptados`, no `dato1`). El nombre es la primera (y a veces
+  única) documentación que alguien lee antes de usar esa variable.
+- **Declarar el tipo cuando no sea obvio por el valor asignado**, y dejar
+  que TypeScript lo infiera cuando sí lo sea (`const nombre = 'Ana'` ya es
+  claramente `string`, no hace falta escribirlo).
+- **Evitar el tipo `any` salvo que sea estrictamente necesario.** `any`
+  apaga el chequeo de tipos para esa variable — es renunciar a la ventaja
+  principal de usar TypeScript en primer lugar.
+- **Preferir siempre un tipo lo más específico posible**, no uno genérico
+  "por las dudas". Cuanto más preciso el tipo, más errores puede detectar
+  TypeScript antes de ejecutar nada.
+
+## Anti-patrones
+
+- **Usar `let` sin necesidad de reasignar.** Sugiere, equivocadamente, que
+  el valor va a cambiar en algún momento.
+- **Nombres genéricos** (`x`, `dato1`, `valor`) que no dicen qué
+  representa el valor.
+- **Usar `any` para evitar pensar qué tipo corresponde.** Pierde el
+  chequeo de errores que es la razón principal de usar TypeScript — con
+  `any`, un error de tipo recién se nota cuando el programa ya está
+  corriendo.
+- **Intentar reasignar una variable `const`.** TypeScript lo marca como
+  error de compilación — si hace falta reasignar, la variable tenía que
+  haber sido `let` desde el principio.
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<VariableActivity />
+
+<PracticeActivity />

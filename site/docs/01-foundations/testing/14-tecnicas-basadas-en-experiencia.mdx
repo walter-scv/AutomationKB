@@ -1,0 +1,165 @@
+---
+title: Técnicas basadas en experiencia
+sidebar_position: 14
+---
+
+import Activity from '@site/src/components/Activity';
+import Quiz from '@site/src/components/Quiz';
+import FindInCode from '@site/src/components/FindInCode';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  TECHNIQUE_QUIZ,
+  USAGE_QUIZ,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/14-tecnicas-basadas-en-experiencia';
+
+export const LESSON_SLUG = 'foundations-tecnicas-basadas-en-experiencia';
+
+export function TechniqueActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['technique']);
+  return (
+    <Activity
+      title="¿Qué técnica es esta?"
+      kind="Elegí la opción"
+      goal="reconocer error guessing, testing exploratorio y testing basado en checklists a partir de una situación concreta."
+      done={isDone('technique')}
+      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+    >
+      <Quiz questions={TECHNIQUE_QUIZ} onSolved={() => markDone('technique')} />
+    </Activity>
+  );
+}
+
+export function UsageActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['usage']);
+  return (
+    <Activity
+      title="¿Tiene sentido acá?"
+      kind="Elegí la opción"
+      goal="distinguir cuándo una técnica basada en experiencia alcanza y cuándo hace falta combinarla con una técnica formal."
+      done={isDone('usage')}
+      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+    >
+      <Quiz questions={USAGE_QUIZ} onSolved={() => markDone('usage')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esta forma de aplicarlo está bien?"
+      kind="Clasificar"
+      goal="reconocer, en una decisión real del equipo, cuál de los anti-patrones de la sección anterior aparece."
+      done={isDone('practice')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')}
+        onSolved={() => markDone('practice')}
+      />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Documentar mientras explorás"
+      kind="Elegí la opción"
+      goal="aplicar error guessing, testing exploratorio y checklist-based testing a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Las técnicas anteriores (equivalence partitioning, boundary value
+analysis, decision tables, state transition testing) son formales y
+sistemáticas: parten de una especificación y derivan los casos de ella.
+Pero no siempre hay tiempo, ni documentación completa, para aplicarlas al
+pie de la letra. Para eso existen tres técnicas basadas en la experiencia
+de quien testea:
+
+**Error guessing** usa la experiencia previa (defectos típicos, historial
+de bugs en sistemas parecidos) para anticipar dónde es más probable que
+haya un defecto, y diseña casos puntuales para esas sospechas — en vez de
+derivarlos de una especificación. Un campo de "cantidad" en un carrito de
+compras suele fallar con `0` o con números negativos, aunque la
+especificación nunca lo mencione.
+
+**Testing exploratorio** hace el diseño y la ejecución al mismo tiempo: se
+aprende del sistema mientras se prueba, y lo que se va encontrando guía la
+siguiente acción, en vez de seguir un script fijo definido de antemano. No
+es "probar sin ningún criterio": tiene un objetivo (un área o un riesgo a
+explorar), pero no pasos predefinidos.
+
+**Testing basado en checklists** usa una lista de alto nivel de
+condiciones a cubrir — por ejemplo, una checklist de accesibilidad básica
+o de campos obligatorios — sin que cada ítem tenga un caso de test
+detallado escrito de antemano.
+
+## Cuándo usarlo
+
+Estas tres técnicas rinden más cuando quien testea ya tiene experiencia en
+el dominio o en el tipo de sistema, cuando falta tiempo o documentación
+para diseñar casos formales, o como complemento de la cobertura formal:
+encuentran lo que las técnicas sistemáticas no anticiparon. No reemplazan
+a las técnicas formales en sistemas críticos — ahí, la experiencia de una
+sola persona no garantiza cobertura completa.
+
+## Buenas prácticas
+
+- **Documentar los hallazgos del testing exploratorio a medida que
+  aparecen**, para no perder trazabilidad de qué se probó — al final de
+  una sesión larga es fácil olvidar lo primero que se encontró.
+- **Usar una checklist como punto de partida**, no como reemplazo total de
+  casos formales en áreas críticas — marca qué revisar, pero no decide
+  por sí sola con qué datos ni qué resultado exacto esperar.
+- **Combinar error guessing con las técnicas formales, no en su lugar**:
+  sirve para sumar casos que la especificación no cubre, no para
+  reemplazarla.
+- **Armar la checklist a partir de defectos reales encontrados antes**
+  (post-mortems, bugs recurrentes), no de una lista genérica copiada de
+  otro proyecto — una lista genérica cubre lo obvio, no los puntos débiles
+  específicos de este sistema.
+- **Darle un objetivo y un timebox a cada sesión de testing
+  exploratorio.** Sin un límite de tiempo, es difícil saber cuándo la
+  sesión "terminó" o comparar qué tan productiva fue una sesión contra
+  otra.
+
+## Anti-patrones
+
+- **Depender solo de técnicas basadas en experiencia** para un sistema
+  crítico, sin ninguna cobertura formal — la experiencia de una persona
+  tiene puntos ciegos.
+- **No documentar el testing exploratorio**: sin registro, nadie (ni quien
+  lo hizo) puede reconstruir después qué se cubrió.
+- **Confundir una checklist con un caso de test formal** y asumir que
+  cubre lo mismo — una checklist dice qué revisar, no con qué datos ni qué
+  resultado exacto esperar.
+- **Dejar que el testing exploratorio reemplace por completo la
+  planificación de testing** — sin ningún objetivo ni timebox, una sesión
+  puede terminar cubriendo lo mismo una y otra vez, sin que nadie note qué
+  quedó sin tocar.
+- **Aplicar a ciegas la experiencia de un sistema completamente
+  distinto**, asumiendo que los mismos defectos van a aparecer acá — la
+  experiencia sugiere dónde mirar, no garantiza qué va a fallar.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<TechniqueActivity />
+
+<UsageActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

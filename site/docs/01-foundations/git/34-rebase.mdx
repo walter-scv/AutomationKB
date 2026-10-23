@@ -1,0 +1,135 @@
+---
+title: "Rebase: qué es y cuándo usarlo"
+sidebar_position: 34
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  REBASE_LINES, REBASE_RULE_LABELS,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/34-rebase';
+
+export const LESSON_SLUG = 'foundations-rebase';
+
+export const REBASE_COLUMNS = ['Es seguro rebasear', ...REBASE_RULE_LABELS];
+export const REBASE_ITEMS = REBASE_LINES.map((l) => ({code: l.code, column: l.rule, why: l.why, hint: l.hint}));
+export function RebaseActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['rebase']);
+  return (
+    <Activity
+      title="¿Es seguro rebasear acá?"
+      kind="Clasificar"
+      goal="reconocer cuándo rebasear una rama es seguro, cuándo reescribe el historial de otras personas y cuándo no hay motivo para hacerlo."
+      done={isDone('rebase')}
+      consigna="Son 7 escenarios. Arrastrá cada uno a la caja que corresponde. La actividad se completa cuando ubicaste los 7 en su caja."
+    >
+      <Classify
+        items={REBASE_ITEMS}
+        columns={REBASE_COLUMNS}
+        itemLabel="Escenario"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('rebase')}
+        onSolved={() => markDone('rebase')}
+      />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Buena práctica o anti-patrón?"
+      kind="Clasificar"
+      goal="reconocer, en una situación real de rebase, si se abandonó a mitad de camino, se usó `--force` o se resolvió sin entender ni probar — o si se manejó bien."
+      done={isDone('practice')}
+      consigna="Son 7 situaciones. Si se abandonó el rebase a mitad de camino, elegí «Abandonó el rebase a mitad de camino sin resolver ni cancelar»; si se usó `--force` en vez de `--force-with-lease`, elegí «Usó `--force` en vez de `--force-with-lease` al re-subir»; si se resolvieron los conflictos sin entender ni probar, elegí «Resolvió los conflictos sin entender ni probar cada paso». En las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')}
+        onSolved={() => markDone('practice')}
+      />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Rebase frente a merge"
+      kind="Elegí la opción"
+      goal="distinguir rebase de merge, y cuándo rebasear es seguro."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+`git rebase` integra cambios de una rama en otra, igual que `git merge` —
+pero de otra forma. Merge crea un commit nuevo que une los dos
+historiales. Rebase, en cambio, reescribe los commits de tu rama como si
+los hubieras hecho a partir de la versión más reciente de la otra rama: el
+historial queda lineal, sin el "nudo" de un commit de merge.
+
+El costo de esa prolijidad es que rebase **reescribe commits** — no son
+los mismos commits de antes, son copias nuevas con otro padre en el
+historial. Si esos commits ya se compartieron con otras personas (porque
+ya hicieron `git pull` de esa rama), sus copias locales quedan
+desincronizadas de la versión reescrita.
+
+## Cuándo usarlo
+
+Regla práctica: rebasear está bien en una rama propia que todavía no
+compartiste con nadie. Nunca rebasear una rama que otras personas ya están
+usando — como `main`, o cualquier rama que un compañero ya descargó para
+seguir trabajando sobre ella.
+
+## Buenas prácticas
+
+- **Usar rebase solo en ramas propias** que todavía nadie más descargó —
+  es la condición que hace seguro reescribir el historial.
+- **Si hace falta re-subir una rama ya rebaseada, usar
+  `git push --force-with-lease`** en vez de `--force` a secas: rechaza el
+  push si alguien más subió algo que vos no tenías, en vez de
+  sobrescribirlo a ciegas.
+- **Resolver los conflictos de a uno por commit durante un rebase** (a
+  diferencia de un merge, que los junta todos en un solo conflicto) —
+  tomarse el tiempo en cada paso evita arrastrar un error de un commit al
+  siguiente.
+- **Avisar al equipo antes de reescribir una rama** que, aunque sea
+  "propia", alguien más podría haber empezado a mirar o clonar.
+- **Preferir merge (no rebase) para integrar cambios en una rama
+  compartida** como `main` — ahí la regla de "nunca reescribir lo
+  compartido" manda sobre la prolijidad del historial.
+
+## Anti-patrones
+
+- **Rebasear una rama compartida** (`main`, o cualquier rama que ya
+  descargó otra persona) — reescribe el historial que esa persona ya
+  tiene, y le rompe el repositorio local.
+- **Usar `--force` en vez de `--force-with-lease`** al re-subir una rama
+  rebaseada — sobrescribe a ciegas cualquier cambio que haya llegado al
+  remoto mientras tanto, aunque no sea tuyo.
+- **Abandonar un rebase a mitad de camino** con varios conflictos sin
+  resolver, dejando el repositorio en un estado intermedio confuso.
+- **Rebasear por costumbre**, incluso cuando un merge simple hubiera
+  alcanzado y hubiera sido más seguro.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<RebaseActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

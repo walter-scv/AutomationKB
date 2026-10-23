@@ -1,0 +1,133 @@
+---
+title: Mergear ramas y resolver conflictos
+sidebar_position: 31
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {MERGE_LINES, MERGE_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/31-merge-y-conflictos';
+
+export const LESSON_SLUG = 'foundations-merge-y-conflictos';
+
+export function MergeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['merge']);
+  return (
+    <Activity
+      title="¿Cuándo conviene mergear?"
+      kind="Clasificar"
+      goal="distinguir cuándo el riesgo aparece por no integrar seguido y cuándo por no coordinar un merge grande."
+      done={isDone('merge')}
+      consigna="Son 7 situaciones. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={MERGE_LINES} ruleLabels={MERGE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('merge')} onSolved={() => markDone('merge')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Buena práctica o anti-patrón?"
+      kind="Clasificar"
+      goal="reconocer, en una situación real de merge, si se pospuso por miedo, se resolvió sin leer la otra versión o no se volvió a probar — o si está bien resuelta."
+      done={isDone('practice')}
+      consigna="Son 7 situaciones. Si se pospuso el merge por miedo, elegí «Posterga el merge por miedo, en vez de integrar en partes»; si se resolvió eligiendo una versión sin leer la otra, elegí «Resuelve el conflicto eligiendo una versión sin leer la otra»; si no se volvió a probar después de resolver a mano, elegí «No vuelve a probar después de resolver el conflicto a mano». En las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Qué es un conflicto de merge"
+      kind="Elegí la opción"
+      goal="aplicar merge y conflictos a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Ya sabés crear una rama propia para trabajar. En algún momento, ese
+trabajo tiene que volver a `main`:
+
+```bash
+git checkout main
+git merge validar-contraseña
+```
+
+`git merge` suma los commits de una rama a la rama en la que estás
+parado — en este caso, los commits de `validar-contraseña` se suman a
+`main`.
+
+Un **conflicto de merge** aparece cuando dos ramas cambiaron las mismas
+líneas de un archivo de formas distintas, y Git no puede decidir solo cuál
+versión usar. Marca el conflicto directamente en el archivo:
+
+```
+<<<<<<< HEAD
+contraseña.length >= 8
+=======
+contraseña.length >= 10
+>>>>>>> validar-contraseña
+```
+
+Alguien tiene que elegir (o combinar) qué versión queda, editar el
+archivo a mano, y recién ahí confirmar el merge.
+
+## Cuándo usarlo
+
+Un merge hace falta cada vez que el trabajo de una rama está listo para
+sumarse a `main` — o cada vez que `main` avanzó y tu rama necesita
+ponerse al día con esos cambios.
+
+## Buenas prácticas
+
+- **Mergear seguido:** cada pocos días, no dejar una rama viviendo
+  semanas — así, si aparece un conflicto, es chico y fácil de resolver.
+- **Entender ambas versiones antes de resolver un conflicto:** leer qué
+  hace cada lado, no elegir una al azar — combinar a ciegas puede borrar
+  un cambio real de otra persona.
+- **Traer los cambios de `main` a la rama propia seguido** (no solo al
+  final), para encontrar conflictos chicos de a poco en vez de uno
+  gigante al mergear.
+- **Volver a probar el código después de resolver un conflicto a mano:**
+  una combinación manual puede compilar y aun así tener un error de
+  lógica que ningún conflicto marcado iba a avisar.
+- **Avisar al equipo antes de mergear algo grande,** para que nadie quede
+  trabajando sobre una base que está por cambiar mucho.
+
+## Anti-patrones
+
+- **Dejar una rama sin mergear durante semanas** mientras el resto del
+  equipo sigue sumando cambios a `main` — el conflicto, cuando aparezca,
+  va a ser mucho más grande.
+- **Resolver un conflicto a las apuradas**, eligiendo una versión sin
+  entender qué hacía la otra — puede borrar un cambio real de alguien más.
+- **Quedarse con una versión sin leer la otra** ("la mía total"), en vez
+  de combinar lo que corresponde de cada una.
+- **No volver a correr nada después de resolver un conflicto a mano** —
+  una combinación mal hecha puede dejar el código roto aunque Git ya no
+  marque ningún conflicto pendiente.
+- **Posponer un merge por miedo al conflicto** — evitarlo no lo hace
+  desaparecer, solo garantiza que sea más grande cuando no quede otra.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<MergeActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

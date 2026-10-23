@@ -1,0 +1,129 @@
+---
+title: "Deshacer cambios: restore, stash y revert"
+sidebar_position: 33
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  TOOL_LINES, TOOL_RULE_LABELS,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/33-deshacer-cambios';
+
+export const LESSON_SLUG = 'foundations-deshacer-cambios';
+
+export function ToolActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['tool']);
+  return (
+    <Activity
+      title="¿Qué herramienta es?"
+      kind="Clasificar"
+      goal="distinguir restore, stash y revert según en qué momento se usa cada una."
+      done={isDone('tool')}
+      consigna="Son 7 escenarios. Elegí qué correspondía hacer (descartar con `restore`, guardar con `stash` o deshacer con `revert`); si se usó la herramienta correcta, elegí «Se usó la herramienta correcta». La actividad se completa cuando encontraste los 3 con error."
+    >
+      <FindInCode lines={TOOL_LINES} ruleLabels={TOOL_RULE_LABELS} okLabel="Se usó la herramienta correcta" prompt="¿Correspondía esta herramienta?" itemLabel="Escenario" alreadyDone={isDone('tool')} onSolved={() => markDone('tool')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Buena práctica o anti-patrón?"
+      kind="Clasificar"
+      goal="reconocer, en una situación real, si se revirtió sin confirmar el commit, se revirtió algo compartido o se dejó un stash olvidado — o si se usó la herramienta correcta."
+      done={isDone('practice')}
+      consigna="Son 7 situaciones. Si el problema es revertir sin confirmar cuál era el commit correcto, elegí «Revirtió sin confirmar antes cuál era el commit correcto»; si es revertir algo compartido sin avisar, elegí «Revirtió algo compartido sin avisar al equipo»; si es dejar un stash guardado y olvidado, elegí «Dejó un `stash` guardado y olvidado». En las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 3 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')}
+        onSolved={() => markDone('practice')}
+      />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Por qué no borrar un revert"
+      kind="Elegí la opción"
+      goal="elegir la herramienta correcta para deshacer cambios en situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Tres herramientas deshacen cambios, cada una para un momento distinto:
+
+- **`git restore <archivo>`** descarta cambios sin confirmar en el
+  working directory, volviendo el archivo a como estaba en el último
+  commit. El cambio se pierde.
+- **`git stash`** guarda temporalmente cambios sin confirmar, sin
+  perderlos, para poder cambiar de rama o hacer otra cosa — y
+  recuperarlos después con `git stash pop`.
+- **`git revert <commit>`** deshace un commit ya confirmado (y quizás ya
+  subido al remoto), creando un commit **nuevo** que aplica el cambio
+  contrario. A diferencia de borrar el commit del historial, `revert` deja
+  registro de que algo se deshizo, y por qué.
+
+La pregunta que distingue cuál usar es: **¿el cambio ya está confirmado?**
+Si no, `restore` (para descartarlo) o `stash` (para guardarlo). Si ya está
+confirmado y compartido, `revert`.
+
+## Cuándo usarlo
+
+Usá `restore` cuando un cambio sin confirmar resultó ser un error y
+querés volver atrás. Usá `stash` cuando el cambio sin confirmar todavía te
+sirve, pero necesitás un working directory limpio para hacer otra cosa.
+Usá `revert` cuando el commit a deshacer ya se compartió con el equipo —
+reescribir el historial de un commit que otros ya tienen genera
+problemas al resto del equipo.
+
+## Buenas prácticas
+
+- **Confirmar primero si el cambio ya está confirmado (committeado) o
+  no**, antes de elegir la herramienta — esa pregunta decide todo lo que
+  sigue.
+- **Usar `git stash` en vez de `restore`** cuando el cambio sin confirmar
+  todavía sirve, aunque sea temporalmente — `restore` lo descarta para
+  siempre, sin vuelta atrás.
+- **Preferir `revert` (nunca reescribir el historial) para deshacer un
+  commit ya compartido** con el equipo — reescribir rompe las copias
+  locales de quien ya tiene esos commits.
+- **Revisar con `git log` cuál es exactamente el commit a revertir** antes
+  de ejecutar `revert`, para no deshacer el cambio equivocado.
+- **Avisar al equipo cuando se revierte algo ya compartido**, para que
+  nadie se confunda al ver que un cambio "desapareció" sin explicación.
+
+## Anti-patrones
+
+- **Confundir `restore` con `stash`**: usar `restore` cuando el cambio en
+  realidad todavía servía y había que guardarlo temporalmente — se pierde
+  para siempre, sin poder recuperarlo.
+- **Reescribir el historial de un commit ya compartido** en vez de usar
+  `revert` — rompe el repositorio local de quien ya tiene esos commits.
+- **Revertir el commit equivocado** por no revisar el historial antes —
+  hay que confirmar con `git log` cuál es el commit correcto.
+- **Dejar un `stash` guardado y olvidarse de él** — con el tiempo, nadie
+  recuerda qué era ni por qué se había guardado.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ToolActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

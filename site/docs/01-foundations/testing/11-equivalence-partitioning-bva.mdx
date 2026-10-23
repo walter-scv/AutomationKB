@@ -1,0 +1,197 @@
+---
+title: Equivalence Partitioning y Boundary Value Analysis
+sidebar_position: 11
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Order from '@site/src/components/Order';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  BOUNDARY_LINES, BOUNDARY_RULE_LABELS,
+  BOUNDARY_ORDER_ITEMS, BOUNDARY_ORDER_CORRECT, BOUNDARY_ORDER_RULES,
+  APPLIES_QUIZ,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/11-equivalence-partitioning-bva';
+
+export const LESSON_SLUG = 'foundations-test-design';
+
+export function BoundaryActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['boundary']);
+  return (
+    <Activity
+      title="¿Este valor suma cobertura nueva?"
+      kind="Clasificar"
+      goal="reconocer cuándo un valor cubre una partición nueva o un límite, y cuándo es redundante."
+      done={isDone('boundary')}
+      consigna="Son 7 valores. Si el valor agrega una partición o un límite que el plan todavía no cubre, elegí «Suma cobertura nueva»; si cae en una partición que ya cubre otro valor del plan, elegí «Redundante: la partición ya está cubierta por otro valor del plan». La actividad se completa cuando encontraste los 4 valores redundantes."
+    >
+      <FindInCode lines={BOUNDARY_LINES} ruleLabels={BOUNDARY_RULE_LABELS} okLabel="Suma cobertura nueva" prompt="¿Suma cobertura nueva o es redundante?" itemLabel="Valor" counterLabel="valores redundantes" alreadyDone={isDone('boundary')} onSolved={() => markDone('boundary')} />
+    </Activity>
+  );
+}
+
+export function BoundaryOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['boundary-order']);
+  return (
+    <Activity
+      title="Armá el conjunto de valores límite"
+      kind="Ordenar"
+      goal="aplicar boundary value analysis como un proceso de tres pasos."
+      done={isDone('boundary-order')}
+      consigna="Son 3 tarjetas con los pasos para armar el conjunto de valores límite. Ordenalas del primero al último moviendo cada una con las flechas (o arrastrándola), y usá «Comprobar orden» para verificar; la actividad se completa cuando el orden es correcto."
+    >
+      <Order
+        items={BOUNDARY_ORDER_ITEMS}
+        correctOrder={BOUNDARY_ORDER_CORRECT}
+        rules={BOUNDARY_ORDER_RULES}
+        onSolved={() => markDone('boundary-order')}
+      />
+    </Activity>
+  );
+}
+
+export function AppliesActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['applies']);
+  return (
+    <Activity
+      title="¿Se puede aplicar BVA acá?"
+      kind="Elegí la opción"
+      goal="distinguir una partición ordenada (donde BVA aplica) de una que no lo es."
+      done={isDone('applies')}
+      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+    >
+      <Quiz questions={APPLIES_QUIZ} onSolved={() => markDone('applies')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esta cobertura sigue la práctica correcta?"
+      kind="Clasificar"
+      goal="reconocer, en un conjunto de valores ya elegidos, cuál de los anti-patrones de la sección anterior aparece."
+      done={isDone('practice')}
+      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Límites completos y vigentes"
+      kind="Elegí la opción"
+      goal="aplicar EP y BVA para decidir si un conjunto de valores cubre los límites y las particiones."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+**Equivalence partitioning (EP)** divide los valores posibles de una entrada en
+particiones: grupos que el sistema debería tratar de la misma forma. La idea
+detrás de la técnica es que, si un valor de una partición revela un defecto,
+cualquier otro valor de la misma partición también lo revelaría. Por eso
+alcanza con probar un representante de cada partición, en vez de agotar
+todos los valores posibles.
+
+Para el campo contraseña de un formulario, con la regla "entre 8 y 64
+caracteres", hay tres particiones:
+
+| Partición | Ejemplo | ¿Válida? |
+|---|---|---|
+| Muy corta | 3 caracteres | No |
+| Rango válido | 8 a 64 caracteres | Sí |
+| Muy larga | 70 caracteres | No |
+
+**Boundary value analysis (BVA)** se aplica sobre esas mismas particiones,
+pero en vez de un representante cualquiera, prueba específicamente los
+límites: el último valor válido y el primer valor inválido de cada lado.
+Se usa junto con equivalence partitioning porque un error en la condición
+que separa dos particiones (un `<` donde debería ir un `<=`) casi nunca se
+nota en el medio de una partición — solo en el valor exacto del límite.
+
+Para el ejemplo de arriba, los límites a probar son 7 y 8 (el borde de
+abajo) y 64 y 65 (el borde de arriba).
+
+## Cuándo usarlo
+
+Equivalence partitioning aplica a cualquier campo o condición que acepte
+un rango o un conjunto de valores posibles. Boundary value analysis, en
+cambio, solo tiene sentido sobre particiones **ordenadas** (rangos
+numéricos, longitudes, fechas): necesita un límite entre un valor y el
+siguiente, y eso solo existe cuando hay un orden. Una condición sin orden,
+como un checkbox tildado o destildado, no tiene un límite que analizar.
+
+Usar BVA no reemplaza a EP — se suma. Primero se definen las particiones;
+después se decide cuáles de ellas están ordenadas y tienen límites para
+analizar.
+
+## Buenas prácticas
+
+- **Un representante por partición alcanza.** Si un valor de una partición
+  revela un defecto, cualquier otro valor de esa misma partición también
+  lo revelaría — agregar un segundo valor "por las dudas" no suma
+  información nueva, solo tiempo de ejecución.
+- **Para cada límite, probar los dos lados**: el último valor válido y el
+  primer valor inválido. Un error de operador (`<` en vez de `<=`) solo se
+  nota comparando ambos lados — probar uno solo deja pasar la mitad de los
+  defectos posibles ahí.
+- **Documentar qué partición representa cada valor elegido**, no solo el
+  valor en sí. Un caso que dice "probar con 8 caracteres" sin explicar que
+  es el límite inferior obliga a quien lo lea después a reconstruir esa
+  razón, o directamente a no entenderla.
+- **Revisar las particiones cada vez que cambie la regla de negocio.** Si
+  el mínimo de caracteres pasa de 8 a 10, los valores límite viejos (7 y
+  8) dejan de ser los límites reales — un caso que sigue probando esos
+  números da una falsa sensación de cobertura sin probar nada del límite
+  actual.
+- **Priorizar boundary value analysis cuando el tiempo es limitado.** Un
+  defecto de límite (un operador de comparación mal escrito) es más común
+  y más fácil de introducir sin querer que un defecto que afecte a una
+  partición completa — por eso rinde más por el mismo esfuerzo.
+
+## Anti-patrones
+
+- **Probar varios valores de la misma partición** "por las dudas" — no
+  agrega cobertura nueva, solo tiempo de ejecución, porque la técnica
+  asume que todos los valores de una partición se comportan igual.
+- **Probar el límite de un solo lado.** Confirmar que 8 caracteres es
+  válido pero no confirmar que 7 es inválido deja pasar un error de
+  operador que afecte solo a ese lado.
+- **Aplicar boundary value analysis sobre una condición sin orden**, como
+  un checkbox — ahí no existe un límite que analizar, porque no hay un
+  "antes" ni un "después".
+- **Olvidarse de la partición de ausencia de valor** (vacío, `null`, campo
+  sin completar). Es una clase inválida distinta de "muy corto", y un
+  sistema real suele manejarla con una lógica separada (un mensaje de
+  "campo obligatorio" en vez de "demasiado corto").
+- **Elegir un límite "redondo" en vez del límite real.** Probar 10 y 100
+  porque son números cómodos, cuando la regla real dice 8 y 64, no prueba
+  nada sobre el límite que el sistema realmente usa.
+
+## Práctica
+
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<BoundaryActivity />
+
+<BoundaryOrderActivity />
+
+<AppliesActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

@@ -1,0 +1,323 @@
+---
+title: "Funciones: parámetros y valor de retorno"
+sidebar_position: 19
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  RETURN_LINES,
+  RETURN_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+} from '@site/src/content/lessons/19-funciones';
+
+export const LESSON_SLUG = 'foundations-funciones';
+
+export function ReturnActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['return']);
+  return (
+    <Activity
+      title="¿Esta función devuelve algo?"
+      kind="Buscar en el código"
+      goal="reconocer una función que calcula pero no devuelve, una que declara un tipo de retorno distinto del real, y una que devuelve solo en uno de sus caminos."
+      done={isDone('return')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={RETURN_LINES} ruleLabels={RETURN_RULE_LABELS} alreadyDone={isDone('return')} onSolved={() => markDone('return')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esta función es confiable?"
+      kind="Buscar en el código"
+      goal="reconocer una función que depende de algo externo, una que modifica lo que recibió, una con demasiados parámetros sueltos y un nombre que no dice qué hace."
+      done={isDone('practice')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+Ya sabés declarar variables tipadas y condicionales. El siguiente paso es
+agrupar esa lógica bajo un nombre, para no repetirla cada vez que hace
+falta.
+
+## Conceptos
+
+Una **función** agrupa código bajo un nombre para usarlo las veces que haga
+falta sin repetirlo. Recibe **parámetros** (los valores que necesita, cada
+uno con su tipo) y puede **devolver** un resultado con `return`:
+
+```ts
+function esContraseñaValida(contraseña: string): boolean {
+  return contraseña.length >= 8 && contraseña.length <= 64;
+}
+```
+
+`contraseña: string` es el parámetro. `: boolean` (después de los
+paréntesis) declara qué tipo de valor devuelve la función. `return` es lo
+que entrega ese resultado a quien la llamó.
+
+La función no hace nada hasta que se la llama. Al llamarla, el resultado se
+puede guardar o usar directamente:
+
+```ts
+const valida = esContraseñaValida('Abcd1234!'); // true
+console.log(esContraseñaValida('corta'));       // false
+```
+
+### Parámetros y argumentos
+
+Una función puede recibir varios parámetros. El orden importa: quien la
+llama tiene que pasar los valores en el mismo orden en que se declaran.
+
+```ts
+function crearSaludo(nombre: string, hora: number): string {
+  if (hora < 12) {
+    return 'Buen día, ' + nombre;
+  }
+  return 'Buenas tardes, ' + nombre;
+}
+
+crearSaludo('Ana', 9);  // 'Buen día, Ana'
+crearSaludo('Ana', 18); // 'Buenas tardes, Ana'
+```
+
+Cuando una función acumula demasiados parámetros sueltos del mismo tipo, es
+fácil equivocarse de orden sin que TypeScript lo detecte. En ese caso
+conviene agruparlos en un objeto:
+
+```ts
+function registrar(datos: {email: string; contraseña: string}): boolean {
+  return datos.contraseña.length >= 8;
+}
+```
+
+### El valor de retorno
+
+`return` entrega un valor y termina la ejecución de la función en ese
+punto. Si una función declara que devuelve `number`, todos los caminos
+tienen que devolver un `number`:
+
+```ts
+function calcularTotal(precio: number, cantidad: number): number {
+  return precio * cantidad;
+}
+```
+
+Si falta el `return`, la función calcula el valor pero no lo entrega:
+
+```ts
+function calcularTotal(precio: number, cantidad: number): number {
+  const total = precio * cantidad;
+  // falta return: TypeScript marca que no devuelve nada
+}
+```
+
+Si devuelve en un camino y en otro no, quien la llama recibe `undefined` en
+el camino que faltó:
+
+```ts
+function clasificar(nota: number): string {
+  if (nota < 4) {
+    return 'Desaprobado';
+  }
+  // si nota >= 4, no hay return: devuelve undefined
+}
+```
+
+La versión completa devuelve algo en todos los casos:
+
+```ts
+function clasificar(nota: number): string {
+  if (nota < 4) {
+    return 'Desaprobado';
+  }
+  return 'Aprobado';
+}
+```
+
+Una función que busca algo puede no encontrarlo. En ese caso el tipo de
+retorno contempla la ausencia de valor:
+
+```ts
+function buscarUsuario(id: string): Usuario | undefined {
+  return usuarios.find((usuario) => usuario.id === id);
+}
+```
+
+`Usuario | undefined` se lee como "un `Usuario`, o `undefined` si no se
+encontró". `find` devuelve el primer elemento que cumple la condición, o
+`undefined` cuando ninguno lo hace. Declarar esa posibilidad es parte de la
+firma, no un detalle opcional.
+
+El tipo declarado también tiene que coincidir con el valor devuelto. Esto es
+un error de tipos, no un detalle de estilo:
+
+```ts
+function esMayor(edad: number): string {
+  return edad >= 18; // Error: devuelve boolean, no string
+}
+```
+
+### Funciones que no devuelven nada
+
+Una función que solo hace algo (registrar un mensaje, enviar un evento) no
+necesita devolver un valor. Se declara con `void`:
+
+```ts
+function registrarLog(mensaje: string): void {
+  console.log(mensaje);
+}
+```
+
+Sin `return`, la función igual termina y devuelve `undefined`, pero `void`
+deja explícito que no hay un resultado que usar.
+
+### La misma función con otra sintaxis
+
+Una función también se puede escribir como **arrow function**. Es la misma
+idea, con otra forma:
+
+```ts
+const esContraseñaValida = (contraseña: string): boolean => {
+  return contraseña.length >= 8 && contraseña.length <= 64;
+};
+```
+
+Si el cuerpo es una sola expresión, se puede omitir `return` y las llaves:
+
+```ts
+const esContraseñaValida = (contraseña: string): boolean =>
+  contraseña.length >= 8 && contraseña.length <= 64;
+```
+
+Las arrow functions aparecen todo el tiempo como callbacks de arrays y en
+los tests; conviene reconocerlas aunque al principio escribas `function`.
+
+### Alcance: lo que se declara adentro no sale
+
+Una variable declarada dentro de una función existe solo mientras esa
+función se ejecuta. No se puede usar desde afuera:
+
+```ts
+function calcularTotal(precio: number): number {
+  const total = precio * 2;
+  return total;
+}
+
+console.log(total); // Error: `total` no existe acá
+```
+
+Si el valor hace falta afuera, la función tiene que devolverlo con
+`return`. Esa barrera evita que dos funciones se pisen variables con el
+mismo nombre y hace más fácil razonar sobre cada una por separado.
+
+### Una función, una responsabilidad
+
+Si para describir la función hace falta un "y" ("valida la contraseña y
+envía el formulario"), probablemente sean dos funciones. Separarlas permite
+probarlas y reusarlas por separado.
+
+El nombre también es parte de la función: `esContraseñaValida` dice qué
+responde; `chequeo1` obliga a leer el cuerpo para saber qué hace.
+
+### Dependencias y datos que se modifican
+
+Una función debería recibir todo lo que necesita como parámetro, no depender
+de una variable externa:
+
+```ts
+let descuento = 0;
+
+function calcularTotal(precio: number): number {
+  return precio - descuento; // depende de algo que no recibió
+}
+```
+
+Si `descuento` cambia, la misma llamada da otro resultado. Pasarlo como
+parámetro hace visible de qué depende:
+
+```ts
+function calcularTotal(precio: number, descuento: number): number {
+  return precio - descuento;
+}
+```
+
+Tampoco conviene modificar el objeto o array que se recibió. Quien llamó a
+la función puede seguir usándolo y no espera que cambie por abajo:
+
+```ts
+function agregarPedido(pedidos: string[], pedido: string): string[] {
+  pedidos.push(pedido); // modifica el array recibido
+  return pedidos;
+}
+```
+
+Devolver uno nuevo evita ese efecto:
+
+```ts
+function agregarPedido(pedidos: string[], pedido: string): string[] {
+  return [...pedidos, pedido];
+}
+```
+
+## Cuándo usarlo
+
+Cualquier lógica que se vaya a usar más de una vez conviene envolverla en
+una función, en vez de copiar y pegar el mismo código cada vez. También
+conviene usar una función para nombrar una operación: `esContraseñaValida(contraseña)`
+dice qué hace, mientras que la condición repetida en cada lugar donde se
+necesita no lo dice por sí sola.
+
+## Buenas prácticas
+
+- **Una función hace una sola cosa.** Si hace falta describirla con "y"
+  ("valida la contraseña y envía el formulario"), probablemente son dos
+  funciones — separarlas permite probar y reusar cada una por su cuenta.
+- **Nombrar la función con un verbo que describa qué hace o qué pregunta
+  responde** (`esContraseñaValida`, no `chequeo1`). Quien lee el código
+  donde se la llama entiende qué pasa sin tener que ir a buscar la
+  definición.
+- **Declarar el tipo de cada parámetro y del valor de retorno.**
+  TypeScript avisa en el momento de escribir el código si alguien la
+  llama con un valor del tipo equivocado, en vez de descubrirlo recién
+  cuando el programa corre.
+- **Usar solo lo que la función recibió como parámetro**, no variables
+  externas. Si el resultado depende de algo de afuera, dos llamados con
+  los mismos parámetros pueden dar resultados distintos, y eso es difícil
+  de rastrear después.
+- **Devolver un valor nuevo en vez de modificar el que se recibió.** Quien
+  llama a la función espera que su dato original siga igual, salvo que la
+  función diga explícitamente lo contrario.
+
+## Anti-patrones
+
+- **Olvidarse del `return`.** La función calcula el resultado correcto
+  adentro, pero nunca lo entrega — quien la llama recibe `undefined`.
+- **Copiar y pegar la misma lógica** en vez de escribirla una sola vez
+  como función y llamarla donde haga falta.
+- **Depender de una variable externa** en vez de recibirla como
+  parámetro. Oculta de qué depende realmente el resultado — alguien que
+  lee solo la llamada a la función no se entera.
+- **Modificar el objeto que se recibió como parámetro**, en vez de
+  devolver uno nuevo. Quien llamó a la función puede seguir usando ese
+  objeto después, sin saber que cambió por abajo.
+- **Demasiados parámetros sueltos del mismo tipo** (varios `string`
+  seguidos, por ejemplo) en vez de agruparlos en un objeto — fácil de
+  pasar en el orden equivocado sin que nada avise.
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ReturnActivity />
+
+<PracticeActivity />

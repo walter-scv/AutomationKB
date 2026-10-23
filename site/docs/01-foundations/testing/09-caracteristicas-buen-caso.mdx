@@ -1,0 +1,142 @@
+---
+title: Características de un buen caso de test
+sidebar_position: 9
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  QUALITY_LINES, QUALITY_RULE_LABELS,
+  TROUBLESHOOT_LINES, TROUBLESHOOT_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/09-caracteristicas-buen-caso';
+
+export const LESSON_SLUG = 'foundations-caracteristicas-buen-caso';
+
+export function QualityActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quality']);
+  return (
+    <Activity
+      title="¿Qué característica rompe?"
+      kind="Clasificar"
+      goal="reconocer, en una descripción de caso de test, cuál de las cuatro características está rota — o si no rompe ninguna."
+      done={isDone('quality')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={QUALITY_LINES} ruleLabels={QUALITY_RULE_LABELS} alreadyDone={isDone('quality')} onSolved={() => markDone('quality')} />
+    </Activity>
+  );
+}
+
+export function TroubleshootActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['trouble']);
+  return (
+    <Activity
+      title="¿Por qué da resultados distintos?"
+      kind="Clasificar"
+      goal="diagnosticar, a partir de un síntoma real de ejecución, cuál de las tres causas típicas lo está provocando."
+      done={isDone('trouble')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode
+        lines={TROUBLESHOOT_LINES}
+        ruleLabels={TROUBLESHOOT_RULE_LABELS}
+        alreadyDone={isDone('trouble')}
+        onSolved={() => markDone('trouble')}
+      />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Repetible y verificable"
+      kind="Elegí la opción"
+      goal="aplicar las cuatro características de un buen caso de test a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Un caso de test con la estructura correcta (precondición, pasos, resultado
+esperado) puede, aun así, ejecutarse distinto según quién lo lea. Cuatro
+características determinan si eso puede pasar:
+
+| Característica | Qué significa |
+|---|---|
+| **Claro** | Cualquiera que lo lea lo ejecuta exactamente de la misma forma. |
+| **Verificable** | El resultado esperado es un hecho concreto, no una opinión. |
+| **Independiente** | No depende de datos ni de pasos que haya dejado otro caso. |
+| **Repetible** | Mismos pasos, mismo resultado, sin importar cuándo ni quién lo ejecute. |
+
+Un caso que rompe **Claro** deja algún dato a elección de quien lo ejecuta
+(por ejemplo, "completar con un dato válido" en vez de un valor concreto).
+Uno que rompe **Verificable** describe el resultado como una impresión
+("se ve bien") en vez de un hecho. Uno que rompe **Independiente** asume
+un estado que no declaró como precondición. Y uno que rompe **Repetible**
+depende de algo externo y variable, como la hora del día.
+
+## Cuándo usarlo
+
+Estas cuatro características importan en cualquier caso que se vaya a
+ejecutar más de una vez, por más de una persona, o que se vaya a sumar a
+una suite de regresión. Para una exploración única, de uso y descarte, el
+costo de pulir cada característica puede no justificarse — pero incluso
+ahí, Verificable sigue importando: sin un resultado concreto, ni siquiera
+quien lo ejecutó una vez puede confirmar qué encontró.
+
+## Buenas prácticas
+
+- **Reemplazar "un dato válido" por el dato exacto a usar.** Es la
+  diferencia entre un caso que cualquiera ejecuta igual y uno que cada
+  persona interpreta a su manera.
+- **Reemplazar "se ve bien" / "funciona correctamente" por un hecho
+  puntual**: un texto, una URL, un valor. Un hecho se puede confirmar en
+  segundos; una impresión genera discusión.
+- **Declarar toda precondición de la que el caso dependa**, en vez de
+  darla por sabida — lo que es obvio para quien escribió el caso puede no
+  serlo para quien lo ejecuta meses después.
+- **Evitar que el resultado dependa de algo externo y variable** (la hora,
+  el azar, el estado de otro sistema) — si no se puede controlar esa
+  variable, tampoco se puede confiar en el resultado.
+- **Revisar un caso viejo cuando empieza a fallar de forma inconsistente.**
+  Es la señal más común de que alguna de las cuatro características se
+  rompió en algún momento, aunque el caso "siempre funcionó antes".
+
+## Anti-patrones
+
+- **Dejar un dato a elección de quien ejecuta** ("con información
+  válida") en vez de especificarlo — dos ejecuciones pueden terminar
+  probando datos distintos sin que nadie se dé cuenta.
+- **Describir el resultado como una impresión** en vez de un hecho
+  verificable — el caso nunca termina de "pasar" de forma objetiva.
+- **Asumir un estado previo** sin declararlo como precondición — el caso
+  funciona solo si se ejecuta en cierto orden, y nadie escribió esa regla
+  en ningún lado.
+- **Depender de una condición externa variable** (fecha, hora, azar) para
+  que el caso dé el resultado esperado — el caso pasa o falla según el
+  momento en que se lo corra, sin que el sistema haya cambiado.
+- **Confiar en un caso que "a veces falla" en vez de investigar por qué.**
+  Un caso inconsistente entrena al equipo a re-ejecutar y listo, en vez de
+  preguntarse cuál de las cuatro características se rompió.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<QualityActivity />
+
+### Cuando dos ejecuciones dan resultados distintos
+
+<TroubleshootActivity />
+
+<ClosingQuizActivity />

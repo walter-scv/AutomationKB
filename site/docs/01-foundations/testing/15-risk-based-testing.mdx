@@ -1,0 +1,206 @@
+---
+title: Estrategia de testing
+sidebar_position: 15
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import FindInCode from '@site/src/components/FindInCode';
+import Order from '@site/src/components/Order';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  RISK_LINES, RISK_RULE_LABELS,
+  PRIORITY_ORDER_ITEMS, PRIORITY_ORDER_CORRECT, PRIORITY_ORDER_RULES,
+  TROUBLESHOOT_LINES, TROUBLESHOOT_RULE_LABELS,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/15-risk-based-testing';
+
+export const LESSON_SLUG = 'foundations-strategy';
+
+export const RISK_COLUMNS = ['Alta prioridad', ...RISK_RULE_LABELS];
+export const RISK_ITEMS = RISK_LINES.map((l) => ({code: l.code, column: l.rule, why: l.why, hint: l.hint}));
+
+export function RiskActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['risk']);
+  return (
+    <Activity
+      title="¿Qué tan prioritario es esto?"
+      kind="Clasificar"
+      goal="aplicar impacto × probabilidad para decidir qué priorizar."
+      done={isDone('risk')}
+      consigna="Son 7 casos. Arrastrá cada uno a la caja que corresponde. La actividad se completa cuando ubicaste los 7 en su caja."
+    >
+      <Classify
+        items={RISK_ITEMS}
+        columns={RISK_COLUMNS}
+        itemLabel="Caso"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('risk')}
+        onSolved={() => markDone('risk')}
+      />
+    </Activity>
+  );
+}
+
+export function PriorityOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['priority-order']);
+  return (
+    <Activity
+      title="Armá el proceso de priorización"
+      kind="Ordenar"
+      goal="aplicar el cálculo de riesgo como un proceso de decisión, no solo reconocerlo."
+      done={isDone('priority-order')}
+      consigna="Son 4 tarjetas con los pasos para priorizar por riesgo. Ordenalas del primero al último moviendo cada una con las flechas (o arrastrándola), y usá «Comprobar orden» para verificar; la actividad se completa cuando el orden es correcto."
+    >
+      <Order
+        items={PRIORITY_ORDER_ITEMS}
+        correctOrder={PRIORITY_ORDER_CORRECT}
+        rules={PRIORITY_ORDER_RULES}
+        onSolved={() => markDone('priority-order')}
+      />
+    </Activity>
+  );
+}
+
+export function TroubleshootActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['trouble']);
+  return (
+    <Activity
+      title="¿Qué salió mal con la priorización?"
+      kind="Clasificar"
+      goal="reconocer, en una decisión real del equipo, qué parte del criterio de riesgo no se aplicó."
+      done={isDone('trouble')}
+      consigna="Son 7 situaciones. Si el problema es que un área crítica quedó sin ningún caso, elegí «Un área crítica quedó sin ningún caso»; si se documentó en detalle una feature que todavía cambiaba, elegí «Se armó un caso detallado para una feature que todavía cambiaba demasiado»; si se puso algo de bajo impacto antes que lo crítico, elegí «Se priorizó algo de bajo impacto antes que lo crítico». En las que estén bien, elegí «La priorización siguió el riesgo». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode
+        lines={TROUBLESHOOT_LINES}
+        ruleLabels={TROUBLESHOOT_RULE_LABELS}
+        okLabel="La priorización siguió el riesgo"
+        prompt="¿La priorización siguió el riesgo?"
+        itemLabel="Situación"
+        counterLabel="problemas de priorización"
+        alreadyDone={isDone('trouble')}
+        onSolved={() => markDone('trouble')}
+      />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esta priorización sigue la práctica correcta?"
+      kind="Clasificar"
+      goal="reconocer, en una decisión de priorización real, cuál de los anti-patrones de la sección anterior aparece."
+      done={isDone('practice')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')}
+        onSolved={() => markDone('practice')}
+      />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Impacto por probabilidad"
+      kind="Elegí la opción"
+      goal="aplicar el criterio de riesgo e impacto a decisiones de priorización nuevas."
+      done={isDone('quiz')}
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Ya sabés escribir un buen caso de test y diseñar buenos valores con las
+técnicas de las secciones anteriores. Pero ningún equipo de QA tiene tiempo
+infinito para cubrir todo con el mismo nivel de detalle — hace falta un
+criterio para decidir con qué empezar, y con cuánta profundidad.
+
+## Conceptos
+
+**Risk-based testing** prioriza el esfuerzo de testing combinando dos
+dimensiones: **impacto** (si esto falla, ¿qué tan grave es? ¿bloquea
+usuarios, cuesta dinero, o nadie lo nota?) y **probabilidad** (¿qué tan
+seguido falla, o todavía cambia tanto que es fácil que algo se rompa?).
+Algo de alto impacto y alta probabilidad es prioridad alta; algo de bajo
+impacto, o ya tan estable que casi nunca falla, puede esperar.
+
+## Cuándo usarlo
+
+Risk-based testing aplica siempre que el tiempo o los recursos para
+testear son limitados — es decir, casi siempre. También decide, dentro de
+una misma feature, cuánto detalle amerita un caso puntual: uno que se va a
+ejecutar muchas veces (una regresión) justifica un caso de test formal y
+detallado; uno de una sola vez (una migración de datos) no amortiza ese
+costo. Una feature que el equipo todavía cambia seguido conviene cubrirla
+con una pasada exploratoria primero, y documentarla en detalle recién
+cuando se estabilice.
+
+## Buenas prácticas
+
+- **Evaluar impacto y probabilidad por separado**, antes de combinarlos —
+  evaluarlos juntos "a ojo" tiende a sobrepesar el que es más fácil de
+  estimar.
+- **Documentar la matriz de riesgo** (qué se priorizó y por qué), para
+  poder revisarla cuando cambien las condiciones, en vez de depender de
+  que alguien se acuerde del criterio original.
+- **Revisar la priorización cuando una feature de bajo riesgo empieza a
+  usarse más**, o una de alto riesgo se estabiliza — el riesgo no es fijo
+  en el tiempo.
+- **Involucrar a alguien del negocio para estimar el impacto real**, no
+  solo a QA o a desarrollo. El equipo técnico puede estimar bien la
+  probabilidad de que algo falle, pero cuánto cuesta ese fallo (en plata,
+  en usuarios, en reputación) suele conocerlo mejor otro rol.
+- **Usar una escala simple (alto/medio/bajo)** en vez de un número exacto
+  de riesgo. Lo que importa es el orden relativo entre features para
+  decidir con qué empezar, no un valor preciso que da una falsa sensación
+  de exactitud.
+
+## Anti-patrones
+
+- **Priorizar por lo más fácil de cubrir**, en vez de por riesgo real.
+- **Mirar solo el impacto, ignorando la probabilidad** (o viceversa) — las
+  dos dimensiones son necesarias, ninguna alcanza sola.
+- **Fijar la priorización una sola vez y no revisarla** — el riesgo de una
+  feature cambia con el tiempo.
+- **Priorizar según la opinión más ruidosa en la reunión**, en vez de
+  datos de impacto y probabilidad — quien insiste más fuerte no
+  necesariamente tiene razón sobre qué es más riesgoso.
+- **Tratar "bajo riesgo" como sinónimo de "no hay que testear nunca
+  más"** — bajo riesgo significa menor prioridad hoy, no cero cobertura
+  para siempre; algo puede fallar igual, solo que cuesta menos si falla.
+
+## Cuando la priorización sale mal
+
+Para la app del formulario de registro, una matriz de riesgo simple ya
+alcanza para decidir el orden:
+
+| Feature | Impacto | Probabilidad / uso | Prioridad |
+|---|---|---|---|
+| Registro de usuarios | Alto | Alta (en desarrollo activo) | 1 — cubrir en detalle ya |
+| Checkout de compra | Alto | Alta (se usa todo el día) | 1 — cubrir en detalle ya |
+| Validación de email (3 años estable) | Medio | Baja (casi no cambia) | 3 — cubrir si sobra tiempo |
+| Cambio de tema claro/oscuro | Bajo | Baja | 4 — exploratorio, no prioritario |
+
+## Práctica
+
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<RiskActivity />
+
+<PriorityOrderActivity />
+
+<PracticeActivity />
+
+<TroubleshootActivity />
+
+<ClosingQuizActivity />

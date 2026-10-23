@@ -1,0 +1,8 @@
+{
+  "label": "UI",
+  "position": 1,
+  "link": {
+    "type": "generated-index",
+    "description": "Testing de interfaz: lo que ve y usa la persona que usa la aplicación."
+  }
+}

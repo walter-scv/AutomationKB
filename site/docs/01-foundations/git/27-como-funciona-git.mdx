@@ -1,0 +1,126 @@
+---
+title: Cómo funciona Git, conceptos core
+sidebar_position: 27
+---
+
+import Activity from '@site/src/components/Activity';
+import Order from '@site/src/components/Order';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  FLOW_ORDER_ITEMS, FLOW_ORDER_CORRECT, FLOW_ORDER_RULES,
+  AREA_LINES, AREA_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/27-como-funciona-git';
+
+export const LESSON_SLUG = 'foundations-como-funciona-git';
+
+export function FlowOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['flow']);
+  return (
+    <Activity
+      title="Ordená el flujo básico"
+      kind="Ordenar"
+      goal="ubicar en orden los tres pasos que lleva un cambio desde que se edita hasta que queda confirmado."
+      done={isDone('flow')}
+      consigna="Son 3 tarjetas con el recorrido de un cambio. Ordenalas del primero al último moviendo cada una con las flechas (o arrastrándola), y usá «Comprobar orden» para verificar; la actividad se completa cuando el orden es correcto."
+    >
+      <Order items={FLOW_ORDER_ITEMS} correctOrder={FLOW_ORDER_CORRECT} rules={FLOW_ORDER_RULES} onSolved={() => markDone('flow')} />
+    </Activity>
+  );
+}
+
+export function AreaActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['area']);
+  return (
+    <Activity
+      title="¿En qué área está realmente este cambio?"
+      kind="Clasificar"
+      goal="reconocer confusiones comunes entre guardar, agregar y confirmar: dar por hecho que guardar ya confirma, dejar cambios acumulados, tomar el staging area como respaldo y confirmar sin revisar qué entra."
+      done={isDone('area')}
+      consigna="Son 8 situaciones. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={AREA_LINES} ruleLabels={AREA_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('area')}
+        onSolved={() => markDone('area')}
+      />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Commits que no desaparecen"
+      kind="Elegí la opción"
+      goal="aplicar working directory, staging area y commit a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Ya sabés qué es el control de versiones y por qué importa. Ahora, cómo
+organiza Git el trabajo por dentro.
+
+## Conceptos
+
+Git organiza el trabajo en tres áreas. El **working directory** es la
+carpeta con los archivos tal como los estás editando ahora mismo. El
+**staging area** (o índice) es donde marcás qué cambios van a entrar en la
+próxima confirmación — te permite elegir, de todo lo que modificaste, qué
+entra junto y qué queda para otro momento. Un **commit** es una foto
+guardada de los cambios que están en el staging area, con un mensaje que
+describe qué se hizo; queda en el historial del repositorio para siempre,
+salvo que alguien lo reescriba a propósito.
+
+El flujo básico conecta las tres áreas: editás un archivo en el working
+directory, lo agregás al staging area, y lo confirmás en un commit.
+
+## Cuándo usarlo
+
+Este flujo de tres pasos se repite cada vez que guardás un cambio, sin
+importar qué tan chico sea — desde arreglar un typo hasta terminar una
+feature completa. La granularidad la elegís vos: agrupar varios cambios
+relacionados en un commit, o separarlos en varios commits chicos, según
+qué tan fácil quieras que sea revisar (o revertir) cada uno después.
+
+## Buenas prácticas
+
+- **Revisar qué hay en el staging area antes de confirmar** (`git
+  status`), para no incluir cambios que no correspondían a ese commit.
+- **Escribir un mensaje de commit que describa qué cambió**, no un
+  genérico como "cambios" — el historial solo es útil si se puede leer
+  después.
+- **Confirmar seguido, no acumular**: un cambio sin confirmar por
+  semanas es más difícil de separar de lo que se le fue agregando encima.
+- **Pensar un commit como "una unidad que tiene sentido revisar junta"**,
+  no como "lo que hice en una hora" — el criterio es el cambio en sí, no
+  el tiempo que llevó.
+- **Usar `git status` seguido**, no solo antes de confirmar — para saber
+  en todo momento qué está pendiente de agregar o confirmar.
+
+## Anti-patrones
+
+- **Confirmar sin mirar qué se está incluyendo**, mezclando cambios sin
+  relación entre sí en un mismo commit.
+- **Editar varios archivos sin relación y confirmarlos todos juntos**,
+  cuando en realidad son cambios independientes que convendría separar.
+- **Confundir guardar el archivo con confirmarlo** — un archivo guardado
+  en el editor sigue en el working directory hasta que se agrega y
+  confirma; nada de eso queda en el historial todavía.
+- **Dejar cambios sin agregar ni confirmar por mucho tiempo**, perdiendo
+  de vista qué se cambió y por qué a medida que se acumulan encima.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<FlowOrderActivity />
+
+<AreaActivity />
+
+<ClosingQuizActivity />

@@ -1,5 +1,6 @@
 import {useEffect, useState, type ReactNode} from 'react';
 import {playCorrect, playWrong} from '@site/src/lib/sound';
+import InlineText from '@site/src/components/InlineText';
 import styles from './styles.module.css';
 
 export type QuizOption = {text: string; correct: boolean; why: string};
@@ -37,7 +38,9 @@ export default function Quiz({questions, onSolved}: QuizProps): ReactNode {
     <div>
       {questions.map((q, qi) => (
         <div key={qi} className={styles.question}>
-          <p className={styles.questionText}>{q.question}</p>
+          <p className={styles.questionText}>
+            <InlineText text={q.question} />
+          </p>
           <div className={styles.options}>
             {q.options.map((o, oi) => {
               const isRevealed = revealed[`${qi}-${oi}`];
@@ -45,8 +48,12 @@ export default function Quiz({questions, onSolved}: QuizProps): ReactNode {
               if (isRevealed) cls.push(o.correct ? styles.right : styles.wrong);
               return (
                 <button key={oi} type="button" className={cls.join(' ')} onClick={() => pick(qi, oi, o.correct)}>
-                  {o.text}
-                  {isRevealed && <span className={styles.why}>{o.why}</span>}
+                  <InlineText text={o.text} />
+                  {isRevealed && (
+                    <span className={styles.why}>
+                      <InlineText text={o.why} />
+                    </span>
+                  )}
                 </button>
               );
             })}

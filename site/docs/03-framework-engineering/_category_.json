@@ -1,0 +1,8 @@
+{
+  "label": "III. Framework Engineering",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Architecture, design patterns, fixtures, data, environments y observability. Construir frameworks mantenibles y escalables."
+  }
+}

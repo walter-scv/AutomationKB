@@ -1,0 +1,127 @@
+---
+title: Qué es testing y por qué se hace
+sidebar_position: 1
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  OBJECTIVE_LINES,
+  OBJECTIVE_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+} from '@site/src/content/lessons/01-que-es-testing';
+
+export const LESSON_SLUG = 'foundations-que-es-testing';
+
+export function ObjectiveActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['objective']);
+  return (
+    <Activity
+      title="¿Qué objetivo de testing persigue?"
+      kind="Clasificar"
+      goal="reconocer, en cada situación, qué objetivo de testing declara — o si en realidad no es testing."
+      done={isDone('objective')}
+      consigna="Son 9 situaciones. Cada una declara un propósito: evaluar un producto de trabajo, disparar la corrección de un defecto, reducir el riesgo de que algo falle en uso, verificar que se cumple un requisito o dar confianza a los interesados. Una sesión puede aportar a más de uno, pero acá elegí el que la situación declara como propósito; si solo usa o muestra el sistema sin comparar contra un criterio, elegí «No es testing». La actividad se completa cuando clasificaste las 5 que sí persiguen un objetivo."
+    >
+      <FindInCode lines={OBJECTIVE_LINES} ruleLabels={OBJECTIVE_RULE_LABELS} okLabel="No es testing" prompt="¿Qué objetivo persigue?" counterLabel="situaciones de testing" itemLabel="Situación" alreadyDone={isDone('objective')} onSolved={() => markDone('objective')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esto es testear bien, o solo parece?"
+      kind="Clasificar"
+      goal="reconocer, en cada situación de equipo, si se testeó con objetivo, si se confundió usar con testear, si se midió por cantidad o si se esperó al código."
+      done={isDone('practice')}
+      consigna="Son 8 situaciones. Este ejercicio usa cuatro de los cinco anti-patrones de la entrada. En las que tengan un problema, elegí cuál de esos cuatro aplica; en las que estén bien, elegí «Testeó con objetivo y criterio». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} okLabel="Testeó con objetivo y criterio" prompt="¿Qué anti-patrón aplica, o testeó con objetivo y criterio?" itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Testing es el proceso de evaluar un producto de software para verificar
+que cumple con los requisitos especificados, y para detectar defectos. No
+es lo mismo que usar el sistema: usar una aplicación sin un objetivo ni un
+requisito contra el cual comparar el resultado no es una evaluación
+sistemática.
+
+Testing persigue varios objetivos, no uno solo:
+
+- **Evaluar productos de trabajo.** No solo código: también requisitos,
+  historias de usuario o diseños, antes de que se conviertan en código.
+- **Disparar la corrección de defectos.** Un defecto encontrado a tiempo
+  se corrige más barato que uno encontrado en producción.
+- **Reducir el riesgo** de que algo falle una vez en uso, concentrando el
+  esfuerzo donde el impacto de un fallo sería mayor.
+- **Verificar que se cumplen requisitos**, sean funcionales, contractuales
+  o regulatorios.
+- **Dar confianza** a los interesados (un cliente, el resto del equipo) de
+  que el sistema tiene la calidad esperada, respaldada con evidencia.
+
+## Cuándo usarlo
+
+Testing se aplica en cualquier punto del desarrollo donde haga falta
+evaluar si algo cumple lo esperado: desde revisar un requisito antes de
+que se programe, hasta validar el sistema completo antes de un release.
+No reemplaza otras prácticas de calidad, como un buen diseño — es la
+práctica que confirma, con evidencia, si esas otras prácticas funcionaron.
+
+## Buenas prácticas
+
+- **Definir el objetivo de una sesión de testing antes de empezar**: ¿qué
+  se va a evaluar hoy, y contra qué criterio? Sin esto, dos personas
+  pueden testear la misma pantalla y cubrir cosas distintas sin que nadie
+  se dé cuenta del hueco.
+- **Basar el testing en requisitos o criterios de aceptación
+  documentados**, no en suposiciones de lo que "debería" pasar. Una
+  suposición es personal — un criterio documentado es lo mismo para
+  cualquiera que lo lea, hoy o dentro de seis meses.
+- **Registrar lo que se encontró, no solo si la sesión "pasó" o "no
+  pasó".** Un veredicto global no dice qué quedó cubierto: dos sesiones
+  que terminan en "pasó" pueden haber evaluado cosas completamente
+  distintas.
+- **Priorizar dónde se concentra el esfuerzo según el riesgo**, no según
+  lo que resulte más cómodo o rápido de probar. El objetivo de reducir
+  riesgo se pierde si el esfuerzo termina en la parte más simple del
+  sistema en vez de en la más crítica.
+- **Evaluar productos de trabajo tempranos** (un requisito, una historia
+  de usuario) y no solo el código ya construido — un problema encontrado
+  ahí es mucho más barato de corregir que uno encontrado en producción.
+
+## Anti-patrones
+
+- **Testear sin un objetivo claro**: abrir la aplicación a ver qué
+  aparece, sin un criterio contra el cual comparar el resultado. El
+  resultado de esa sesión no se puede repetir ni auditar después, porque
+  nadie sabe qué se comparó contra qué.
+- **Confundir "lo usé y anduvo" con "lo testeé"**: usar el sistema de
+  forma casual no es evaluarlo sistemáticamente contra un requisito —
+  deja pasar cualquier caso que no se te haya ocurrido probar al azar.
+- **Dar por buena una funcionalidad sin contrastarla contra ningún
+  requisito o criterio de aceptación documentado.** El visto bueno queda
+  sin ningún respaldo: si algo falla después, no hay forma de saber si el
+  requisito cambió o si nunca se verificó esa parte.
+- **Medir el éxito por cantidad de casos ejecutados, no por objetivo
+  cumplido.** Ejecutar 500 casos suena bien, pero si ninguno cubre la
+  parte de mayor riesgo del sistema, el número no dice nada sobre la
+  calidad real.
+- **Esperar a que exista código para empezar a testear.** Ignora que un
+  requisito o una historia de usuario ya se pueden evaluar antes — y que
+  encontrar ahí una contradicción sale mucho más barato que encontrarla
+  después de programada.
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ObjectiveActivity />
+
+<PracticeActivity />

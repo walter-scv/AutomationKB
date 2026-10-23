@@ -1,0 +1,137 @@
+---
+title: El proceso de testing
+sidebar_position: 6
+---
+
+import Activity from '@site/src/components/Activity';
+import Order from '@site/src/components/Order';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import FindInCode from '@site/src/components/FindInCode';
+import {
+  PROCESS_ORDER_ITEMS, PROCESS_ORDER_CORRECT, PROCESS_ORDER_RULES,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/06-proceso-de-testing';
+
+export const LESSON_SLUG = 'foundations-proceso-de-testing';
+
+export function ProcessOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['process']);
+  return (
+    <Activity
+      title="Ordená el proceso"
+      kind="Ordenar"
+      goal="ubicar en orden seis momentos concretos de un ciclo de testing, según la actividad del proceso que representan."
+      done={isDone('process')}
+      consigna="Son 6 tarjetas, una por cada actividad de la secuencia del proceso. La séptima actividad, Monitoreo y control, corre en paralelo y no tiene un lugar fijo en esa secuencia, así que no aparece como tarjeta. Ordenalas del primero al último con las flechas (o arrastrándolas) y usá «Comprobar orden» para verificar; la actividad se completa cuando el orden es correcto."
+    >
+      <Order items={PROCESS_ORDER_ITEMS} correctOrder={PROCESS_ORDER_CORRECT} rules={PROCESS_ORDER_RULES} onSolved={() => markDone('process')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Qué actividad se saltearon?"
+      kind="Clasificar"
+      goal="reconocer, en una situación de equipo real, qué actividad del proceso se saltearon o convirtieron en un paso único."
+      done={isDone('practice')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Preparar datos y entorno"
+      kind="Elegí la opción"
+      goal="reconocer qué actividad del proceso falta o quedó incompleta en cada situación."
+      done={isDone('quiz')}
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+El testing no es solo "ejecutar casos" — es un conjunto de actividades que
+se solapan y se repiten durante todo el proyecto. Seis de ellas tienen un
+orden claro: **Planificación** (definir objetivos y enfoque), **Análisis**
+(determinar qué testear, a partir de requisitos, historias de usuario o
+riesgos), **Diseño** (elegir técnicas y diseñar los casos concretos),
+**Implementación** (preparar casos, datos y entorno), **Ejecución** (correr
+los casos y comparar el resultado real contra el esperado), y
+**Finalización** (reportar resultados y documentar lecciones aprendidas).
+
+Una séptima actividad, **Monitoreo y control**, no tiene un lugar fijo en
+esa secuencia: corre en paralelo con todas las demás, comparando el
+progreso real contra lo planificado y ajustando el plan si hace falta.
+
+## Cuándo usarlo
+
+Este proceso aplica a cualquier esfuerzo de testing que valga la pena
+planificar — desde probar una feature nueva hasta una regresión completa
+antes de un release. Para una exploración muy chica y puntual, varias de
+estas actividades se reducen a casi nada (por ejemplo, el análisis puede
+ser mental, no documentado), pero conceptualmente siguen estando todas.
+
+## Buenas prácticas
+
+- **Confirmar que existe un objetivo claro (Planificación) antes de
+  empezar a diseñar casos.** Sin un objetivo explícito, cada persona del
+  equipo puede interpretar "qué estamos probando" de forma distinta, y
+  terminan cubriendo cosas distintas sin darse cuenta.
+- **No pasar a Ejecución sin haber completado la Implementación** (datos y
+  entorno listos). Ejecutar con datos a medio preparar genera resultados
+  poco confiables — un caso puede fallar porque el entorno no estaba
+  listo, no porque el sistema esté roto, y eso hace perder tiempo
+  investigando algo que no era un bug real.
+- **Dedicar tiempo real a la Finalización**, no un trámite de dos
+  minutos. Las lecciones aprendidas (qué tardó más de lo esperado, qué
+  caso resultó redundante) son las que evitan repetir el mismo problema
+  de estimación o de cobertura en el próximo ciclo.
+- **Tratar el Monitoreo y control como continuo**, no como una revisión
+  puntual al principio. Revisar el progreso solo una vez no deja margen
+  para ajustar el plan si algo se desvía a mitad de camino.
+- **Adaptar el nivel de formalidad de cada actividad al tamaño del
+  esfuerzo.** Para una exploración chica, Análisis puede ser una
+  conversación de cinco minutos, no un documento — lo que importa es que
+  la actividad conceptualmente pase, no que quede toda por escrito.
+
+## Anti-patrones
+
+- **Diseñar casos sin haber hecho Análisis.** Sin saber qué testear
+  primero, el diseño no tiene una base clara — es fácil terminar
+  cubriendo lo más fácil de escribir y dejando afuera lo más riesgoso.
+- **Saltear la Finalización** y pasar directo al próximo ciclo sin
+  documentar qué funcionó y qué no — el equipo repite, ciclo tras ciclo,
+  los mismos problemas de estimación o de cobertura.
+- **Tratar al Monitoreo y control como un paso más** en la secuencia, en
+  vez de una actividad continua — para cuando alguien nota que el plan se
+  desvió, puede ser demasiado tarde para corregir el rumbo.
+- **Pasar a Ejecución con el entorno o los datos a medio preparar**, "para
+  no perder tiempo" — el tiempo que se cree ahorrar se pierde después
+  investigando fallos que en realidad eran del entorno, no del sistema.
+- **Repetir el mismo proceso con el mismo nivel de detalle sin importar el
+  tamaño del esfuerzo** — una exploración de 10 minutos no necesita la
+  misma Planificación formal que una regresión completa antes de un
+  release; forzar el mismo trámite en los dos casos desperdicia tiempo.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ProcessOrderActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

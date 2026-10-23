@@ -1,0 +1,8 @@
+{
+  "label": "I. Foundations",
+  "position": 1,
+  "link": {
+    "type": "generated-index",
+    "description": "Tres tracks dentro de la sección: Testing (fundamentos y diseño de tests), Programming (TypeScript) y Git (control de versiones). Saber qué probar, cómo diseñarlo, cómo programarlo y cómo versionarlo."
+  }
+}
