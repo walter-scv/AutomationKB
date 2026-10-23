@@ -1,6 +1,7 @@
 import {useEffect, useState, type ReactNode} from 'react';
 import {highlightTs} from '@site/src/lib/highlightTs';
 import {playCorrect, playTick, playWrong} from '@site/src/lib/sound';
+import InlineText from '@site/src/components/InlineText';
 import styles from './styles.module.css';
 
 export type CodeLine = {
@@ -15,16 +16,33 @@ export type CodeLine = {
 
 export type FindInCodeProps = {
   lines: CodeLine[];
-  /** Un label por regla, en orden (rule 1 = ruleLabels[0], etc.). "Está bien" se agrega solo. */
+  /** Un label por regla, en orden (rule 1 = ruleLabels[0], etc.). La categoría "sin problema" se agrega solo. */
   ruleLabels: string[];
+  /** Texto del botón para las líneas sin problema. Por defecto, "Está bien". */
+  okLabel?: string;
+  /** Pregunta que se muestra al elegir una línea. Por defecto, "¿rompe alguna regla?". */
+  prompt?: string;
+  /** Unidad del contador. Por defecto, "problemas encontrados". */
+  counterLabel?: string;
+  /** Cómo se nombra cada ítem en la consigna y el feedback. Por defecto, "Línea". */
+  itemLabel?: string;
   /** Si ya estaba marcada como completada al cargar la página (localStorage) — evita el mensaje contradictorio "Completada" + "0 de N". */
   alreadyDone?: boolean;
   onSolved?: () => void;
 };
 
-type Feedback = {kind: 'ok' | 'err' | 'warn'; text: string};
+type Feedback = {kind: 'ok' | 'err' | 'warn'; text: ReactNode};
 
-export default function FindInCode({lines, ruleLabels, alreadyDone, onSolved}: FindInCodeProps): ReactNode {
+export default function FindInCode({
+  lines,
+  ruleLabels,
+  okLabel = 'Está bien',
+  prompt = '¿rompe alguna regla?',
+  counterLabel = 'problemas encontrados',
+  itemLabel = 'Línea',
+  alreadyDone,
+  onSolved,
+}: FindInCodeProps): ReactNode {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [current, setCurrent] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
@@ -45,7 +63,14 @@ export default function FindInCode({lines, ruleLabels, alreadyDone, onSolved}: F
   function selectLine(i: number): void {
     if (answers[i] !== undefined) {
       const l = lines[i];
-      setFeedback({kind: l.rule ? 'ok' : 'warn', text: `Línea ${i + 1}: ${l.why}`});
+      setFeedback({
+        kind: l.rule ? 'ok' : 'warn',
+        text: (
+          <>
+            {itemLabel} {i + 1}: <InlineText text={l.why} />
+          </>
+        ),
+      });
       setCurrent(null);
       return;
     }
@@ -62,17 +87,30 @@ export default function FindInCode({lines, ruleLabels, alreadyDone, onSolved}: F
     if (choice === l.rule) {
       playCorrect();
       setAnswers((prev) => ({...prev, [i]: choice}));
-      setFeedback({kind: 'ok', text: `Línea ${i + 1}: correcto${l.rule ? '' : ', está bien'}. ${l.why}`});
+      setFeedback({
+        kind: 'ok',
+        text: (
+          <>
+            {itemLabel} {i + 1}: correcto{l.rule ? '' : `: ${okLabel}`}. <InlineText text={l.why} />
+          </>
+        ),
+      });
       setCurrent(null);
       return;
     }
 
     if (l.rule === 0) {
-      // La línea está bien, el lector marcó cualquier regla: igual se da por resuelta.
+      // La línea no tiene problema: se avisa y se deja reintentar. No se marca
+      // como resuelta, para que el lector pueda corregir su clasificación.
       playWrong();
-      setAnswers((prev) => ({...prev, [i]: 0}));
-      setFeedback({kind: 'warn', text: `Línea ${i + 1}: en realidad está bien. ${l.why}`});
-      setCurrent(null);
+      setFeedback({
+        kind: 'err',
+        text: (
+          <>
+            {itemLabel} {i + 1}: esa no es la clasificación correcta. <InlineText text={l.why} />
+          </>
+        ),
+      });
       return;
     }
 
@@ -80,10 +118,20 @@ export default function FindInCode({lines, ruleLabels, alreadyDone, onSolved}: F
     playWrong();
     setFeedback({
       kind: 'err',
-      text:
-        (choice === 0
-          ? 'Mirá de nuevo: esta línea sí rompe una regla. '
-          : `No es "${ruleLabels[choice - 1]}". `) + (l.hint ?? ''),
+      text: (
+        <>
+          {choice === 0 ? (
+            okLabel === 'Está bien'
+              ? 'Mirá de nuevo: esta línea sí tiene un problema. '
+              : 'Mirá de nuevo: esa no es la clasificación correcta. '
+          ) : (
+            <>
+              No es "<InlineText text={ruleLabels[choice - 1]} />".{' '}
+            </>
+          )}
+          <InlineText text={l.hint ?? ''} />
+        </>
+      ),
     });
   }
 
@@ -105,16 +153,18 @@ export default function FindInCode({lines, ruleLabels, alreadyDone, onSolved}: F
 
       {current !== null && (
         <div className={styles.classify}>
-          <strong>Línea {current + 1}: ¿rompe alguna regla?</strong>
+          <strong>
+            {itemLabel} {current + 1}: <InlineText text={prompt} />
+          </strong>
           <div className={styles.clLine}>{highlightTs(lines[current].code.trim())}</div>
           <div className={styles.choices}>
             {ruleLabels.map((label, idx) => (
               <button key={idx + 1} type="button" onClick={() => classify(idx + 1)}>
-                {label}
+                <InlineText text={label} />
               </button>
             ))}
             <button type="button" onClick={() => classify(0)}>
-              Está bien
+              <InlineText text={okLabel} />
             </button>
           </div>
         </div>
@@ -123,7 +173,7 @@ export default function FindInCode({lines, ruleLabels, alreadyDone, onSolved}: F
       <div className={styles.counter}>
         {alreadyDone && foundCount === 0
           ? 'Ya resolviste esta actividad antes — resolvela de nuevo si querés repasar.'
-          : `${foundCount} de ${totalProblems} problemas encontrados`}
+          : `${foundCount} de ${totalProblems} ${counterLabel}`}
       </div>
 
       {feedback && <div className={`akb-feedback akb-feedback--${feedback.kind}`}>{feedback.text}</div>}

@@ -1,0 +1,247 @@
+---
+title: Interfaces y type aliases
+sidebar_position: 23
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {
+  useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  DECLARED_LINES,
+  DECLARED_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/23-interfaces-y-type-aliases';
+
+export const LESSON_SLUG = 'foundations-interfaces-type-aliases';
+
+export function DeclaredActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['declared']);
+  return (
+    <Activity
+      title="¿Esto está bien tipado?"
+      kind="Clasificar"
+      goal="reconocer cuándo falta declarar la forma de un objeto que recibe una función, y cuándo se repite la misma forma en vez de nombrarla una sola vez."
+      done={isDone('declared')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={DECLARED_LINES} ruleLabels={DECLARED_RULE_LABELS} alreadyDone={isDone('declared')} onSolved={() => markDone('declared')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Este tipo está bien declarado?"
+      kind="Buscar en el código"
+      goal="reconocer un nombre de tipo genérico, propiedades opcionales sin necesidad, y el uso de `any` para evitar declarar un tipo."
+      done={isDone('practice')}
+      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Tipos: cuándo y cómo declararlos"
+      kind="Elegí la opción"
+      goal="aplicar interfaces y type aliases a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Cuando un objeto con una forma particular se usa en más de un lugar,
+conviene nombrar esa forma con una **interface**. Así TypeScript puede
+avisar si falta una propiedad o si alguna tiene el tipo equivocado:
+
+```ts
+interface DatosDeRegistro {
+  email: string;
+  contraseña: string;
+  checkboxTildado: boolean;
+}
+
+function registrar(datos: DatosDeRegistro): boolean {
+  return datos.checkboxTildado && datos.contraseña.length >= 8;
+}
+```
+
+El parámetro `datos` ya no es un objeto cualquiera: tiene que cumplir la
+forma de `DatosDeRegistro`. Si se llama a `registrar` sin `email`, o con
+`checkboxTildado` como texto, TypeScript marca el error antes de ejecutar.
+
+La interface también se puede usar para una lista de objetos:
+
+```ts
+const registros: DatosDeRegistro[] = [
+  {email: 'ana@mail.com', contraseña: 'Abcd1234!', checkboxTildado: true},
+];
+```
+
+### No repetir la misma forma
+
+Sin un nombre, la misma forma se repite en cada función y en cada variable:
+
+```ts
+function registrar(datos: {email: string; contraseña: string; checkboxTildado: boolean}) {
+  // ...
+}
+
+function validar(datos: {email: string; contraseña: string; checkboxTildado: boolean}) {
+  // ...
+}
+```
+
+Si mañana se agrega un campo, hay que acordarse de cambiar todas las copias.
+Con una interface, se cambia en un solo lugar y TypeScript avisa en los
+lugares que dejaron de cumplirla.
+
+### Propiedades opcionales
+
+El signo `?` indica que una propiedad puede no estar:
+
+```ts
+interface Usuario {
+  email: string;
+  telefono?: string;
+}
+
+const usuario: Usuario = {email: 'ana@mail.com'}; // válido
+```
+
+Al leer una propiedad opcional, el valor puede ser `undefined`, así que hay
+que confirmarlo antes de usarlo. No conviene marcar todo como opcional "por
+las dudas": si un dato es obligatorio para que la operación funcione, tiene
+que ser obligatorio en el tipo.
+
+```ts
+interface DatosDeRegistro {
+  email?: string;
+  contraseña?: string;
+  checkboxTildado?: boolean;
+}
+```
+
+Con esa interface, TypeScript obliga a preguntar por cada propiedad antes de
+usarla; se pierde la garantía de que los datos necesarios están.
+
+### Type alias
+
+Un **type alias** le pone nombre a un tipo. Es especialmente útil para un
+conjunto cerrado de valores posibles:
+
+```ts
+type EstadoDeCuenta = 'sin verificar' | 'verificada' | 'bloqueada';
+
+let estado: EstadoDeCuenta = 'verificada'; // válido
+estado = 'otro';                           // Error: no es un estado permitido
+```
+
+También puede nombrar la forma de un objeto:
+
+```ts
+type DatosDeRegistro = {
+  email: string;
+  contraseña: string;
+  checkboxTildado: boolean;
+};
+```
+
+Para objetos, `interface` y `type` hacen casi lo mismo. `interface` es la
+forma más común cuando la intención es describir una entidad; `type` es más
+flexible para uniones y otros tipos que no son objetos. Lo importante es
+elegir uno y usarlo de forma consistente.
+
+### Nombres de tipos
+
+El nombre del tipo también comunica: `DatosDeRegistro`, `EstadoDeCuenta`,
+`Pedido`. `Tipo1` o `Datos` no dicen qué representa la forma y obligan a
+leer todas las propiedades para descubrirlo.
+
+### `any` no reemplaza un tipo
+
+Declarar el parámetro como `any` hace que TypeScript no revise nada:
+
+```ts
+function registrar(datos: any): boolean {
+  return datos.checkboxTildado && datos.contraseña.length >= 8;
+}
+```
+
+La función compila aunque `datos` no tenga `contraseña`; el error aparece en
+ejecución. Una interface mantiene el chequeo y documenta qué forma se
+espera.
+
+## Cuándo usarlo
+
+Declarar una interface o un type alias vale la pena cuando la misma forma
+de objeto se repite en más de una función, o cuando un valor solo puede
+ser uno de un conjunto cerrado de opciones. Para un parámetro de un solo
+valor simple (`string`, `number`, `boolean`), alcanza con el tipo simple —
+no hace falta nombrar nada extra.
+
+## Buenas prácticas
+
+- **Declarar una interface en cuanto la misma forma de objeto se usa en
+  más de un lugar.** Si tres funciones reciben el mismo objeto y una de
+  ellas cambia su forma, declararla una sola vez asegura que las otras dos
+  avisen el error de tipos en vez de fallar recién en producción.
+- **Usar un type alias para limitar un valor a un conjunto cerrado de
+  opciones válidas** (como los estados posibles de una cuenta). Un
+  `string` suelto acepta cualquier texto; la unión de valores exactos hace
+  que un typo o un valor inventado se marque como error al escribir el
+  código.
+- **Elegir un nombre que diga qué entidad representa** (`DatosDeRegistro`,
+  no `Data`). Con varias interfaces en un proyecto, un nombre genérico
+  obliga a abrir cada una para saber de qué se trata.
+- **Marcar `?` (opcional) solo en propiedades que de verdad pueden
+  faltar.** Si una propiedad siempre está presente y se marca opcional
+  igual, TypeScript deja de avisar cuando falta por error — el chequeo
+  pierde el sentido.
+- **Nunca usar `any` para "resolver" un error de tipos.** `any` no arregla
+  el problema: apaga el chequeo para ese valor, y el error que TypeScript
+  hubiera marcado ahora aparece recién cuando el programa ya está
+  corriendo.
+
+## Anti-patrones
+
+- **Parámetro sin tipo declarado**: queda como `any` implícito y
+  TypeScript no puede avisar si falta una propiedad o si un nombre está
+  mal escrito, aunque el código "compile" igual.
+- **Repetir la misma forma de objeto** como anotación inline en cada
+  función, en vez de declararla una sola vez — si hay que agregar una
+  propiedad, hay que acordarse de cambiarla en cada lugar donde se
+  repitió.
+- **Nombre de tipo genérico** (`Data`, `Props`, `Info`) que no dice qué
+  representa — obliga a adivinar o a abrir la declaración para saber de
+  qué se trata.
+- **Todas las propiedades marcadas opcionales "por las dudas"**, aunque la
+  función siempre las necesite — le quita a TypeScript la posibilidad real
+  de avisar cuando falta una.
+- **Usar `any` para que TypeScript "deje de molestar"** en vez de arreglar
+  el tipo real — desactiva el chequeo exactamente donde más falta hace.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<DeclaredActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

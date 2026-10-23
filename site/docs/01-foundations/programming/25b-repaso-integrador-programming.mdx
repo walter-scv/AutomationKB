@@ -1,0 +1,86 @@
+---
+title: "Integrador: Programming"
+sidebar_position: 25.5
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {COMBINED_LINES, COMBINED_RULE_LABELS, INTEGRATIVE_QUIZ} from '@site/src/content/lessons/25b-repaso-integrador-programming';
+
+export const LESSON_SLUG = 'foundations-repaso-integrador-programming';
+
+export function CombinedActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['combined']);
+  return (
+    <Activity
+      title="Un programa real combina todo esto a la vez"
+      kind="Buscar en el código"
+      goal="reconocer problemas que combinan conceptos de varias entradas del bloque en un mismo fragmento de código."
+      done={isDone('combined')}
+      need={
+        <div>
+          <p>Esto combina conceptos de todo el bloque de Programming. Resumen:</p>
+          <table>
+            <thead>
+              <tr><th>Entrada</th><th>Idea clave</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>16</td><td><code>const</code> por default, <code>let</code> solo si se reasigna; tipos básicos <code>string</code>/<code>number</code>/<code>boolean</code>.</td></tr>
+              <tr><td>17</td><td><code>{'==='}</code>/<code>{'!=='}</code>, nunca <code>{'=='}</code>/<code>{'!='}</code>; cuidado con <code>{'='}</code> (asigna) vs <code>{'==='}</code> (compara).</td></tr>
+              <tr><td>18</td><td><code>if/else</code> ejecuta un bloque u otro; <code>else if</code> para más de dos casos.</td></tr>
+              <tr><td>19</td><td>Una función agrupa lógica; <code>return</code> es lo que entrega el resultado.</td></tr>
+              <tr><td>20</td><td>Un array es una lista ordenada; el primer índice es 0, no 1.</td></tr>
+              <tr><td>21</td><td><code>for...of</code> recorre un array; cuidado con loops que nunca terminan.</td></tr>
+              <tr><td>22</td><td>Un objeto agrupa propiedades relacionadas bajo un solo nombre.</td></tr>
+              <tr><td>23</td><td>Una <code>interface</code> nombra la forma de un objeto, para que TypeScript avise si falta algo.</td></tr>
+              <tr><td>24</td><td><code>async</code>/<code>await</code>: esperar un resultado que tarda, sin bloquear todo.</td></tr>
+              <tr><td>25</td><td><code>try/catch</code>: manejar un fallo sin que el programa entero se detenga.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      }
+      consigna="Son 8 bloques. Si una línea usa `=` donde debería ir `===`, esa es la regla que aplica, aunque además modifique datos. En las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+    >
+      <FindInCode
+        lines={COMBINED_LINES}
+        ruleLabels={COMBINED_RULE_LABELS}
+        alreadyDone={isDone('combined')}
+        onSolved={() => markDone('combined')}
+      />
+    </Activity>
+  );
+}
+
+export function IntegrativeQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Decisiones que combinan varias herramientas"
+      kind="Elegí la opción"
+      goal="decidir qué combinación de herramientas (async/await, try/catch, interfaces, arrays) usar frente a un problema nuevo."
+      done={isDone('quiz')}
+      consigna="Son 4 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 4 están bien."
+    >
+      <Quiz questions={INTEGRATIVE_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Ya viste, una por una, las 10 entradas de programación: variables y tipos,
+operadores, condicionales, funciones, arrays, loops, objetos, interfaces,
+funciones asíncronas y manejo de errores. Un programa real casi nunca usa
+una sola de estas cosas a la vez — las combina. Un bug real, también: casi
+siempre es la intersección de dos conceptos, no uno solo.
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<CombinedActivity />
+
+<IntegrativeQuizActivity />
+
+Con esto cerrás el bloque de Programming. Lo que sigue es Git y GitHub:
+cómo guardar y compartir este código con el resto del equipo.

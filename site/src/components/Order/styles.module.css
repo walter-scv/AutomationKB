@@ -69,8 +69,8 @@
   font-family: var(--ifm-font-family-monospace);
   font-size: 0.8rem;
   color: var(--akb-code-muted);
-  white-space: pre;
-  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .controls {

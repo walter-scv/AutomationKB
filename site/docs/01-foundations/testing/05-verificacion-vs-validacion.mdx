@@ -1,0 +1,141 @@
+---
+title: Verificación vs. validación
+sidebar_position: 5
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  CLASSIFY_LINES, CLASSIFY_RULE_LABELS,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/05-verificacion-vs-validacion';
+
+export const LESSON_SLUG = 'foundations-verificacion-vs-validacion';
+
+export const CLASSIFY_COLUMNS = ['Es Verificación', ...CLASSIFY_RULE_LABELS];
+export const CLASSIFY_ITEMS = CLASSIFY_LINES.map((l) => ({code: l.code, column: l.rule, why: l.why, hint: l.hint}));
+export function ClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['classify']);
+  return (
+    <Activity
+      title="¿Verificación o validación?"
+      kind="Clasificar"
+      goal="distinguir si una actividad compara el sistema contra una especificación, contra la necesidad real del usuario, o contra ninguna de las dos."
+      done={isDone('classify')}
+      consigna="Son 8 situaciones: pueden ser verificación, validación o ninguna de las dos. Arrastrá cada una a la caja que corresponde. La actividad se completa cuando ubicaste las 8 en su caja."
+    >
+      <Classify
+        items={CLASSIFY_ITEMS}
+        columns={CLASSIFY_COLUMNS}
+        itemLabel="Situación"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('classify')}
+        onSolved={() => markDone('classify')}
+      />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esto verifica, valida, o se saltea una de las dos?"
+      kind="Clasificar"
+      goal="reconocer cuándo un equipo saltea la verificación, valida con la persona equivocada, asume que una pregunta responde a la otra o deja la validación para el final."
+      done={isDone('practice')}
+      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Verificar no es validar"
+      kind="Elegí la opción"
+      goal="aplicar la diferencia entre verificación y validación a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+**Verificación** responde una pregunta: ¿estamos construyendo el producto
+correctamente? Compara el sistema contra lo que dicen los requisitos o la
+especificación documentada. **Validación** responde una pregunta distinta:
+¿estamos construyendo el producto correcto? Confirma que el sistema
+satisface la necesidad real del usuario, más allá de lo que diga la
+especificación.
+
+Un formulario de registro puede cumplir exactamente lo que pide el
+documento de requisitos — campos correctos, validaciones correctas — y
+estar **verificado**. Si, aun así, los usuarios reales se confunden al
+completarlo, el sistema no está **validado**: la especificación no
+capturó bien lo que el usuario necesitaba. Las dos preguntas son
+independientes: un sistema puede cumplir una y fallar la otra.
+
+## Cuándo usarlo
+
+Las dos preguntas se hacen en paralelo durante todo el desarrollo, no son
+pasos separados en el tiempo. La verificación se apoya en documentos:
+requisitos, especificaciones, casos de test derivados de ellos. La
+validación necesita contacto con usuarios reales o representantes del
+negocio — no alcanza con releer el mismo documento que ya se usó para
+verificar.
+
+## Buenas prácticas
+
+- **Chequear las dos preguntas por separado** — nunca asumir que
+  responder una ya responde la otra. Un sistema puede cumplir la
+  especificación al pie de la letra y, aun así, no servirle a nadie.
+- **Validar con usuarios reales o representantes del negocio**, no solo
+  con quien escribió la especificación — esa persona solo puede confirmar
+  que el sistema coincide con lo que ella imaginó, no con lo que el
+  usuario real necesita.
+- **Si la especificación es ambigua o está incompleta, la verificación
+  sola no alcanza para confiar en el sistema** — cumplir al pie de la
+  letra un documento incompleto no dice nada sobre si el resultado sirve.
+- **Programar la validación en paralelo con el desarrollo**, no como un
+  paso final — encontrar tarde que la especificación no capturaba la
+  necesidad real obliga a rehacer trabajo que ya se dio por terminado.
+- **Documentar con qué usuarios o representantes se validó**, para poder
+  distinguir después una validación real de una conversación informal con
+  quien ya estaba convencido de antemano.
+
+## Anti-patrones
+
+- **Confundir "pasa todos los casos documentados" con "el producto sirve
+  al usuario"** — son preguntas distintas, y una especificación mal
+  pensada hace que la primera no diga nada sobre la segunda.
+- **Validar solo con quien escribió el requisito**, nunca con un usuario
+  real — esa persona tiende a confirmar su propia idea, no a detectar que
+  la idea estaba equivocada.
+- **Saltear la verificación** asumiendo que "el usuario lo va a probar
+  igual" y dejando toda la responsabilidad en la validación — deja sin
+  chequear si el sistema realmente cumple lo acordado con el negocio.
+- **Asumir que pasar la verificación ya garantiza la validación** — son
+  preguntas independientes, y ninguna implica la otra automáticamente.
+- **Validar una sola vez, al final del desarrollo**, en vez de ir
+  confirmando con usuarios reales a medida que el producto toma forma.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ClassifyActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

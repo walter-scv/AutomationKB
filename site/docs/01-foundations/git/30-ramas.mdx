@@ -1,0 +1,131 @@
+---
+title: Ramas (branches)
+sidebar_position: 30
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {BRANCH_LINES, BRANCH_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/30-ramas';
+
+export const LESSON_SLUG = 'foundations-ramas';
+
+export function BranchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['branch']);
+  return (
+    <Activity
+      title="¿Esta rama está bien?"
+      kind="Clasificar"
+      goal="reconocer un buen nombre de rama, por qué trabajar directo en main es un problema y por qué conviene crear la rama antes de editar."
+      done={isDone('branch')}
+      consigna="Son 7 casos. Si el cambio se hizo directo en main, sin rama propia, elegí «El cambio se hace directo en main, sin rama propia»; si la rama se creó después de empezar a editar en main, elegí «Creó la rama después de empezar a editar en main»; si el nombre no describe qué se hace, elegí «El nombre no describe qué se está haciendo». En los que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={BRANCH_LINES} ruleLabels={BRANCH_RULE_LABELS} itemLabel="Caso" alreadyDone={isDone('branch')} onSolved={() => markDone('branch')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esta rama se manejó bien?"
+      kind="Clasificar"
+      goal="reconocer una rama que mezcla cambios sin relación, ramas viejas sin borrar, y una rama creada a partir de otra rama vieja en vez de main."
+      done={isDone('practice')}
+      consigna="Son 7 situaciones. Si quedaron ramas viejas acumuladas, elegí «Quedaron ramas viejas acumuladas, sin resolver ni borrar»; si la rama se creó desde otra rama vieja y no desde main actualizado, elegí «Se creó a partir de otra rama vieja, no de main actualizado»; si mezcla varios cambios sin relación, elegí «La rama mezcla varios cambios sin relación». En las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Ramas: por qué y cómo"
+      kind="Elegí la opción"
+      goal="aplicar el concepto de ramas a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Ya sabés confirmar cambios y revisar el historial. Pero todos esos
+commits, hasta ahora, viven en una sola línea de trabajo. Una **rama**
+(branch) es una línea de trabajo independiente dentro del mismo
+repositorio. `main` (o `master`) es la rama principal — la que
+normalmente refleja el código "estable", el que usa o revisa el resto del
+equipo.
+
+```bash
+git branch validar-contraseña
+git checkout validar-contraseña
+```
+
+El primer comando crea la rama; el segundo cambia a ella. Se puede hacer
+en un solo paso:
+
+```bash
+git checkout -b validar-contraseña
+```
+
+Trabajar en una rama propia permite cambiar, deshacer o romper cosas sin
+afectar lo que el resto del equipo tiene en `main`.
+
+## Cuándo usarlo
+
+Siempre que vayas a hacer un cambio, por chico que sea, conviene crear una
+rama antes de tocar nada — no solo para cambios grandes. El costo de crear
+una rama es mínimo, y evita que un cambio a medio terminar quede mezclado
+con el código estable que el resto del equipo está usando.
+
+## Buenas prácticas
+
+- **Una rama por cambio**, con un nombre que describa qué contiene
+  (`feature/validar-contraseña`, `fix/operador-comparacion`) — así se
+  revisa y se mergea sin arrastrar nada más.
+- **Crear la rama antes de empezar a editar, no después** — si ya
+  empezaste a cambiar algo directo en `main`, pasar esos cambios a una
+  rama propia es más trabajoso que haberla creado primero.
+- **Mantener la rama corta: mergearla apenas el cambio esté listo**, no
+  dejarla viviendo semanas — cuanto más tiempo pasa, más se aleja de
+  `main` y más conflictos acumula para el día que se mergee.
+- **Borrar la rama después de mergearla** — una rama vieja que sigue ahí
+  no aporta nada y genera confusión sobre cuáles siguen activas.
+- **Crear la rama a partir de `main` recién actualizado**
+  (`git pull` antes de `git checkout -b`), no de una rama vieja propia o
+  de otra persona que todavía no se mergeó.
+
+## Anti-patrones
+
+- **Nombres de rama que no dicen nada** (`rama2`, `prueba`, `temp`) — en
+  una semana nadie sabe qué cambio contienen sin abrirlas.
+- **Trabajar directo en `main`**, sin ninguna rama propia — mezcla
+  cualquier cambio a medio terminar con el código que el resto del equipo
+  usa.
+- **Mezclar varios cambios sin relación en una misma rama**, el mismo
+  problema de un commit gigante, pero a nivel rama: difícil de revisar y
+  de mergear.
+- **Dejar ramas viejas sin mergear ni borrar acumulándose** en el
+  repositorio, sin que nadie sepa cuáles siguen teniendo trabajo pendiente.
+- **Crear una rama a partir de otra rama vieja** en vez de `main`
+  actualizado — arrastra cambios que todavía no se revisaron y complica el
+  merge final.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<BranchActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

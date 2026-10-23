@@ -1,0 +1,143 @@
+---
+title: Qué es una técnica de diseño de test
+sidebar_position: 10
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  CATEGORY_LINES,
+  CATEGORY_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+} from '@site/src/content/lessons/10-que-es-una-tecnica-de-diseno';
+
+export const LESSON_SLUG = 'foundations-tecnicas-de-diseno';
+
+export const CATEGORY_COLUMNS = ['Es black-box', ...CATEGORY_RULE_LABELS];
+export const CATEGORY_ITEMS = CATEGORY_LINES.map((l) => ({code: l.code, column: l.rule, why: l.why, hint: l.hint}));
+export const PRACTICE_COLUMNS = ['Eligió la técnica según el sistema', ...PRACTICE_RULE_LABELS];
+export const PRACTICE_ITEMS = PRACTICE_LINES.map((l) => ({code: l.code, column: l.rule, why: l.why, hint: l.hint}));
+
+export function CategoryActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['category']);
+  return (
+    <Activity
+      title="¿A qué categoría pertenece?"
+      kind="Clasificar"
+      goal="distinguir black-box, white-box y basada en experiencia según cómo se aplica cada técnica."
+      done={isDone('category')}
+      consigna="Son 7 tareas: pueden ser black-box, white-box o basadas en experiencia. Arrastrá cada una a la caja que corresponde. La actividad se completa cuando ubicaste las 7 en su caja."
+    >
+      <Classify
+        items={CATEGORY_ITEMS}
+        columns={CATEGORY_COLUMNS}
+        itemLabel="Tarea"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('category')}
+        onSolved={() => markDone('category')}
+      />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Se eligió bien la técnica?"
+      kind="Clasificar"
+      goal="reconocer cuándo un equipo elige una técnica por costumbre en vez de por lo que el sistema necesita, o depende solo de experiencia en algo crítico."
+      done={isDone('practice')}
+      consigna="Son 7 situaciones. Arrastrá cada una a la caja que corresponde. La actividad se completa cuando ubicaste las 7 en su caja."
+    >
+      <Classify
+        items={PRACTICE_ITEMS}
+        columns={PRACTICE_COLUMNS}
+        itemLabel="Situación"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('practice')}
+        onSolved={() => markDone('practice')}
+      />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Ya viste cómo se escribe un buen caso de test y cómo se prioriza qué
+cubrir. La pregunta que falta es de dónde salen los valores y los
+escenarios concretos de un caso — eso es lo que resuelve una **técnica de
+diseño de test**, y se agrupan en tres categorías:
+
+- **Black-box**: se basan en la especificación o el comportamiento externo
+  del sistema, sin mirar el código. Acá entran equivalence partitioning,
+  boundary value analysis, decision table testing y state transition
+  testing — las vas a ver en detalle en los próximos capítulos.
+- **White-box**: se basan en la estructura interna del código (por
+  ejemplo, medir qué porcentaje de líneas o de ramas del código se
+  ejecutó). Requieren ver el código fuente — típicamente las aplica
+  desarrollo, o quien automatiza.
+- **Basadas en experiencia**: se apoyan en el conocimiento y la intuición
+  de quien testea, sin un procedimiento formal (error guessing, testing
+  exploratorio, testing basado en checklists) — las vas a ver más
+  adelante, después de las técnicas black-box.
+
+Un QA manual usa predominantemente black-box y basadas en experiencia.
+Ninguna categoría reemplaza a las otras: se combinan según el contexto y
+el tiempo disponible.
+
+## Cuándo usarlo
+
+Este capítulo no enseña ninguna técnica en profundidad todavía — da el
+mapa general, antes de entrar en la primera técnica black-box en el
+próximo capítulo. Conocer las tres categorías sirve para no limitarse
+siempre a la misma: un sistema bien cubierto combina técnicas formales
+(black-box) con el criterio de quien lo testea (basadas en experiencia),
+y se apoya en white-box del lado de desarrollo para la estructura interna
+del código.
+
+## Buenas prácticas
+
+- **Elegir la técnica según lo que hay disponible**: si hay una
+  especificación clara, empezar por black-box; si hay poco tiempo o
+  documentación, complementar con técnicas basadas en experiencia. La
+  pregunta no es "qué técnica conozco mejor" sino "qué tiene este caso
+  puntual para ofrecer".
+- **No depender de una sola categoría para todo el sistema.** Un sistema
+  real casi siempre combina condiciones con especificación clara (donde
+  black-box rinde) y zonas grises sin documentar (donde conviene
+  experiencia).
+- **Ajustar cuánta cobertura formal exigir según qué tan crítico es el
+  sistema.** Un sistema que maneja dinero o datos sensibles necesita más
+  black-box documentado; una feature chica y de bajo riesgo puede
+  apoyarse más en criterio y experiencia.
+- **Revisar la elección de técnica cuando cambia el sistema.** Una
+  pantalla que empieza simple (solo equivalence partitioning) puede
+  volverse dependiente del estado (necesitando state transition testing)
+  a medida que se agregan pasos o condiciones.
+
+## Anti-patrones
+
+- **Usar siempre la misma técnica** por costumbre, sin evaluar si otra
+  encaja mejor con el caso — perdés defectos que esa técnica, por
+  diseño, no está pensada para atrapar.
+- **Depender solo de técnicas basadas en experiencia** en un sistema
+  crítico, sin ninguna cobertura formal black-box — la experiencia de una
+  persona tiene puntos ciegos, y en un sistema crítico esos puntos ciegos
+  salen caros.
+- **Aplicar una técnica de combinación de campos (como decision tables) a
+  un campo que en realidad es independiente** — es trabajo de más para
+  una cobertura que equivalence partitioning ya daba.
+- **Nunca revisar si la técnica elegida sigue siendo la adecuada** a
+  medida que el sistema crece en complejidad — lo que alcanzaba al
+  principio puede dejar de alcanzar.
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<CategoryActivity />
+
+<PracticeActivity />

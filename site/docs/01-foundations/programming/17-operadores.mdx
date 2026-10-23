@@ -1,0 +1,252 @@
+---
+title: Operadores
+sidebar_position: 17
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {OPERATOR_LINES, OPERATOR_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/17-operadores';
+
+export const LESSON_SLUG = 'foundations-operadores';
+
+export function OperatorActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['operator']);
+  return (
+    <Activity
+      title="¿Este operador hace lo que parece?"
+      kind="Buscar en el código"
+      goal="reconocer una comparación que convierte tipos sin querer, una asignación que reemplazó a una comparación, y dos tipos distintos que nunca van a ser iguales."
+      done={isDone('operator')}
+      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+    >
+      <FindInCode lines={OPERATOR_LINES} ruleLabels={OPERATOR_RULE_LABELS} alreadyDone={isDone('operator')} onSolved={() => markDone('operator')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esta combinación se lee sin ambigüedad?"
+      kind="Buscar en el código"
+      goal="reconocer cuándo mezclar `&&` y `||` sin paréntesis genera ambigüedad, cuándo una negación solo cubre parte de una condición compuesta, y cuándo `||` deja pasar un caso que pedía las dos condiciones."
+      done={isDone('practice')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Elegir el operador lógico"
+      kind="Elegí la opción"
+      goal="aplicar operadores de comparación y lógicos a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Ya sabés declarar una variable con su tipo. El siguiente paso es poder
+operar con esos valores: compararlos y combinarlos.
+
+## Conceptos
+
+Los operadores permiten combinar valores y compararlos. Los grupos más
+importantes son los aritméticos, los de comparación y los lógicos; además
+hay atajos que aparecen todo el tiempo en el código.
+
+### Aritméticos
+
+`+`, `-`, `*` y `/` operan sobre números:
+
+```ts
+const precio = 1500;
+const cantidad = 3;
+const subtotal = precio * cantidad; // 4500
+const total = subtotal + 210;       // 4710
+```
+
+`+` también sirve para concatenar texto. Si uno de los dos lados es un
+`string`, el resultado es un `string`:
+
+```ts
+const nombre = 'Ana';
+const saludo = 'Hola, ' + nombre; // 'Hola, Ana'
+```
+
+Eso es útil para armar mensajes, pero no para sumar: `'30' + 1` da `'301'`,
+no `31`. Si el valor llegó como texto y hace falta operar con él, hay que
+convertirlo antes con `Number(...)`. En el sentido inverso, `String(...)` o
+`.toString()` convierten un número a texto.
+
+### Atajos de asignación y resto
+
+`+=` suma y asigna en un solo paso. Es lo mismo que escribir la operación
+completa, pero sin repetir el nombre de la variable:
+
+```ts
+let total = 0;
+total += 100; // equivale a total = total + 100
+total -= 20;  // equivale a total = total - 20
+```
+
+`++` y `--` suman o restan uno. Se ven seguido en los contadores de un
+loop:
+
+```ts
+let intentos = 0;
+intentos++; // intentos = intentos + 1
+intentos--; // intentos = intentos - 1
+```
+
+`+=` también funciona con texto: `mensaje += '!'` agrega un carácter al
+final.
+
+El operador `%` devuelve el **resto** de una división. Sirve, por ejemplo,
+para saber si un número es par:
+
+```ts
+const esPar = numero % 2 === 0;
+```
+
+### Comparación
+
+`===` (igual), `!==` (distinto), `>`, `<`, `>=` y `<=` comparan valores y
+devuelven un `boolean`:
+
+```ts
+const edad = 30;
+edad >= 18;        // true
+edad === 30;       // true
+edad === '30';     // false: number y string no son el mismo tipo
+```
+
+En TypeScript se usa `===`/`!==`, no `==`/`!=`. La diferencia es que `==`
+convierte los tipos antes de comparar:
+
+```ts
+'8' == 8;   // true, porque convierte el string a número
+'8' === 8;  // false, porque compara también el tipo
+```
+
+Esa conversión automática esconde errores. Con `===`, un valor que llegó
+como texto no pasa accidentalmente por número.
+
+Un caso especial es `=`, que no compara: **asigna**. Un solo carácter de
+diferencia cambia por completo lo que hace la línea:
+
+```ts
+let activo = false;
+if (activo = true) {
+  // asigna true a activo; la condición queda verdadera siempre
+}
+
+if (activo === true) {
+  // compara: entra solo si activo ya era true
+}
+```
+
+### Lógicos
+
+`&&` (y) exige que se cumplan las dos condiciones; `||` (o) alcanza con una;
+`!` niega una condición:
+
+```ts
+const tieneLongitud = contraseña.length >= 8 && contraseña.length <= 64;
+const puedeEntrar = tieneLongitud && terminosAceptados;
+
+const esFinDeSemana = dia === 'sábado' || dia === 'domingo';
+const noEstaBloqueado = !usuario.bloqueado;
+```
+
+Usar `||` cuando se necesitan las dos condiciones deja pasar casos que no
+deberían:
+
+```ts
+// Mal: alcanza con ser admin o estar activo
+const puedeEditar = esAdmin || estaActivo;
+
+// Bien: tienen que cumplirse las dos
+const puedeEditar = esAdmin && estaActivo;
+```
+
+### Precedencia y paréntesis
+
+`&&` se evalúa antes que `||`. Cuando se mezclan, conviene escribir
+paréntesis aunque el resultado técnico sea el mismo, porque deja explícito
+qué se quiere evaluar primero:
+
+```ts
+const puedeReservar = (esSocio && tieneCupo) || esInvitado;
+```
+
+Sin paréntesis, quien lee tiene que recordar la precedencia para saber si
+la condición es "socio con cupo, o invitado" o "socio, y además cupo o
+invitado".
+
+Al negar una condición compuesta hay que tener claro qué se está negando.
+"No es adulto ni socio" se escribe negando cada parte:
+
+```ts
+const noEsAdultoNiSocio = !esAdulto && !esSocio;
+```
+
+En cambio, `!(esAdulto && esSocio)` significa "no se cumple que sea adulto y
+socio a la vez": puede ser adulto sin ser socio, o socio sin ser adulto.
+
+## Cuándo usarlo
+
+Los operadores de comparación aparecen en cualquier condición (`if`,
+`while`, validaciones). Los lógicos entran cuando una condición depende de
+más de un valor a la vez — por ejemplo, que la contraseña tenga la
+longitud correcta **y** que el checkbox de términos esté tildado.
+
+## Buenas prácticas
+
+- **Usar siempre `===`/`!==`, nunca `==`/`!=`.** Elimina de raíz la
+  posibilidad de una conversión de tipo inesperada en la comparación.
+- **Agrupar condiciones largas con paréntesis cuando se mezclan `&&` y
+  `||`**, aunque técnicamente no haga falta — deja explícito qué se
+  evalúa primero, en vez de obligar a quien lea a recordar las reglas de
+  precedencia de memoria.
+- **Para negar una condición compuesta ("ninguna de las dos"), negar cada
+  parte por separado** (`!a && !b`), no solo una de las dos partes.
+- **Guardar una condición larga en una variable con nombre** antes de
+  usarla en un `if`, en vez de repetirla completa cada vez — además de
+  más legible, evita que una copia y otra terminen levemente distintas.
+- **Preferir una comparación directa y positiva** (`if (esValida)`) por
+  sobre una negada (`if (!esInvalida)`) cuando las dos están disponibles
+  — leer sin negación es más directo.
+
+## Anti-patrones
+
+- **Usar `==`/`!=`** en vez de `===`/`!==` — abre la puerta a
+  comparaciones con conversión de tipo inesperada.
+- **Escribir `=` donde se quiso escribir `===`.** Un solo carácter de
+  diferencia cambia una comparación por una asignación.
+- **Mezclar `&&` y `||` sin paréntesis** en una condición con tres o más
+  partes — aunque el resultado sea técnicamente correcto, no es obvio de
+  un vistazo para quien lo lee después.
+- **Negar solo una parte de una condición compuesta** cuando la intención
+  era negar las dos (confundir `!a && b` con `!a && !b`) — un error fácil
+  de cometer y difícil de notar con solo mirar el código una vez.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<OperatorActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

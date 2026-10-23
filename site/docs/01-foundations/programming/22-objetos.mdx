@@ -1,0 +1,256 @@
+---
+title: Objetos
+sidebar_position: 22
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {
+  useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  GROUPING_LINES,
+  GROUPING_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/22-objetos';
+
+export const LESSON_SLUG = 'foundations-objetos';
+
+export function GroupingActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['grouping']);
+  return (
+    <Activity
+      title="¿Esto debería ser un objeto?"
+      kind="Clasificar"
+      goal="reconocer cuándo varias variables sueltas en realidad describen una misma entidad."
+      done={isDone('grouping')}
+      consigna="Son 7 bloques. Si las variables sueltas describen la misma entidad y conviene agruparlas, elegí «Son variables sueltas que en realidad describen la misma entidad»; si no, elegí «No hay que agrupar». La actividad se completa cuando encontraste los 3 casos para agrupar."
+    >
+      <FindInCode lines={GROUPING_LINES} ruleLabels={GROUPING_RULE_LABELS} okLabel="No hay que agrupar" prompt="¿Conviene agrupar estas variables?" itemLabel="Caso" counterLabel="casos para agrupar" alreadyDone={isDone('grouping')} onSolved={() => markDone('grouping')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Este objeto está bien armado?"
+      kind="Buscar en el código"
+      goal="reconocer un nombre genérico (de objeto o de propiedad) y una mezcla de datos sin relación real en un mismo objeto."
+      done={isDone('practice')}
+      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Agrupar y leer objetos"
+      kind="Elegí la opción"
+      goal="aplicar cómo y cuándo agrupar datos en un objeto a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 4 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 4 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Un **objeto** agrupa varios valores relacionados bajo un solo nombre. Cada
+valor se guarda en una **propiedad**, con una clave y un valor:
+
+```ts
+const datosDeRegistro = {
+  email: 'ana@mail.com',
+  contraseña: 'Abcd1234!',
+  checkboxTildado: true,
+};
+```
+
+En vez de tener tres variables sueltas para los datos de un mismo
+formulario, el objeto deja explícito que esos tres valores pertenecen a la
+misma cosa: los datos de un registro.
+
+Cada propiedad se lee con un punto:
+
+```ts
+datosDeRegistro.email;            // 'ana@mail.com'
+datosDeRegistro.checkboxTildado;  // true
+```
+
+También se puede modificar una propiedad existente:
+
+```ts
+datosDeRegistro.email = 'beto@mail.com';
+```
+
+La variable sigue siendo la misma; cambia el contenido de una de sus
+propiedades. Es la diferencia entre reasignar la variable y mutar el objeto
+que contiene.
+
+Para obtener una copia con un cambio sin mutar el original se usa el
+**spread**:
+
+```ts
+const usuarioActualizado = {...datosDeRegistro, email: 'beto@mail.com'};
+```
+
+`usuarioActualizado` es un objeto nuevo: conserva las demás propiedades y
+cambia solo `email`. `datosDeRegistro` queda intacto.
+
+### Objetos dentro de objetos
+
+Una propiedad puede guardar otro objeto. Así se representan datos que
+tienen partes:
+
+```ts
+const pedido = {
+  numero: 1042,
+  cliente: {
+    nombre: 'Ana',
+    email: 'ana@mail.com',
+  },
+  total: 15900,
+};
+
+pedido.cliente.email; // 'ana@mail.com'
+```
+
+La lectura se encadena con puntos: primero `cliente`, después `email`.
+
+### Listas de objetos
+
+Es muy común tener un array de objetos con la misma forma:
+
+```ts
+const pedidos = [
+  {numero: 1, total: 100},
+  {numero: 2, total: 200},
+];
+
+pedidos[0].total; // 100
+```
+
+Cada elemento del array es un objeto completo; el índice llega al objeto y
+el punto llega a la propiedad.
+
+### Nombres de objetos y propiedades
+
+El nombre del objeto tiene que decir qué entidad representa: `usuario`,
+`pedido`, `datosDeRegistro`. `objeto1` o `datos` no dicen nada y obligan a
+leer las propiedades para reconstruir el significado.
+
+Lo mismo pasa con las propiedades. `email` dice qué contiene; `dato1` o
+`valor` no. Un nombre genérico dentro de un objeto es igual de problemático
+que una variable suelta con nombre genérico.
+
+### No mezclar datos sin relación
+
+Un objeto sirve para agrupar datos de una misma entidad, no para juntar
+cosas que solo comparten el archivo:
+
+```ts
+const configuracion = {
+  timeout: 5000,
+  nombreDelUsuario: 'Ana', // no tiene relación con el timeout
+};
+```
+
+Si dos datos no se usan juntos ni describen la misma cosa, no corresponde
+meterlos en el mismo objeto. Es mejor separarlos.
+
+### Variables sueltas o un objeto
+
+Si varios valores siempre viajan juntos y describen la misma entidad,
+conviene agruparlos:
+
+```ts
+const emailIngresado = 'ana@mail.com';
+const contrasenaIngresada = 'Abcd1234!';
+const terminosAceptados = true;
+
+registrarUsuario(emailIngresado, contrasenaIngresada, terminosAceptados);
+```
+
+Además de ser fácil confundir el orden de los argumentos, cualquier cambio
+en la firma obliga a tocar todas las llamadas. Un objeto los mantiene
+unidos:
+
+```ts
+const datosDeRegistro = {
+  email: 'ana@mail.com',
+  contrasena: 'Abcd1234!',
+  terminosAceptados: true,
+};
+
+registrarUsuario(datosDeRegistro);
+```
+
+La regla es simple: agrupá cuando los datos representan la misma entidad y
+se usan juntos; no agrupes solo porque están en el mismo archivo.
+
+## Cuándo usarlo
+
+Agrupar en un objeto tiene sentido cuando los datos **siempre viajan
+juntos**: se reciben juntos, se pasan juntos a una función, o describen la
+misma entidad (una persona, un formulario, un resultado). Si dos variables
+no tienen relación entre sí, agruparlas no ordena nada — solo agrega una
+capa de acceso (`.algo`) sin ningún beneficio real.
+
+## Buenas prácticas
+
+- **Agrupar en un objeto los datos que una misma función recibe o
+  devuelve juntos.** Si una función necesita tres datos de la misma
+  entidad, recibir un solo objeto en vez de tres parámetros sueltos deja
+  explícito que viajan juntos, y evita el error de pasarlos en el orden
+  equivocado.
+- **Elegir nombres de propiedad que digan qué es el valor** (`email`, no
+  `valor1`). Quien lea `datosDeRegistro.email` entiende qué contiene sin
+  tener que ir a buscar dónde se asignó; `datosDeRegistro.valor1` obliga a
+  adivinar o rastrear el código.
+- **Elegir también un nombre de objeto específico** (`direccionDeEnvio`,
+  no `datos` u `obj`). Un nombre genérico no dice qué entidad agrupa, y
+  obliga a leer las propiedades de adentro para entender qué es.
+- **Mantener en el objeto solo propiedades que describen la misma
+  entidad.** Si una propiedad no tiene relación con las demás, su lugar es
+  otro objeto o una variable aparte — mezclarla ahí solo porque está
+  disponible en ese momento hace más difícil entender qué representa el
+  objeto en conjunto.
+
+## Anti-patrones
+
+- **Variables sueltas que describen la misma entidad** (`nombre`,
+  `apellido`, `edad` de una persona) en vez de un solo objeto `persona`. Si
+  más adelante una función necesita "a la persona", hay que juntar y pasar
+  tres parámetros en vez de uno, y es fácil olvidarse de alguno.
+- **Nombre de objeto o de propiedad genérico** (`obj`, `datos`, `valor2`)
+  que no dice qué representa. Obliga a cualquiera que lea el código a
+  adivinar o a rastrear dónde se usa esa propiedad para entender qué
+  contiene.
+- **Agrupar valores sin relación real** solo porque aparecen cerca en el
+  código o están disponibles en ese momento — eso no simplifica nada, solo
+  esconde datos independientes detrás de un mismo punto, como si
+  estuvieran relacionados cuando no lo están.
+- **Un objeto que mezcla una entidad de negocio con configuración de UI**
+  (por ejemplo, los datos de sesión de un usuario junto con si tiene el
+  tema oscuro activado) — son dos cosas que cambian por razones distintas
+  y deberían vivir separadas.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<GroupingActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

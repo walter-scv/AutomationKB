@@ -1,0 +1,114 @@
+---
+title: "Repositorio remoto: GitHub, push, fetch y pull"
+sidebar_position: 32
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  COMMAND_LINES,
+  COMMAND_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+} from '@site/src/content/lessons/32-repositorio-remoto-github';
+
+export const LESSON_SLUG = 'foundations-repositorio-remoto-github';
+
+export function CommandActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['command']);
+  return (
+    <Activity
+      title="¿Qué comando es?"
+      kind="Clasificar"
+      goal="distinguir push, fetch y pull según la dirección, el efecto y el momento en que se usan."
+      done={isDone('command')}
+      consigna="Son 7 escenarios con un comando en contexto. Elegí qué problema tiene el comando según lo que pedía la situación; si es el correcto, elegí «Es el comando correcto». La actividad se completa cuando encontraste los 4 con problema. («origin/main» es la copia del remoto que guarda tu repo.)"
+    >
+      <FindInCode lines={COMMAND_LINES} ruleLabels={COMMAND_RULE_LABELS} okLabel="Es el comando correcto" prompt="¿Qué problema tiene este escenario, o es el comando correcto?" itemLabel="Escenario" alreadyDone={isDone('command')} onSolved={() => markDone('command')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Buena práctica o anti-patrón?"
+      kind="Clasificar"
+      goal="reconocer, en una situación real de trabajo con el remoto, cuál de los anti-patrones de arriba está presente — o si está bien resuelta."
+      done={isDone('practice')}
+      consigna="Son 8 situaciones. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')}
+        onSolved={() => markDone('practice')}
+      />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Todo lo visto hasta ahora (commits, ramas, merges) pasa en tu máquina. Un
+**repositorio remoto** es una copia del mismo repositorio alojada en un
+servidor — en este caso, GitHub — que permite que el equipo comparta el
+mismo historial.
+
+Tres comandos conectan el repositorio local con el remoto:
+
+- **`git push`** sube tus commits locales al remoto, para que el resto del
+  equipo los vea.
+- **`git fetch`** trae los commits nuevos que hay en el remoto, pero no
+  los mezcla todavía con tu trabajo local — solo los descarga, para que
+  los puedas revisar antes de decidir qué hacer.
+- **`git pull`** es `fetch` y `merge` en un solo paso: trae los cambios
+  del remoto y los mezcla directo con tu rama local.
+
+La diferencia entre `fetch` y `pull` es la que más confunde al empezar:
+`fetch` es seguro para revisar antes de decidir; `pull` mezcla
+automáticamente, sin pausa para revisar.
+
+## Cuándo usarlo
+
+Usá `git pull` (o al menos `git fetch`) antes de empezar a trabajar, para
+partir de la versión más reciente del remoto. Usá `git fetch` en vez de
+`git pull` cuando quieras ver qué cambió antes de mezclarlo con tu
+trabajo — por ejemplo, si sospechás que puede haber un conflicto. Usá
+`git push` cada vez que quieras compartir tus commits con el equipo.
+
+## Buenas prácticas
+
+- **Traer los cambios del remoto (`pull` o al menos `fetch`) al empezar el
+  día**, antes de seguir trabajando — evita partir de una versión vieja y
+  descubrir recién al hacer push que alguien más ya avanzó.
+- **Usar `fetch` para revisar cambios grandes antes de mezclarlos**, en vez
+  de `pull` directo — te da la chance de mirar qué trae el remoto antes de
+  que se mezcle solo con tu trabajo.
+- **Subir (`push`) seguido, en commits chicos**, en vez de acumular muchos
+  cambios sin compartir — si tu máquina falla, todo lo que no llegó al
+  remoto se pierde, y mientras tanto nadie más ve tu progreso.
+- **Si un push es rechazado, traer los cambios primero (`pull`)** y
+  resolver cualquier conflicto, en vez de forzarlo.
+- **Tratar un commit como "guardado en tu máquina"**, no como "compartido
+  con el equipo" — recién lo segundo pasa cuando hacés `push`.
+
+## Anti-patrones
+
+- **Forzar un push rechazado con `--force`** en vez de entender por qué lo
+  rechazó: sobrescribe el historial remoto y puede borrar commits de otra
+  persona que todavía no bajaste.
+- **Acumular muchos commits sin compartirlos (`push`)** durante días: ese
+  trabajo vive solo en tu máquina — si falla, se pierde, y el equipo no ve
+  ningún progreso mientras tanto.
+- **Confundir "hice commit" con "ya lo compartí"**: un commit local no
+  existe para el resto del equipo hasta que llega al remoto con `push`.
+- **No traer los cambios del remoto durante días** y encontrarse después
+  con un `push` rechazado o un conflicto grande para resolver de una vez.
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<CommandActivity />
+
+<PracticeActivity />

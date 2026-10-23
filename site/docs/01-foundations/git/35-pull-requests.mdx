@@ -1,0 +1,119 @@
+---
+title: "Pull Requests en GitHub: crear, revisar y mergear"
+sidebar_position: 35
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  PR_LINES, PR_RULE_LABELS,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/35-pull-requests';
+
+export const LESSON_SLUG = 'foundations-pull-requests';
+
+export function PrActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['pr']);
+  return (
+    <Activity
+      title="¿Este Pull Request está bien armado?"
+      kind="Clasificar"
+      goal="reconocer si un Pull Request está enfocado, explicado y listo para revisión, o si le falta alguna de esas tres cosas."
+      done={isDone('pr')}
+      consigna="Son 7 Pull Requests. Si mezcla varios cambios sin relación entre sí, elegí «Mezcla varios cambios sin relación entre sí»; si abre para revisión un PR que todavía no está listo, elegí «Abre para revisión un PR que todavía no está listo (debía ser draft)»; si le falta descripción, elegí «Abre el PR sin descripción». Si está bien, elegí «PR bien armado». La actividad se completa cuando encontraste los 4 con problema."
+    >
+      <FindInCode lines={PR_LINES} ruleLabels={PR_RULE_LABELS} okLabel="PR bien armado" prompt="¿Este Pull Request está bien armado?" itemLabel="Pull Request" counterLabel="PR con problemas" alreadyDone={isDone('pr')} onSolved={() => markDone('pr')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Buena práctica o anti-patrón?"
+      kind="Clasificar"
+      goal="reconocer, en una situación real de revisión, si se mergeó sin revisión, no se actualizó con main o se dejaron comentarios sin resolver — o si el Pull Request se manejó bien."
+      done={isDone('practice')}
+      consigna="Son 7 situaciones. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')}
+        onSolved={() => markDone('practice')}
+      />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Qué es y qué no es un PR"
+      kind="Elegí la opción"
+      goal="aplicar qué es un Pull Request y cómo se arma uno bueno."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Un **Pull Request (PR)** es el pedido, dentro de GitHub, de que el equipo
+revise los commits de tu rama antes de sumarlos a `main`. Al abrir un PR,
+GitHub muestra el diff completo de los cambios: el equipo puede dejar
+comentarios línea por línea, pedir cambios, o aprobarlo.
+
+Cuando se aprueba, se **mergea**: los commits se suman a `main`. GitHub
+ofrece tres formas de hacerlo — un merge normal (conserva todos los
+commits de la rama tal cual), "squash" (junta todos los commits de la
+rama en uno solo) o "rebase" (los aplica de forma lineal, sin un commit de
+merge).
+
+## Cuándo usarlo
+
+Un Pull Request se abre cada vez que una rama está lista para sumarse a
+`main` y necesita pasar por revisión del equipo antes — prácticamente
+siempre que se trabaja en equipo sobre un mismo repositorio.
+
+## Buenas prácticas
+
+- **Mantener el Pull Request chico y enfocado en un solo cambio**: es más
+  rápido y más fácil de revisar a fondo, y más fácil de revertir si algo
+  sale mal.
+- **Escribir una descripción que explique qué cambia y por qué**, para que
+  quien revise no tenga que adivinarlo abriendo cada archivo del diff.
+- **Responder o resolver cada comentario de revisión**, no ignorarlos ni
+  dejarlos "flotando" — un comentario sin cerrar es una duda sin resolver
+  sobre el cambio.
+- **Actualizar el PR con los últimos cambios de `main` antes de mergear**,
+  para evitar integrar sobre una base que ya quedó vieja.
+- **Abrir como "draft" un PR que todavía no está listo para revisión**,
+  para distinguirlo de uno que sí espera comentarios y aprobación.
+
+## Anti-patrones
+
+- **Un Pull Request enorme que mezcla varios cambios sin relación** —
+  quien lo revisa tarda mucho más, y es más probable que algo se le
+  escape.
+- **Mergear sin que nadie haya revisado ni aprobado** — anula por completo
+  el propósito de abrir un Pull Request.
+- **Dejar comentarios de revisión sin responder ni resolver**, y mergear
+  igual — es como si nunca se hubiera pedido la revisión.
+- **Abrir un PR sin descripción**, dejando que quien lo revise reconstruya
+  solo, archivo por archivo, qué cambió y por qué.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<PrActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

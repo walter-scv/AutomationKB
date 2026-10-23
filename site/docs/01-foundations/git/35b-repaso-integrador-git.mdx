@@ -1,0 +1,91 @@
+---
+title: "Integrador: Git y GitHub"
+sidebar_position: 35.5
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {DIAGNOSIS_LINES, DIAGNOSIS_RULE_LABELS, INTEGRATIVE_QUIZ} from '@site/src/content/lessons/35b-repaso-integrador-git';
+
+export const LESSON_SLUG = 'foundations-repaso-integrador-git';
+
+export function DiagnosisActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['diagnosis']);
+  return (
+    <Activity
+      title="Diagnosticá qué salió mal"
+      kind="Clasificar"
+      goal="reconocer, en una situación real de equipo, cuál de estas cinco prácticas del bloque no se aplicó."
+      done={isDone('diagnosis')}
+      need={
+        <div>
+          <p>Esto combina conceptos de todo el bloque de Git y GitHub. Resumen:</p>
+          <table>
+            <thead>
+              <tr><th>Entrada</th><th>Idea clave</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>26</td><td>Git versiona cambios; GitHub aloja el repositorio y agrega colaboración.</td></tr>
+              <tr><td>27</td><td>Working directory → staging area → commit.</td></tr>
+              <tr><td>28</td><td><code>init</code>/<code>status</code>/<code>add</code>/<code>commit</code>: crear el repo, elegir qué entra y confirmarlo con un mensaje que describa el cambio.</td></tr>
+              <tr><td>29</td><td><code>log</code>/<code>diff</code>: entender el historial antes de tocar algo.</td></tr>
+              <tr><td>30</td><td>Una rama aísla tu trabajo del de main.</td></tr>
+              <tr><td>31</td><td>Merge integra ramas; un conflicto se resuelve a mano.</td></tr>
+              <tr><td>32</td><td>push/fetch/pull: traer los cambios del remoto antes de empezar y compartir los propios.</td></tr>
+              <tr><td>33</td><td>restore (sin confirmar) vs. stash (guardar para después) vs. revert (deshacer un commit ya confirmado).</td></tr>
+              <tr><td>34</td><td>Rebase: historial lineal, pero nunca sobre una rama que otros ya comparten.</td></tr>
+              <tr><td>35</td><td>Pull Request: pedir revisión antes de sumar una rama a main.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      }
+      consigna="Son 8 situaciones. Este integrador usa cinco prácticas del bloque: mensaje de commit que describe el cambio, uso correcto de `restore`/`stash`/`revert`, traer los cambios del remoto antes de empezar, no reescribir una rama compartida y no commitear directo en main. Elegí cuál de esas cinco no se aplicó; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+    >
+      <FindInCode
+        lines={DIAGNOSIS_LINES}
+        ruleLabels={DIAGNOSIS_RULE_LABELS}
+        okLabel="Está bien"
+        prompt="¿Qué práctica no se aplicó, o está bien?"
+        itemLabel="Situación"
+        alreadyDone={isDone('diagnosis')}
+        onSolved={() => markDone('diagnosis')}
+      />
+    </Activity>
+  );
+}
+
+export function IntegrativeQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Un flujo de trabajo completo"
+      kind="Elegí la opción"
+      goal="aplicar ramas, commits, el remoto y Pull Requests juntos, como se usan en un flujo de trabajo real."
+      done={isDone('quiz')}
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
+    >
+      <Quiz questions={INTEGRATIVE_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Ya viste, una por una, las 10 entradas de Git y GitHub: qué es el control
+de versiones, cómo funciona Git por dentro, el primer commit, el
+historial, ramas, merge y conflictos, el remoto, cómo deshacer cambios,
+rebase y Pull Requests. En el día a día, un problema de Git casi nunca
+aparece aislado — un conflicto de merge, por ejemplo, solo tiene sentido
+si entendés ramas, remoto y commits al mismo tiempo.
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<DiagnosisActivity />
+
+<IntegrativeQuizActivity />
+
+Con esto cerrás Foundations completo: testing manual, programación, y Git.
+Lo que sigue es elegir un track — UI, API, Mobile o Performance — en la
+sección Testing Domains.

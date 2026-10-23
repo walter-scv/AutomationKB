@@ -1,0 +1,241 @@
+---
+title: Loops
+sidebar_position: 21
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  LOOP_LINES,
+  LOOP_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+} from '@site/src/content/lessons/21-loops';
+
+export const LESSON_SLUG = 'foundations-loops';
+
+export function LoopActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['loop']);
+  return (
+    <Activity
+      title="¿Este loop hace lo que pretende?"
+      kind="Clasificar"
+      goal="reconocer un loop que no termina y uno que nunca llega a ejecutar el cuerpo."
+      done={isDone('loop')}
+      consigna="Son 7 loops. Si el loop no hace lo que pretende, elegí cuál es el problema; si funciona bien, elegí «Funciona bien». La actividad se completa cuando encontraste los 3 problemas."
+    >
+      <FindInCode lines={LOOP_LINES} ruleLabels={LOOP_RULE_LABELS} okLabel="Funciona bien" prompt="¿Este loop hace lo que pretende?" itemLabel="Loop" counterLabel="loops con problemas" alreadyDone={isDone('loop')} onSolved={() => markDone('loop')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Este loop sigue una buena práctica?"
+      kind="Buscar en el código"
+      goal="reconocer un índice manual innecesario, un array modificado mientras se recorre, y un loop infinito."
+      done={isDone('practice')}
+      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Un **loop** repite un bloque de código. La forma más directa de recorrer un
+array es `for...of`, que repite el bloque una vez por cada elemento:
+
+```ts
+for (const contraseña of candidatos) {
+  console.log(contraseña);
+}
+```
+
+`while` repite el bloque mientras una condición sea verdadera. Se usa
+cuando no se sabe de antemano cuántas veces hay que repetir:
+
+```ts
+let intentos = 0;
+while (intentos < 3) {
+  console.log('Intentando...');
+  intentos = intentos + 1;
+}
+```
+
+Para que un `while` termine, algo adentro del bloque tiene que poder volver
+falsa la condición. En el ejemplo, `intentos` aumenta en cada vuelta hasta
+llegar a 3. Si nada la cambia, el loop no termina nunca:
+
+```ts
+let intentos = 0;
+while (intentos < 3) {
+  console.log('Intentando...'); // intentos nunca cambia
+}
+```
+
+### La condición puede ser falsa desde el principio
+
+Si la condición ya es falsa antes de entrar, el cuerpo no se ejecuta ni una
+vez. Eso no es un error de TypeScript: el programa sigue, pero el loop no
+hizo nada.
+
+```ts
+let pendientes = 0;
+while (pendientes > 0) {
+  procesarSiguiente();
+  pendientes = pendientes - 1;
+}
+```
+
+Con `pendientes = 0`, la condición es falsa y `procesarSiguiente()` nunca se
+llama. Si la intención era procesar al menos una vez, hay que revisar el
+valor inicial o usar un `do...while`.
+
+### `for` con índice
+
+Cuando hace falta el número de posición, se usa el `for` clásico:
+
+```ts
+for (let i = 0; i < candidatos.length; i++) {
+  console.log(i, candidatos[i]);
+}
+```
+
+Si no se necesita el índice, `for...of` es más corto y evita el error de
+quedarse corto o pasarse con el límite:
+
+```ts
+for (const candidato of candidatos) {
+  revisar(candidato);
+}
+```
+
+Si hacen falta el índice y el valor, `entries()` devuelve un par por cada
+elemento:
+
+```ts
+for (const [indice, nombre] of nombres.entries()) {
+  console.log(indice, nombre);
+}
+```
+
+El `const [indice, nombre]` separa el par en dos variables: la posición y el
+valor.
+
+### `do...while`
+
+`do...while` ejecuta el cuerpo al menos una vez y recién después evalúa la
+condición:
+
+```ts
+let intentos = 0;
+do {
+  intentos = intentos + 1;
+} while (intentos < 3);
+```
+
+Es útil cuando la primera ejecución tiene que ocurrir sí o sí, por ejemplo
+para pedir un dato antes de poder validarlo.
+
+### `break` y `continue`
+
+`break` corta el loop por completo; `continue` salta a la siguiente vuelta:
+
+```ts
+for (const candidato of candidatos) {
+  if (candidato === '') {
+    continue; // salta este elemento
+  }
+  if (candidato.length > 64) {
+    break; // no sigue revisando
+  }
+  revisar(candidato);
+}
+```
+
+Cuidado con `continue` en un `while`: si salta la línea que modifica la
+condición, el loop puede quedar infinito:
+
+```ts
+let i = 0;
+while (i < 3) {
+  if (i === 2) {
+    continue; // i nunca cambia: loop infinito
+  }
+  i = i + 1;
+}
+```
+
+En ese caso hay que incrementar antes del `continue` o reordenar el bloque.
+
+### Modificar el array mientras se recorre
+
+Cambiar un array con `for...of` mientras se lo recorre puede saltear
+elementos, porque el índice interno se mueve al mismo tiempo que la lista
+cambia:
+
+```ts
+for (const pedido of pedidos) {
+  if (pedido.cancelado) {
+    pedidos.splice(pedidos.indexOf(pedido), 1);
+  }
+}
+```
+
+En el ejemplo, `indexOf` devuelve la posición del pedido y `splice` lo quita
+del array. Si hay que filtrar, `filter` devuelve un array nuevo sin tocar el
+original:
+
+```ts
+const pedidosActivos = pedidos.filter((pedido) => !pedido.cancelado);
+```
+
+## Cuándo usarlo
+
+`for...of` conviene cuando ya existe la lista completa de valores a
+recorrer (como el array de contraseñas candidatas). `while` conviene
+cuando la cantidad de repeticiones depende de algo que se descubre
+durante la ejecución (por ejemplo, reintentar algo hasta que funcione, sin
+saber de antemano cuántos intentos va a necesitar).
+
+## Buenas prácticas
+
+- Usar `for...of` para recorrer un array completo — es más directo y deja
+  menos lugar para errores que llevar un índice a mano.
+- En un `while`, confirmar que algo adentro del bloque efectivamente
+  cambia el valor del que depende la condición, antes de darlo por
+  terminado.
+- Si además del valor hace falta la posición, usar `array.entries()` en
+  vez de armar y actualizar un contador aparte — menos código, mismo
+  resultado.
+- Preferir `while` solo cuando la cantidad de vueltas depende de algo que
+  se descubre durante la ejecución; si ya se conoce de antemano (la
+  longitud de un array), `for...of` alcanza sin agregar una variable de
+  control manual.
+- Si el cuerpo del loop crece mucho, extraerlo a una función y llamarla
+  adentro — queda más fácil de leer y de probar por separado.
+
+## Anti-patrones
+
+- **Loop infinito**: un `while` cuya condición nunca se vuelve falsa
+  porque nada adentro del bloque actualiza el valor que usa esa
+  condición. El programa queda colgado, repitiendo para siempre.
+- **Modificar el array que se está recorriendo** con `for...of` (agregar o
+  sacar elementos adentro del mismo loop): el recorrido deja de ser
+  predecible, puede saltear o repetir posiciones.
+- **Usar un índice manual** (`for (let i = 0; ...)`) para simplemente
+  recorrer un array de punta a punta, cuando `for...of` hace lo mismo sin
+  el riesgo de un error de uno de más o de menos en el límite.
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<LoopActivity />
+
+<PracticeActivity />

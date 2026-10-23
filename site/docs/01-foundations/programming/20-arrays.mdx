@@ -1,0 +1,263 @@
+---
+title: Arrays
+sidebar_position: 20
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  ARRAY_LINES,
+  ARRAY_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+} from '@site/src/content/lessons/20-arrays';
+
+export const LESSON_SLUG = 'foundations-arrays';
+
+export function ArrayActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['array']);
+  return (
+    <Activity
+      title="¿Esta línea accede bien al array?"
+      kind="Clasificar"
+      goal="reconocer un acceso a una posición que no existe y nombres que no describen la lista, sea por estar en singular o por ser demasiado vagos."
+      done={isDone('array')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={ARRAY_LINES} ruleLabels={ARRAY_RULE_LABELS} alreadyDone={isDone('array')} onSolved={() => markDone('array')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Este uso del array es confiable?"
+      kind="Buscar en el código"
+      goal="reconocer cuándo se asume una cantidad fija de elementos, se mezclan datos sin relación en un array, o se accede sin confirmar que haya algo."
+      done={isDone('practice')}
+      consigna="Son 7 bloques. Si el loop usa un número fijo en vez de `.length`, esa es la regla que aplica, aunque además acceda por índice; si accede a una posición sin confirmar que el array no esté vacío, elegí «Accede a una posición sin confirmar que el array no esté vacío»; si mezcla datos sin relación en un array, elegí «Mezcla datos sin relación en un array en vez de un objeto». En los que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Un **array** es una lista ordenada de valores del mismo tipo:
+
+```ts
+const candidatos: string[] = [
+  '',
+  'Abcd123',
+  'Abcd1234',
+  'A'.repeat(64),
+  'A'.repeat(65),
+];
+```
+
+`string[]` significa "una lista de `string`". El array anterior agrupa los
+cinco valores límite de la contraseña que se vienen usando en los capítulos
+anteriores.
+
+Cada elemento tiene una posición, llamada **índice**, que empieza en 0, no
+en 1:
+
+```ts
+candidatos[0]; // '' (el primero)
+candidatos[1]; // 'Abcd123'
+candidatos[4]; // 'A'.repeat(65) (el último)
+```
+
+La propiedad `.length` da la cantidad total de elementos. Para el array de
+arriba vale 5. El último índice válido es siempre `length - 1`:
+
+```ts
+const ultimo = candidatos[candidatos.length - 1];
+```
+
+Si se usa `length` como índice, se pide una posición que no existe y el
+resultado es `undefined`:
+
+```ts
+candidatos[candidatos.length]; // undefined
+candidatos[99];                // undefined
+```
+
+### Confirmar antes de acceder
+
+Acceder a una posición solo es seguro si se sabe que el array tiene ese
+elemento. Si el array puede estar vacío, hay que confirmarlo antes:
+
+```ts
+if (candidatos.length > 0) {
+  const primero = candidatos[0];
+  console.log(primero);
+}
+```
+
+Sin esa confirmación, `candidatos[0]` devuelve `undefined` y cualquier
+operación sobre ese valor falla más adelante, lejos del lugar donde se
+originó el problema.
+
+### Recorrer un array
+
+`for...of` recorre todos los elementos sin manejar índices:
+
+```ts
+for (const candidato of candidatos) {
+  console.log(candidato);
+}
+```
+
+`filter` crea un array nuevo con los elementos que cumplen una condición:
+
+```ts
+const validos = candidatos.filter((candidato) => candidato.length >= 8);
+```
+
+`map` crea un array nuevo transformando cada elemento:
+
+```ts
+const longitudes = candidatos.map((candidato) => candidato.length);
+```
+
+`find` devuelve el primer elemento que cumple una condición, o `undefined`
+si ninguno la cumple:
+
+```ts
+const primerValido = candidatos.find((candidato) => candidato.length >= 8);
+```
+
+`reduce` recorre el array y acumula un solo resultado:
+
+```ts
+const total = precios.reduce((acumulado, precio) => acumulado + precio, 0);
+```
+
+Ninguno de estos métodos modifica el array original: devuelven un
+resultado y dejan la lista intacta. Eso es importante cuando el array se
+sigue usando después.
+
+Para copiar un array se usa el **spread** (`...`):
+
+```ts
+const copia = [...candidatos];
+const conUnNuevo = [...candidatos, 'nuevo'];
+```
+
+La copia es superficial: si los elementos son objetos, las referencias a
+esos objetos se comparten. Para este nivel alcanza con saber que el array
+original no se toca.
+
+Para agregar un elemento al final se usa `push`:
+
+```ts
+const nombres: string[] = [];
+nombres.push('Ana');
+nombres.push('Beto');
+```
+
+### Cantidad fija o `.length`
+
+Un loop no debería asumir cuántos elementos hay. Esto se rompe en cuanto el
+array cambia de tamaño:
+
+```ts
+for (let i = 0; i < 3; i++) {
+  revisar(candidatos[i]);
+}
+```
+
+Si mañana hay cinco candidatos, dos quedan afuera; si hay dos, la tercera
+vuelta usa `candidatos[2]`, que es `undefined`. `for...of` o
+`i < candidatos.length` siguen al array real:
+
+```ts
+for (const candidato of candidatos) {
+  revisar(candidato);
+}
+```
+
+### Nombres: plural para listas
+
+Una lista se nombra en plural (`candidatos`, `pedidos`, `usuarios`); un solo
+elemento, en singular (`candidato`, `pedido`). Y el nombre tiene que decir
+qué contiene: `candidatos` sirve; `lista` o `datos` obligan a mirar el
+contenido para saber qué hay adentro.
+
+### Un array no es un cajón de cosas sueltas
+
+Un array mezcla valores que se recorren o se tratan igual. Si los datos son
+de distinto tipo y cada posición significa otra cosa, no es un array: es un
+objeto disfrazado.
+
+```ts
+const datos = ['ana@mail.com', 30, true]; // ¿qué es cada posición?
+```
+
+En cambio, un objeto le pone nombre a cada dato:
+
+```ts
+const usuario = {
+  email: 'ana@mail.com',
+  edad: 30,
+  activo: true,
+};
+```
+
+Los objetos se ven en detalle más adelante; por ahora alcanza con reconocer
+cuándo un array está mezclando cosas que no comparten significado.
+
+## Cuándo usarlo
+
+Un array sirve cuando hay varios valores del mismo tipo que se van a tratar
+de la misma forma — por ejemplo, varios valores de contraseña para
+revisar con la misma lógica. Si solo hay un valor, o valores de tipos
+distintos que no se relacionan entre sí, no hace falta un array: alcanza
+con variables sueltas.
+
+## Buenas prácticas
+
+- **Nombrar los arrays en plural** (`candidatos`, `usuarios`), para que el
+  nombre deje en claro que es una lista y no un solo valor.
+- **Usar `.length` para saber cuántos elementos tiene**, en vez de asumir
+  un número fijo — si el array cambia de tamaño más adelante, el código
+  que depende de `.length` se sigue comportando bien.
+- **Confirmar que el array no esté vacío antes de acceder a una posición
+  puntual** (como `[0]`). Si está vacío, esa posición es `undefined`, y
+  seguir operando sobre `undefined` rompe el programa más adelante, lejos
+  de donde está la causa real.
+- **Agrupar en un array solo valores del mismo tipo y la misma
+  naturaleza** (varias contraseñas candidatas, varios emails). Si dos
+  valores no tienen relación entre sí, van en un objeto con nombre, no en
+  un array por posición.
+- **Elegir un nombre que describa qué contiene la lista**, no solo que es
+  plural: `candidatos` dice más que `datos` o `lista`.
+
+## Anti-patrones
+
+- **Nombrar un array en singular** (`candidato` para una lista de varios
+  valores) — confunde a quien lee el código.
+- **Acceder a un índice sin saber si existe.** `candidatos[10]` en un
+  array de 5 elementos no da un error: devuelve `undefined`, lo cual puede
+  pasar desapercibido y causar un bug más adelante, lejos de donde
+  realmente está el problema.
+- **Asumir una cantidad fija de elementos** (recorrer "hasta el 3" a mano)
+  en vez de usar `.length` — si el array crece o se achica, ese número
+  fijo queda desactualizado sin que nada avise.
+- **Mezclar datos sin relación en un mismo array** (un email y un
+  contador de intentos, por ejemplo) en vez de usar un objeto con
+  nombres — quien lea `dato[1]` más adelante no tiene forma de saber qué
+  representa sin rastrear de dónde salió.
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ArrayActivity />
+
+<PracticeActivity />

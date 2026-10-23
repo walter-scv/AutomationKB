@@ -1,0 +1,173 @@
+---
+title: State Transition Testing
+sidebar_position: 13
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import FindInCode from '@site/src/components/FindInCode';
+import Order from '@site/src/components/Order';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  TRANSITION_LINES, TRANSITION_RULE_LABELS,
+  BUILD_ORDER_ITEMS, BUILD_ORDER_CORRECT, BUILD_ORDER_RULES,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/13-state-transition-testing';
+
+export const LESSON_SLUG = 'foundations-state-transition-testing';
+
+export const TRANSITION_COLUMNS = ['Transición válida', ...TRANSITION_RULE_LABELS];
+export const TRANSITION_ITEMS = TRANSITION_LINES.map((l) => ({code: l.code, column: l.rule, why: l.why, hint: l.hint}));
+export function TransitionActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['transition']);
+  return (
+    <Activity
+      title="¿Esta transición es válida?"
+      kind="Clasificar"
+      goal="reconocer, en el diagrama de estados de un pedido, qué transiciones están permitidas y cuáles no."
+      done={isDone('transition')}
+      consigna="Son 7 transiciones. Arrastrá cada una a la caja que corresponde. La actividad se completa cuando ubicaste las 7 en su caja."
+    >
+      <Classify
+        items={TRANSITION_ITEMS}
+        columns={TRANSITION_COLUMNS}
+        itemLabel="Transición"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('transition')}
+        onSolved={() => markDone('transition')}
+      />
+    </Activity>
+  );
+}
+
+export function BuildOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['build-order']);
+  return (
+    <Activity
+      title="Armá el proceso de diseño"
+      kind="Ordenar"
+      goal="aplicar state transition testing como un proceso de tres pasos."
+      done={isDone('build-order')}
+      consigna="Son 3 tarjetas con los pasos para diseñar los casos de un diagrama de estados. Ordenalas del primero al último moviendo cada una con las flechas (o arrastrándola), y usá «Comprobar orden» para verificar; la actividad se completa cuando el orden es correcto."
+    >
+      <Order items={BUILD_ORDER_ITEMS} correctOrder={BUILD_ORDER_CORRECT} rules={BUILD_ORDER_RULES} onSolved={() => markDone('build-order')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esta cobertura sigue la práctica correcta?"
+      kind="Clasificar"
+      goal="reconocer, en un plan de test sobre un diagrama de estados nuevo, cuál de los anti-patrones de la sección anterior aparece."
+      done={isDone('practice')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')}
+        onSolved={() => markDone('practice')}
+      />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Ramas, rechazos y estados finales"
+      kind="Elegí la opción"
+      goal="aplicar state transition testing a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Las técnicas anteriores (equivalence partitioning, boundary value analysis,
+decision tables) asumen que el resultado depende solo de los datos de
+entrada. Pero a veces el resultado depende también de **en qué estado
+está el sistema** — y ahí esas técnicas no alcanzan.
+
+## Conceptos
+
+**State transition testing** modela el sistema como un conjunto de
+**estados** y las **transiciones** válidas entre ellos, disparadas por
+eventos. Se usa cuando la misma acción puede ser válida en un estado e
+inválida en otro — el comportamiento depende de la historia del sistema,
+no solo de la entrada actual.
+
+Un pedido de compra, por ejemplo, pasa por estos estados:
+
+| Estado actual | Evento | Estado siguiente válido |
+|---|---|---|
+| Creado | Pagar | Pagado |
+| Creado | Cancelar | Cancelado |
+| Pagado | Enviar | Enviado |
+| Pagado | Cancelar | Cancelado |
+| Enviado | Entregar | Entregado |
+
+La acción "cancelar" es válida en dos estados (Creado, Pagado) e inválida
+en los otros dos (Enviado, Entregado): un pedido ya enviado no se puede
+cancelar. Esa diferencia de comportamiento según el estado es exactamente
+lo que esta técnica diseña para probar.
+
+## Cuándo usarlo
+
+Aplica a cualquier sistema con un ciclo de vida claro: pedidos, cuentas de
+usuario (sin verificar / verificada / bloqueada), flujos de aprobación. Si
+una acción se comporta igual sin importar el estado previo, esta técnica
+no agrega nada — alcanza con equivalence partitioning sobre los datos de
+entrada.
+
+## Buenas prácticas
+
+- **Probar al menos un caso por cada transición válida del diagrama.** Una
+  transición que nunca se probó es, en la práctica, código sin ninguna
+  cobertura, por más que "parezca simple".
+- **Probar explícitamente que las transiciones no permitidas queden
+  rechazadas**, no solo las permitidas. Un sistema que acepta una
+  transición inválida por error silencioso es un bug que las pruebas del
+  camino feliz nunca van a encontrar.
+- **Incluir las ramas alternativas** (como la cancelación), no solo el
+  camino principal — son casos reales que un usuario puede ejecutar, no
+  casos "extra" opcionales.
+- **Marcar los estados finales explícitamente** (sin transiciones de
+  salida). Así queda claro que no hace falta diseñar más casos desde ahí,
+  en vez de dejar la duda de si falta algo.
+- **Revisar el diagrama completo cuando se agregue un estado nuevo.** Un
+  estado nuevo puede sumar transiciones desde o hacia estados que ya
+  existían y que antes no se contemplaban.
+
+## Anti-patrones
+
+- **Probar solo el camino feliz** (Creado → Pagado → Enviado → Entregado)
+  sin probar ninguna rama alternativa ni ninguna transición inválida.
+- **Asumir que todas las transiciones son simétricas** — que si A puede
+  pasar a B, B puede volver a A. Muchos sistemas no permiten retroceder.
+- **Probar una transición que el sistema ni siquiera ofrece como
+  opción** (un botón que no existe en esa pantalla) — no aporta cobertura
+  real; lo que importa es confirmar que las transiciones que el usuario
+  SÍ puede intentar, pero que deberían fallar, efectivamente fallen.
+- **No distinguir entre "la acción se rechaza con un mensaje" y "la
+  acción directamente no está disponible"** — son dos formas válidas de
+  prevenir una transición inválida, pero si el caso no dice cuál se
+  espera, dos personas pueden ejecutar el mismo caso e interpretar
+  resultados distintos como "correcto".
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<TransitionActivity />
+
+<BuildOrderActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

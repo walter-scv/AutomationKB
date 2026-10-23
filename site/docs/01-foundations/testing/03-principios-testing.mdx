@@ -1,0 +1,131 @@
+---
+title: Los 7 principios del testing
+sidebar_position: 3
+---
+
+import Activity from '@site/src/components/Activity';
+import Quiz from '@site/src/components/Quiz';
+import FindInCode from '@site/src/components/FindInCode';
+import {
+  useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  PRINCIPLES_QUIZ,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/03-principios-testing';
+
+export const LESSON_SLUG = 'foundations-principios-testing';
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Qué principio no se está respetando?"
+      kind="Clasificar"
+      goal="reconocer, en cada decisión de un equipo, qué principio de testing se está violando — o si está todo bien."
+      done={isDone('practice')}
+      consigna="Son 8 situaciones. Este ejercicio usa cinco de los siete principios: 1, 3, 4, 5 y 6. En las que tengan un problema, elegí cuál de esos cinco se contradice; en las que estén bien, elegí «Respeta los principios». La actividad se completa cuando encontraste los 5 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} okLabel="Respeta los principios" prompt="¿Qué principio se contradice, o lo respeta?" itemLabel="Situación" counterLabel="principios contradichos" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Principios en casos nuevos"
+      kind="Elegí la opción"
+      goal="aplicar los 7 principios del testing a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Ya viste qué es testing y en qué se diferencia de debugging. Antes de
+entrar en técnicas concretas, hay siete ideas generales — los principios
+del testing — que valen para cualquier sistema y cualquier técnica que
+vayas a aplicar más adelante en esta guía.
+
+## Conceptos
+
+1. **Testing muestra la presencia de defectos, no su ausencia.** Nunca se
+   puede probar que un sistema está libre de defectos — solo que los que
+   se buscaron no aparecieron.
+2. **Testing exhaustivo es imposible.** Salvo casos triviales, no se
+   pueden probar todas las combinaciones posibles de entradas y
+   condiciones.
+3. **Testing temprano ahorra tiempo y dinero.** Cuanto antes se encuentra
+   un defecto en el ciclo de desarrollo, más barato es corregirlo.
+4. **Los defectos se agrupan (defect clustering).** Un número pequeño de
+   módulos suele concentrar la mayoría de los defectos de un sistema.
+5. **Cuidado con la paradoja del pesticida.** Repetir exactamente los
+   mismos casos de test, sin cambios, deja de encontrar defectos nuevos
+   con el tiempo.
+6. **Testing depende del contexto.** Un sistema de seguridad crítica no
+   se testea igual que un sitio de e-commerce.
+7. **La falacia de "ausencia de errores".** Un sistema sin defectos
+   encontrados igual puede ser inútil, si no satisface las necesidades
+   reales del usuario.
+
+## Cuándo usarlo
+
+Estos principios no son una técnica que se aplique paso a paso — son
+criterios para interpretar los resultados del testing. Se usan todo el
+tiempo: al decidir cuánto testing alcanza, al leer un reporte de "cero
+defectos encontrados", o al revisar si una suite de regresión sigue
+aportando valor.
+
+## Buenas prácticas
+
+- **Priorizar testing en los módulos donde históricamente se concentran
+  los defectos** (principio 4). Si el 80% de los bugs del último año
+  salió de 3 módulos, invertir ahí el esfuerzo rinde más que repartirlo
+  parejo entre todo el sistema.
+- **Revisar y actualizar la suite de regresión con el tiempo**, en vez de
+  correr siempre los mismos casos sin cambios (principio 5). Una suite
+  que nunca cambia deja de encontrar defectos nuevos, aunque siga en
+  verde — el verde deja de significar "está todo bien".
+- **Involucrar testing desde que se define un requisito**, no solo
+  después de implementarlo (principio 3). Un problema en un requisito mal
+  escrito sale mucho más barato de corregir en ese momento que después de
+  programado, testeado y a punto de salir a producción.
+- **Ajustar el rigor del testing según qué tan crítico es el sistema**
+  (principio 6). El mismo esfuerzo que se justifica en un sistema médico
+  sería desproporcionado en una landing page promocional — y viceversa,
+  menos esfuerzo del necesario en un sistema crítico es un riesgo real.
+- **Leer "cero defectos encontrados" como información parcial, no como
+  prueba de calidad** (principio 1). Esa frase solo dice que los casos
+  ejecutados no encontraron nada — no que no haya nada para encontrar.
+
+## Anti-patrones
+
+- **Afirmar que un sistema "no tiene bugs"** porque los casos ejecutados
+  no encontraron ninguno (contradice el principio 1) — es una conclusión
+  que ningún testing puede respaldar, por más casos que se hayan corrido.
+- **Aplicar el mismo nivel de rigor a cualquier sistema**, sin considerar
+  qué tan crítico es (contradice el principio 6) — desperdicia esfuerzo en
+  lo que no lo necesita, y puede dejar corto lo que sí.
+- **Dar por buena una suite que pasa siempre**, sin preguntarse si
+  todavía cubre algo útil (principio 5) — una suite que nunca encuentra
+  nada puede estar simplemente dejando de mirar donde importa.
+- **Dejar todo el testing para el final**, después de que la feature ya
+  está implementada (contradice el principio 3) — cualquier defecto de
+  diseño que se encuentre ahí ya salió mucho más caro de lo que hubiera
+  costado antes.
+- **Repartir el esfuerzo de testing parejo entre todos los módulos**,
+  ignorando que algunos concentran muchos más defectos que otros
+  (contradice el principio 4).
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

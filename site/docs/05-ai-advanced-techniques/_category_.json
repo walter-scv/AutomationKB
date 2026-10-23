@@ -1,0 +1,8 @@
+{
+  "label": "V. AI & Advanced Techniques",
+  "position": 5,
+  "link": {
+    "type": "generated-index",
+    "description": "AI agents, MCP, RAG, model-based testing, property-based testing y test optimization. Ir más allá de scripts estáticos y automatizar procesos de ingeniería."
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "label": "Git",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Control de versiones con Git: commits, ramas, merges, conflictos, rebase y trabajo remoto. Historial y collaboration sin bloqueos."
+  }
+}

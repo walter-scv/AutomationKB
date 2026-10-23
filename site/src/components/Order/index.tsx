@@ -1,6 +1,7 @@
 import {useRef, useState, type DragEvent, type ReactNode} from 'react';
 import {highlightTs} from '@site/src/lib/highlightTs';
 import {playCorrect, playTick, playWrong} from '@site/src/lib/sound';
+import InlineText from '@site/src/components/InlineText';
 import styles from './styles.module.css';
 
 export type OrderItem = {
@@ -28,7 +29,7 @@ export type OrderProps = {
 export default function Order({items, correctOrder, rules, onSolved}: OrderProps): ReactNode {
   const [order, setOrder] = useState<string[]>(items.map((i) => i.id));
   const [marks, setMarks] = useState<Record<string, boolean> | null>(null);
-  const [feedback, setFeedback] = useState<{kind: 'ok' | 'err'; text: string} | null>(null);
+  const [feedback, setFeedback] = useState<{kind: 'ok' | 'err'; text: ReactNode} | null>(null);
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -65,7 +66,17 @@ export default function Order({items, correctOrder, rules, onSolved}: OrderProps
       playWrong();
       setFeedback({
         kind: 'err',
-        text: 'Todavía no — revisá esto: ' + broken.slice(0, 2).map((r) => r.why).join(' '),
+        text: (
+          <>
+            Todavía no — revisá esto:{' '}
+            {broken.slice(0, 2).map((r, idx) => (
+              <span key={`${r.before}-${r.after}`}>
+                {idx > 0 ? ' ' : ''}
+                <InlineText text={r.why} />
+              </span>
+            ))}
+          </>
+        ),
       });
     }
   }

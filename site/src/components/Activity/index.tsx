@@ -1,11 +1,17 @@
 import type {ReactNode} from 'react';
+import InlineText from '@site/src/components/InlineText';
 import styles from './styles.module.css';
 
 export type ActivityProps = {
   title: string;
   kind: string;
   goal: string;
-  need: ReactNode;
+  /**
+   * Reservado para cierres integradores que combinan varios capítulos —
+   * en una actividad pegada a su propia teoría sería redundante, así que
+   * se omite (aprendizaje de CLAUDE.md sobre esto).
+   */
+  need?: ReactNode;
   tools?: {summary: string; content: ReactNode};
   consigna: ReactNode;
   done: boolean;
@@ -30,17 +36,21 @@ export default function Activity({title, kind, goal, need, tools, consigna, done
       </div>
 
       <p className={styles.goal}>
-        <strong>Qué practicás:</strong> {goal}
+        <strong>Qué practicás:</strong> <InlineText text={goal} />
       </p>
 
-      <div className={styles.need}>
-        <strong>Lo que necesitás saber</strong>
-        {need}
-      </div>
+      {need && (
+        <div className={styles.need}>
+          <strong>Lo que necesitás saber</strong>
+          {need}
+        </div>
+      )}
 
       {tools && (
         <details className={styles.tools}>
-          <summary>{tools.summary}</summary>
+          <summary>
+            <InlineText text={tools.summary} />
+          </summary>
           {tools.content}
         </details>
       )}

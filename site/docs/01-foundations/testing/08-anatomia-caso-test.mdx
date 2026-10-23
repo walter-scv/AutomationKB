@@ -1,0 +1,144 @@
+---
+title: Anatomía de un caso de test
+sidebar_position: 8
+---
+
+import Activity from '@site/src/components/Activity';
+import Quiz from '@site/src/components/Quiz';
+import FindInCode from '@site/src/components/FindInCode';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {STRUCTURE_QUIZ, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/08-anatomia-caso-test';
+
+export const LESSON_SLUG = 'foundations-anatomia-caso-test';
+
+export function StructureActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['structure']);
+  return (
+    <Activity
+      title="¿Qué parte del caso está floja?"
+      kind="Elegí la opción"
+      goal="reconocer la estructura (precondición, pasos, resultado esperado) que hace ejecutable a un caso de test."
+      done={isDone('structure')}
+      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+    >
+      <Quiz questions={STRUCTURE_QUIZ} onSolved={() => markDone('structure')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Este caso está bien armado?"
+      kind="Clasificar"
+      goal="reconocer, en casos nuevos de recuperación de contraseña y alta de cuenta, cuál de las tres partes falta o está mal escrita."
+      done={isDone('practice')}
+      consigna="Son 8 casos. En cada uno con un problema, elegí qué parte falla: resultado esperado subjetivo, pasos genéricos o precondición ausente. En los que estén completos, elegí «Está bien». La actividad se completa cuando encontraste los 5 casos con problema."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')}
+        onSolved={() => markDone('practice')}
+      />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Precondición y resultado exacto"
+      kind="Elegí la opción"
+      goal="aplicar la estructura de un caso de test a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Un caso de test documenta tres partes: la **precondición** (qué tiene que
+existir, o no existir, antes de ejecutar los pasos), los **pasos** (qué
+hacer, con datos concretos) y el **resultado esperado** (el hecho exacto
+que confirma si el caso pasó).
+
+Para el formulario de registro de una app (email, contraseña,
+confirmación, un checkbox de términos y un botón "Crear cuenta"), un caso
+completo se ve así:
+
+> **Precondición:** no existe una cuenta con el email `ana@mail.com`.
+> **Pasos:** 1) Completar el campo email con `ana@mail.com`.
+> 2) Completar contraseña y confirmación con `Abcd1234!`. 3) Tildar el
+> checkbox de términos. 4) Tocar el botón "Crear cuenta".
+> **Resultado esperado:** aparece el texto "Cuenta creada" y la pantalla
+> pasa a la de login.
+
+Las tres partes son necesarias: sin precondición, dos ejecuciones pueden
+arrancar desde estados distintos; sin pasos concretos, cada persona
+completa algo distinto; sin un resultado esperado exacto, nadie puede
+confirmar con certeza si el caso pasó.
+
+## Cuándo usarlo
+
+Esta estructura completa aplica cuando un caso se va a documentar para que
+otra persona (o vos mismo, más adelante) lo ejecute de la misma forma —
+por ejemplo, para una regresión que se repite en cada release. Para una
+exploración puntual que no se va a repetir, no hace falta esta estructura
+formal; eso es testing exploratorio, una técnica distinta que se cubre más
+adelante, en el capítulo de técnicas basadas en experiencia.
+
+## Buenas prácticas
+
+- **Declarar la precondición explícitamente, nunca asumirla.** Si el caso
+  no dice qué tiene que existir antes, dos personas pueden arrancar desde
+  estados distintos y creer que encontraron un bug cuando en realidad el
+  caso nunca definió desde dónde partir.
+- **Usar datos concretos en los pasos** (`ana@mail.com`, no "un email
+  cualquiera"). Un dato específico es lo que permite que dos ejecuciones,
+  en dos momentos distintos, prueben exactamente lo mismo.
+- **Escribir el resultado esperado como un hecho verificable**: un texto
+  exacto, una URL, un valor — no una impresión. Si el resultado admite
+  opinión, dos personas pueden ejecutar el mismo caso y no ponerse de
+  acuerdo en si pasó.
+- **Revisar que la precondición sea alcanzable**, no solo que esté
+  escrita. Una precondición que nadie sabe cómo lograr (porque depende de
+  un estado que no se puede preparar fácilmente) es tan inútil como no
+  tener precondición.
+- **Mantener el caso corto**: si necesita más de 5-6 pasos para llegar al
+  punto que realmente se quiere verificar, conviene dividirlo en casos más
+  chicos, o preguntarse si la precondición debería cubrir parte de ese
+  camino.
+
+## Anti-patrones
+
+- **Caso sin precondición**, que asume un estado previo sin decirlo (por
+  ejemplo, que ya existe una cuenta creada por otro caso) — el caso
+  funciona "por casualidad" el día que alguien lo ejecuta en el orden
+  correcto, y falla sin explicación el día que no.
+- **Pasos genéricos**, como "completar los datos correspondientes", que
+  dejan a elección de quien ejecuta qué dato usar — dos ejecuciones
+  pueden terminar probando cosas distintas sin que nadie lo note.
+- **Resultado esperado subjetivo**, como "se ve bien" o "funciona
+  correctamente", que no se puede confirmar sin opinar — el caso nunca
+  termina de "pasar" o "fallar" de forma objetiva.
+- **Mezclar varias verificaciones distintas en un solo resultado
+  esperado** ("aparece el mensaje Y el botón cambia de color Y se
+  actualiza el contador") — si una falla, no queda claro cuál de las tres
+  cosas realmente se rompió.
+- **Copiar y pegar un caso existente cambiando solo el dato**, sin
+  revisar si la precondición y el resultado esperado siguen siendo
+  válidos para la nueva situación — a veces el dato nuevo cambia también
+  qué precondición hace falta.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<StructureActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

@@ -1,0 +1,143 @@
+---
+title: Control de versiones, qué es y por qué importa
+sidebar_position: 26
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  GIT_VS_GITHUB_LINES, GIT_VS_GITHUB_RULE_LABELS,
+  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/26-control-de-versiones';
+
+export const LESSON_SLUG = 'foundations-control-de-versiones';
+
+export const GIT_VS_GITHUB_COLUMNS = ['Es Git (funciona local, sin conexión)', ...GIT_VS_GITHUB_RULE_LABELS];
+export const GIT_VS_GITHUB_ITEMS = GIT_VS_GITHUB_LINES.map((l) => ({code: l.code, column: l.rule, why: l.why, hint: l.hint}));
+export function GitVsGithubActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['git-vs-github']);
+  return (
+    <Activity
+      title="¿Es Git o es GitHub?"
+      kind="Clasificar"
+      goal="distinguir qué es una función de Git (la herramienta, local) y qué es una función de GitHub (la plataforma)."
+      done={isDone('git-vs-github')}
+      consigna="Son 9 situaciones. Arrastrá cada una hasta la caja que corresponde: Git o GitHub. La actividad se completa cuando ubicaste las 9 en su caja."
+    >
+      <Classify
+        items={GIT_VS_GITHUB_ITEMS}
+        columns={GIT_VS_GITHUB_COLUMNS}
+        itemLabel="Situación"
+        counterLabel="ubicadas en su columna"
+        alreadyDone={isDone('git-vs-github')}
+        onSolved={() => markDone('git-vs-github')}
+      />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esto debería estar en el repositorio?"
+      kind="Clasificar"
+      goal="reconocer qué conviene versionar y qué no, por qué el repositorio necesita vivir también en un remoto y por qué nombrar versiones a mano no reemplaza al historial."
+      done={isDone('practice')}
+      consigna="Son 8 situaciones. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Ver cambios sin conexión"
+      kind="Elegí la opción"
+      goal="aplicar qué es control de versiones y la diferencia Git/GitHub a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Ya sabés programar lo básico. Ahora hace falta guardar ese código y
+compartirlo con el resto del equipo, sin que dos personas se pisen el
+trabajo sin darse cuenta — para eso existe el control de versiones.
+
+## Conceptos
+
+Un sistema de **control de versiones** guarda el historial de cambios de
+un conjunto de archivos a lo largo del tiempo: quién cambió qué, cuándo, y
+con qué mensaje. Sin él, compartir código entre varias personas significa
+mandar archivos por chat o por una carpeta compartida — con el riesgo real
+de que dos personas sobreescriban el trabajo de la otra, o de perder una
+versión anterior que funcionaba y que nadie guardó aparte.
+
+**Git** es el sistema de control de versiones más usado hoy. **GitHub** es
+una plataforma que aloja repositorios Git en la nube y agrega herramientas
+de colaboración: revisión de código, Issues, Pull Requests. Git y GitHub
+no son lo mismo: Git funciona en tu máquina, sin conexión a internet;
+GitHub es un servicio que usa Git por abajo y le suma todo lo que hace
+falta para que un equipo colabore sobre el mismo repositorio.
+
+## Cuándo usarlo
+
+Desde el primer archivo de un proyecto, no "cuando ya esté más armado".
+El historial de control de versiones solo cubre los cambios que pasaron
+después de empezar a usarlo — todo lo anterior queda fuera y no se puede
+reconstruir después.
+
+## Buenas prácticas
+
+- **Empezar desde el primer archivo del proyecto**, no "cuando ya esté
+  más armado" — lo que pasó antes de empezar a versionar no se puede
+  reconstruir después.
+- **Commits chicos y frecuentes**, no uno gigante al final del día: un
+  commit chico es más fácil de revisar, y más fácil de deshacer sin
+  afectar el resto del trabajo.
+- **Excluir con `.gitignore` lo que no hace falta versionar**:
+  credenciales, dependencias instaladas, archivos de build generados —
+  todo lo que se puede reconstruir solo, o que nunca debería ser público.
+- **Subir el trabajo a un remoto regularmente** (no solo al terminar el
+  proyecto): el repositorio local es un solo punto de falla si la máquina
+  se rompe o se pierde.
+- **Elegir un nombre de repositorio que describa el proyecto**, no uno
+  genérico — en GitHub, varios repositorios con nombres como `proyecto1`
+  o `test` se vuelven imposibles de distinguir con el tiempo.
+
+## Anti-patrones
+
+- **Nombrar archivos a mano** como `final.ts`, `final_v2.ts`,
+  `final_definitivo.ts` en vez de usar control de versiones real — no hay
+  forma confiable de saber qué cambió entre una versión y la otra, ni de
+  volver a un estado intermedio.
+- **Compartir código por chat o carpetas compartidas**, donde dos
+  personas pueden sobreescribirse el trabajo sin darse cuenta.
+- **Versionar credenciales o archivos que no deberían ser públicos**: una
+  vez que algo entra al historial, queda ahí aunque se borre después —
+  hay que excluirlo desde el principio, no limpiarlo a posteriori.
+- **No subir nunca el trabajo a un remoto**, dejando todo el historial
+  viviendo en una sola máquina sin respaldo.
+- **Seguir mandando "la versión final" por otro canal, por las dudas** —
+  es una señal de que no se está confiando en el control de versiones
+  como la fuente de verdad del proyecto.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<GitVsGithubActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

@@ -1,0 +1,128 @@
+---
+title: Ver y entender el historial
+sidebar_position: 29
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  DIFF_LINES,
+  DIFF_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+} from '@site/src/content/lessons/29-historial-de-cambios';
+
+export const LESSON_SLUG = 'foundations-historial-de-cambios';
+
+export function DiffActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['diff']);
+  return (
+    <Activity
+      title="¿Se revisó antes de confirmar?"
+      kind="Clasificar"
+      goal="reconocer cuándo revisar el diff antes de un commit hubiera evitado un problema, qué cambia entre `git diff` y `git diff --staged`, y cuándo se está usando el comando equivocado."
+      done={isDone('diff')}
+      consigna="Son 8 situaciones. Si el comando no sirve para responder la pregunta (por ejemplo, `git diff` para ver autores), elegí «Usó el comando equivocado para lo que quería ver»; si el comando era el correcto pero se miró solo una parte y quedó afuera lo que ya estaba en staging, elegí «Revisó solo los cambios sueltos y no lo que ya estaba en staging»; si directamente no se revisó el diff antes de confirmar, elegí «No se revisó el diff antes de confirmar». En las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={DIFF_LINES} ruleLabels={DIFF_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('diff')} onSolved={() => markDone('diff')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Se usó bien el historial?"
+      kind="Clasificar"
+      goal="reconocer cuándo revisar el historial hubiera evitado una discusión o un error, un uso incorrecto de `git checkout` a un commit puntual, y el riesgo de mirar solo las líneas cambiadas del diff."
+      done={isDone('practice')}
+      consigna="Son 7 situaciones. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Ya sabés crear un commit. El historial que esos commits van formando se
+puede revisar de tres formas:
+
+```bash
+git log
+```
+
+Muestra la lista de commits del repositorio: quién hizo cada uno, cuándo,
+y con qué mensaje. Sirve para entender la historia de un archivo o de todo
+el proyecto.
+
+```bash
+git diff
+```
+
+Muestra, línea por línea, qué se agregó y qué se borró entre dos
+versiones — típicamente, entre el último commit y lo que todavía no se
+confirmó. Sirve para revisar un cambio antes de confirmarlo, o para
+entender en detalle qué hizo un commit anterior.
+
+```bash
+git checkout <id-de-commit>
+```
+
+Permite volver a mirar el estado del código tal como estaba en un commit
+anterior, identificado por su id (un código que `git log` muestra junto a
+cada commit).
+
+## Cuándo usarlo
+
+`git log` y `git diff` se usan todo el tiempo, no solo cuando algo sale
+mal: antes de confirmar un cambio (para revisar qué se va a incluir), y al
+retomar un archivo que no se toca hace tiempo (para entender su historia
+antes de modificarlo). `git checkout` a un commit anterior sirve para
+inspeccionar un estado pasado puntual, no como forma habitual de trabajar.
+
+## Buenas prácticas
+
+- **Revisar `git diff` antes de cada `git add`**, para confirmar
+  exactamente qué se va a incluir en el próximo commit, en vez de
+  asumirlo.
+- **Usar `git log` para entender el contexto de un cambio** (quién lo
+  hizo, cuándo, por qué) antes de modificarlo — evita romper algo por no
+  saber por qué estaba escrito así.
+- **Usar `git diff --staged`** para revisar específicamente lo que ya
+  quedó en el staging area, no solo los cambios sueltos — son cosas
+  distintas si ya hiciste `git add` de una parte.
+- **Confirmar con `git log` antes de discutir "de memoria"** si algo
+  cambió hace poco o siempre fue así — el historial tiene la respuesta
+  exacta.
+- **Usar `git log` acotado a un archivo puntual**
+  (`git log -- archivo.ts`) cuando el repositorio tiene muchos commits,
+  en vez de revisar todo el historial del proyecto.
+
+## Anti-patrones
+
+- **Confirmar cambios sin revisar el diff antes**, lo que puede incluir
+  algo sin darse cuenta (un archivo de configuración local, una línea de
+  debug olvidada).
+- **Modificar un archivo sin mirar su historial**, perdiendo el contexto
+  de por qué estaba escrito así.
+- **Hacer `git checkout` a un commit puntual (no a una rama) y seguir
+  editando ahí**, sin darse cuenta de que Git queda en "detached HEAD" —
+  los commits nuevos pueden perderse si después se cambia de rama sin
+  guardarlos.
+- **Asumir el historial de memoria** ("esto siempre fue así") en vez de
+  confirmarlo con `git log`, cuando la respuesta exacta está a un comando
+  de distancia.
+- **Mirar solo las líneas que cambiaron en `git diff`**, sin las líneas de
+  contexto alrededor, y no notar que el cambio rompe algo que dependía de
+  ese contexto.
+
+## Práctica
+
+Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<DiffActivity />
+
+<PracticeActivity />

@@ -45,9 +45,9 @@ const config: Config = {
   ],
 
   markdown: {
-    // docs/best-practices/ queda fuera de este sitio (ver site/PLAN.md,
-    // sección 2) — 'detect' es igual la config recomendada por Docusaurus
-    // para no sorprenderse si algún .md se agrega acá más adelante.
+    // docs/best-practices/ queda fuera de este sitio — 'detect' es la
+    // config recomendada por Docusaurus para no sorprenderse si algún .md
+    // se agrega acá más adelante.
     format: 'detect',
   },
 
@@ -101,7 +101,7 @@ const config: Config = {
         src: 'img/scvsoft-logo.png',
         width: 120,
       },
-      copyright: `AutomationKB — lecciones interactivas sobre docs/best-practices/`,
+      copyright: `AutomationKB — currícula interactiva de test automation`,
     },
     prism: {
       theme: prismThemes.synthwave84,

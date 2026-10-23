@@ -1,0 +1,312 @@
+---
+title: "Manejo de errores: try/catch"
+sidebar_position: 25
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {TRYCATCH_LINES, TRYCATCH_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/25-manejo-de-errores';
+
+export const LESSON_SLUG = 'foundations-manejo-de-errores';
+
+export function TryCatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['trycatch']);
+  return (
+    <Activity
+      title="¿Este manejo de errores sirve de algo?"
+      kind="Clasificar"
+      goal="reconocer cuándo un bloque try/catch realmente maneja el error, y cuándo solo lo oculta."
+      done={isDone('trycatch')}
+      need={
+        <p>
+          En el código aparece <code>throw</code>: corta el flujo en ese punto y propaga un error hacia
+          arriba. <code>throw error</code> relanza el mismo error; <code>throw new Error('...')</code>{' '}
+          crea uno nuevo y deja atrás el original, salvo que se conserve explícitamente.
+        </p>
+      }
+      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={TRYCATCH_LINES} ruleLabels={TRYCATCH_RULE_LABELS} alreadyDone={isDone('trycatch')} onSolved={() => markDone('trycatch')} />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Este try/catch está bien armado?"
+      kind="Buscar en el código"
+      goal="reconocer un try/catch innecesario, uno que abarca demasiado, y un mensaje de error que descarta la información real."
+      done={isDone('practice')}
+      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Para qué sirve try/catch"
+      kind="Elegí la opción"
+      goal="aplicar try/catch a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+En el capítulo anterior viste que una operación asíncrona puede tardar en
+responder. También puede fallar directamente — un servidor que no
+contesta, un dato con un formato inesperado. Esta es la última pieza de
+programación de esta guía: qué hacer cuando algo falla.
+
+## Conceptos
+
+`try { ... } catch (error) { ... }` permite capturar un fallo sin que el
+programa entero se detenga. El bloque `try` contiene el código que puede
+fallar; si falla, el control salta directo al bloque `catch`:
+
+```ts
+try {
+  const datos = await obtenerDatos();
+  console.log(datos);
+} catch (error) {
+  console.log('No se pudo obtener los datos:', error);
+}
+```
+
+Si `obtenerDatos()` falla, el programa no se corta: entra al `catch`, que
+deja constancia de qué pasó, y después sigue con la línea siguiente al
+`try/catch`.
+
+Un caso típico es `JSON.parse`, que convierte texto JSON en un valor y lanza
+un error si el texto no tiene el formato esperado:
+
+```ts
+try {
+  const configuracion = JSON.parse(texto);
+  aplicar(configuracion);
+} catch (error) {
+  console.warn('Configuración inválida:', error);
+}
+```
+
+### El error es un objeto
+
+El parámetro del `catch` es el error que se produjo. Incluirlo en el mensaje
+permite diagnosticar después:
+
+```ts
+try {
+  await cargarPerfil();
+} catch (error) {
+  console.error('Falló la carga del perfil:', error);
+}
+```
+
+Un mensaje fijo como `'Algo salió mal'` no dice qué pasó. El error real
+tiene la información que hace falta para investigar.
+
+### `throw`: lanzar un error
+
+Además de los errores que produce el sistema, el código puede lanzar uno
+propio con `throw`:
+
+```ts
+if (!respuesta.ok) {
+  throw new Error('HTTP ' + respuesta.status);
+}
+```
+
+`throw` corta el flujo en ese punto y propaga el error hacia arriba. Si
+nadie lo captura, el programa termina con ese error.
+
+Dentro de un `catch`, `throw error` vuelve a lanzar el mismo error para que
+lo maneje quien llamó:
+
+```ts
+try {
+  await sincronizarPedidos();
+} catch (error) {
+  console.error('No se pudo sincronizar:', error);
+  throw error;
+}
+```
+
+En cambio, crear un error nuevo sin incluir el original pierde la causa:
+
+```ts
+try {
+  await sincronizarPedidos();
+} catch (error) {
+  throw new Error('No se pudo sincronizar');
+}
+```
+
+Si hace falta agregar contexto, hay que conservar la información del error
+original:
+
+```ts
+throw new Error('No se pudo sincronizar: ' + String(error));
+```
+
+### Un `catch` que no maneja nada
+
+Un `catch` vacío, o uno que solo muestra un mensaje y sigue, deja el
+programa como si no hubiera fallado:
+
+```ts
+try {
+  await enviarFactura(pedido);
+} catch {
+  console.log('Seguimos');
+}
+```
+
+El problema real queda oculto. Peor todavía es devolver un resultado exitoso
+desde el `catch`:
+
+```ts
+async function actualizar(usuario: Usuario): Promise<boolean> {
+  try {
+    await actualizarPerfil(usuario);
+  } catch {
+    return true; // miente: la actualización falló
+  }
+  return true;
+}
+```
+
+Quien llama recibe `true` y cree que todo salió bien. Si la operación falló,
+el resultado tiene que reflejarlo: devolver `false`, relanzar el error o
+devolver un valor que distinga el fallo.
+
+### El `try` tiene que abarcar lo justo
+
+Un `try` demasiado grande mezcla operaciones con causas distintas:
+
+```ts
+try {
+  const usuario = await obtenerUsuario(id);
+  const pedidos = await obtenerPedidos(id);
+  const resumen = calcularResumen(pedidos);
+  await guardarResumen(usuario.id, resumen);
+} catch (error) {
+  console.log('Error en el proceso:', error);
+}
+```
+
+Si algo falla, el mensaje no dice si fue el usuario, los pedidos o el
+guardado. Conviene envolver solo la operación que puede fallar y darle un
+mensaje específico, o separar las operaciones riesgosas en sus propios
+`try/catch`.
+
+También sobra envolver código que no puede fallar:
+
+```ts
+try {
+  const nombreNormalizado = nombre.trim().toLowerCase();
+} catch (error) {
+  console.log('Error al normalizar el nombre:', error);
+}
+```
+
+`trim` y `toLowerCase` sobre un `string` no fallan por un motivo externo.
+El `try` no protege de nada y hace parecer que hay un riesgo que no existe.
+
+### `finally`
+
+`finally` se ejecuta siempre, haya error o no. Sirve para limpiar recursos:
+
+```ts
+try {
+  await procesarArchivo();
+} catch (error) {
+  console.error('Falló el procesamiento:', error);
+} finally {
+  await cerrarArchivo();
+}
+```
+
+### Errores con `await`
+
+En una operación asíncrona, el `try/catch` solo atrapa el rechazo si se
+espera la Promise con `await`:
+
+```ts
+try {
+  guardarPedido(pedido); // falta await: el catch no atrapa el rechazo
+} catch (error) {
+  console.error('Falló el guardado:', error);
+}
+```
+
+Sin `await`, la función sigue y el rechazo queda sin manejar. La versión
+correcta espera la operación:
+
+```ts
+try {
+  await guardarPedido(pedido);
+} catch (error) {
+  console.error('Falló el guardado:', error);
+}
+```
+
+## Cuándo usarlo
+
+Alrededor de operaciones que pueden fallar por un motivo externo y
+esperable: una conexión de red, un servidor que no responde, un dato con
+un formato inesperado. No alrededor de cualquier línea de código "por las
+dudas" — eso dificulta encontrar dónde está el problema real cuando algo
+falla de verdad.
+
+## Buenas prácticas
+
+- **Envolver en `try`/`catch` específicamente la operación que puede
+  fallar**, no bloques enteros de código sin relación. Si el `try` abarca
+  cuatro operaciones distintas, un fallo no deja saber cuál de las cuatro
+  fue sin investigar más.
+- **Hacer algo con el error en el `catch`**: registrarlo con el detalle
+  real, mostrarlo, o reintentar — nunca dejarlo pasar en silencio ni
+  taparlo con un mensaje genérico que no dice qué pasó.
+- **Incluir el error real en el mensaje que se registra** (`console.log(
+  '...', error)`), no solo un texto fijo como "algo salió mal" — sin el
+  error real, el registro no sirve para diagnosticar nada después.
+- **No envolver código que no puede fallar.** Un cálculo aritmético entre
+  números no necesita try/catch — hacerlo igual sugiere, equivocadamente,
+  que ahí hay un riesgo real.
+- **Separar operaciones riesgosas sin relación en sus propios try/catch**,
+  en vez de agruparlas en uno solo — así, si una falla, el mensaje deja
+  claro cuál fue.
+
+## Anti-patrones
+
+- **Un `catch` vacío.** El programa sigue como si nada hubiera fallado,
+  pero el problema real queda oculto y nadie se entera.
+- **Un comentario en vez de manejo real** (`// TODO: manejar esto
+  después`). El error se sigue perdiendo igual que con un `catch` vacío.
+- **Un mensaje genérico que descarta el error real** ("algo salió mal",
+  sin imprimir `error`) — es casi tan inútil como no registrar nada.
+- **Un `try` que agrupa varias operaciones sin relación.** Si falla,
+  no hay forma de saber cuál de todas fue sin agregar más instrumentación
+  después del hecho.
+- **Envolver en try/catch código que nunca puede fallar** "por las dudas"
+  — agrega ruido y hace parecer riesgoso algo que no lo es.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<TryCatchActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />

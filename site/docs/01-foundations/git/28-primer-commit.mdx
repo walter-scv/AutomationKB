@@ -1,0 +1,160 @@
+---
+title: Crear un repositorio y el primer commit
+sidebar_position: 28
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Order from '@site/src/components/Order';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  FIRST_COMMIT_ORDER_ITEMS, FIRST_COMMIT_ORDER_CORRECT, FIRST_COMMIT_ORDER_RULES,
+  COMMIT_MESSAGE_LINES, COMMIT_MESSAGE_RULE_LABELS,
+  CLOSING_QUIZ,
+} from '@site/src/content/lessons/28-primer-commit';
+
+export const LESSON_SLUG = 'foundations-primer-commit';
+
+export function FirstCommitOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['order']);
+  return (
+    <Activity
+      title="Armá el primer commit"
+      kind="Ordenar"
+      goal="ubicar en orden los pasos para crear un repositorio y confirmar el primer cambio."
+      done={isDone('order')}
+      consigna="Son 4 tarjetas. Ordená todas del primero al último: mové cada una con las flechas (o arrastrándola) y usá «Comprobar orden» hasta que el orden sea correcto."
+    >
+      <Order
+        items={FIRST_COMMIT_ORDER_ITEMS}
+        correctOrder={FIRST_COMMIT_ORDER_CORRECT}
+        rules={FIRST_COMMIT_ORDER_RULES}
+        onSolved={() => markDone('order')}
+      />
+    </Activity>
+  );
+}
+
+export function CommitMessageActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['message']);
+  return (
+    <Activity
+      title="¿Este commit está bien?"
+      kind="Clasificar"
+      goal="reconocer un mensaje que no describe el cambio, un commit que mezcla cosas sin relación, un add hecho sin revisar qué se incluía y código confirmado con tests en rojo."
+      done={isDone('message')}
+      consigna="Son 8 casos. Elegí en cada uno si tiene un problema y cuál es (mensaje que no describe el cambio, cambios sin relación, add sin revisar o tests en rojo); si está bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 con problema."
+    >
+      <FindInCode
+        lines={COMMIT_MESSAGE_LINES}
+        ruleLabels={COMMIT_MESSAGE_RULE_LABELS}
+        itemLabel="Caso"
+        alreadyDone={isDone('message')}
+        onSolved={() => markDone('message')}
+      />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Init, secretos y primer commit"
+      kind="Elegí la opción"
+      goal="aplicar init, status, add y commit a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+## Conceptos
+
+Ya viste qué es un repositorio y los conceptos centrales de Git: working
+directory, staging area y commit. Cuatro comandos alcanzan para crear un
+repositorio y confirmar el primer cambio:
+
+```bash
+git init
+```
+
+Convierte la carpeta actual en un repositorio: a partir de acá, Git empieza
+a llevar historial de lo que pasa ahí. Se ejecuta una sola vez por
+proyecto.
+
+```bash
+git status
+```
+
+Muestra el estado actual: qué archivos cambiaron, cuáles ya están en el
+staging area y cuáles todavía no. Se puede ejecutar en cualquier momento,
+sin que cambie nada — solo informa.
+
+```bash
+git add validarContraseña.ts
+```
+
+Mueve ese archivo al staging area: lo marca como listo para el próximo
+commit. `git add .` hace lo mismo con todos los archivos cambiados.
+
+```bash
+git commit -m "Agregar validación de longitud de contraseña"
+```
+
+Confirma lo que está en el staging area, con un mensaje que describe el
+cambio. A partir de acá, ese cambio queda guardado en el historial.
+
+## Cuándo usarlo
+
+`git init` se ejecuta una sola vez, al arrancar un proyecto nuevo (o para
+convertir en repositorio una carpeta que todavía no lo era). El ciclo
+`status` → `add` → `commit` se repite cada vez que hay un cambio para
+guardar, por chico que sea.
+
+## Buenas prácticas
+
+- **Escribir el mensaje en términos de qué cambió**, no de cómo se sintió
+  hacerlo ("Agregar validación de longitud de contraseña", no "cambios" ni
+  "fix") — el historial solo sirve si se puede leer meses después sin
+  abrir cada diff.
+- **Ejecutar `git status` antes de `git add`**, para confirmar exactamente
+  qué se está por incluir, en vez de asumirlo.
+- **Un commit, un cambio**: si se corrigieron dos cosas sin relación,
+  conviene dos commits separados — así se puede revertir uno sin arrastrar
+  el otro.
+- **Confirmar apenas termina una unidad de cambio**, no acumular horas de
+  trabajo sin commitear — un commit gigante es tan difícil de revisar como
+  de revertir parcialmente.
+- **Agregar archivo por archivo cuando los cambios no están relacionados**,
+  en vez de `git add .` a ciegas, para no terminar mezclando sin querer
+  cosas que debían ir en commits distintos.
+
+## Anti-patrones
+
+- **Mensajes genéricos** ("cambios", "fix", "update") que no dicen qué se
+  modificó — obligan a abrir el diff cada vez que alguien necesita saber
+  qué pasó.
+- **`git add .` sin haber mirado `git status` antes**, que puede incluir
+  archivos que no correspondían (una credencial local, un archivo de
+  configuración de tu editor).
+- **Mezclar cambios sin relación en un solo commit**, lo que hace más
+  difícil revertir uno sin afectar al otro.
+- **Confirmar código que no compila o con tests fallando**, rompiendo la
+  garantía de que cualquier commit del historial es un punto al que se
+  puede volver con seguridad.
+- **Esperar a "tener todo perfecto" para el primer commit**, perdiendo
+  justo el beneficio de empezar a versionar desde el principio.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<FirstCommitOrderActivity />
+
+<CommitMessageActivity />
+
+<ClosingQuizActivity />

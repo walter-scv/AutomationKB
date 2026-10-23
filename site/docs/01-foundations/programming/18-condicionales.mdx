@@ -1,0 +1,286 @@
+---
+title: Condicionales (if/else)
+sidebar_position: 18
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {CONDITIONAL_LINES, CONDITIONAL_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/18-condicionales';
+
+export const LESSON_SLUG = 'foundations-condicionales';
+
+export function ConditionalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['conditional']);
+  return (
+    <Activity
+      title="¿Se puede simplificar?"
+      kind="Buscar en el código"
+      goal="reconocer cuándo un `if` anidado se puede aplanar y cuándo un `else if` repite una condición que el `else` ya cubría."
+      done={isDone('conditional')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode
+        lines={CONDITIONAL_LINES}
+        ruleLabels={CONDITIONAL_RULE_LABELS}
+        alreadyDone={isDone('conditional')}
+        onSolved={() => markDone('conditional')}
+      />
+    </Activity>
+  );
+}
+
+export function PracticeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+  return (
+    <Activity
+      title="¿Esta condición está bien escrita?"
+      kind="Buscar en el código"
+      goal="reconocer una condición negada que complica la lectura, un `if/else` que solo asigna `true`/`false`, y una rama vacía que se puede borrar."
+      done={isDone('practice')}
+      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+    >
+      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ClosingQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+  return (
+    <Activity
+      title="Ramas y casos sin cubrir"
+      kind="Elegí la opción"
+      goal="aplicar if/else/else if a situaciones nuevas."
+      done={isDone('quiz')}
+      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+    >
+      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+Ya sabés comparar valores con operadores. El siguiente paso es usar esa
+comparación para decidir qué bloque de código ejecutar.
+
+## Conceptos
+
+`if (condición) { ... } else { ... }` ejecuta un bloque u otro según si la
+condición es verdadera o falsa. Nunca se ejecutan los dos:
+
+```ts
+if (contraseña.length >= 8 && contraseña.length <= 64) {
+  resultado = 'Contraseña válida';
+} else {
+  resultado = 'Contraseña inválida';
+}
+```
+
+La condición se evalúa como verdadera o falsa. Para que el código sea
+claro, conviene que sea una expresión booleana (`edad >= 18`, `esValida`),
+no un valor de otro tipo que JavaScript interpreta como verdadero o falso.
+Si es `true`, entra al primer bloque; si es `false`, al `else`.
+
+### `else if` para más de dos resultados
+
+Cuando hay más de dos casos posibles, se encadena con `else if`. Las
+condiciones se evalúan en orden y se ejecuta la primera que sea verdadera:
+
+```ts
+if (nota < 4) {
+  resultado = 'Desaprobado';
+} else if (nota <= 7) {
+  resultado = 'Aprobado';
+} else {
+  resultado = 'Promocionado';
+}
+```
+
+El orden importa. Con `nota = 3`, la primera condición ya es verdadera y las
+siguientes no se evalúan. Si se invirtiera el orden y `nota <= 7` fuera
+primero, un `3` caería en "Aprobado" aunque debería estar desaprobado.
+
+Un `else if` que repite una condición ya cubierta no aporta nada:
+
+```ts
+if (esValida) {
+  guardar();
+} else if (!esValida) {
+  mostrarError(); // el else de abajo ya cubría este caso
+} else {
+  mostrarError();
+}
+```
+
+Alcanza con `if (esValida) { ... } else { ... }`: si la primera condición es
+falsa, el `else` ya sabe que `!esValida` es verdadero.
+
+### Anidar o combinar
+
+Un `if` dentro de otro funciona, pero muchas veces se puede aplanar. Si las
+dos condiciones tienen que cumplirse, se combinan con `&&`:
+
+```ts
+// Anidado
+if (usuario) {
+  if (usuario.activo) {
+    permitirAcceso();
+  }
+}
+
+// Más directo
+if (usuario && usuario.activo) {
+  permitirAcceso();
+}
+```
+
+Si los casos son alternativas (rangos de una nota, por ejemplo), conviene
+`else if` en vez de un `if` anidado dentro del `else`. La lectura baja un
+nivel y queda claro que solo se ejecuta una rama.
+
+### Ramas que no hacen nada
+
+Una rama `else` vacía se puede borrar:
+
+```ts
+if (esValida) {
+  guardar();
+} else {
+  // nada: no hay nada que hacer si no es válida
+}
+```
+
+Si no hay nada que hacer en el caso falso, el `else` sobra. Dejarlo sugiere
+que ahí pasa algo, y obliga a leerlo para descubrir que no.
+
+### `if/else` solo para asignar un booleano
+
+Si el único objetivo es asignar `true` o `false`, la comparación ya devuelve
+ese booleano:
+
+```ts
+let esMayor = false;
+if (edad >= 18) {
+  esMayor = true;
+} else {
+  esMayor = false;
+}
+```
+
+Se reemplaza por una sola línea:
+
+```ts
+const esMayor = edad >= 18;
+```
+
+Además de ser más corto, evita la variable mutable y deja la condición a la
+vista.
+
+### Condiciones negadas
+
+Una condición negada obliga a leer el `else` para entender el caso normal:
+
+```ts
+if (!esInvalida) {
+  guardar();
+} else {
+  mostrarError();
+}
+```
+
+Si existe la versión positiva, es más directo invertirla:
+
+```ts
+if (esValida) {
+  guardar();
+} else {
+  mostrarError();
+}
+```
+
+Negar tiene sentido cuando el caso excepcional es el que se quiere destacar
+primero, pero no cuando solo agrega un `!` y un `else` para compensarlo.
+
+### Ternario: un `if/else` que devuelve un valor
+
+Cuando las dos ramas solo eligen un valor, se puede usar el **operador
+ternario**:
+
+```ts
+const mensaje = edad >= 18 ? 'adulto' : 'menor';
+```
+
+Se lee: si la condición es verdadera, toma el valor antes de `:`; si es
+falsa, el de después. Es equivalente a un `if/else` que asigna en cada rama,
+pero en una sola expresión.
+
+Conviene usarlo solo para decisiones cortas. Anidar varios ternarios hace
+que la condición sea difícil de leer; en ese caso, `if/else if` es más
+claro.
+
+## Cuándo usarlo
+
+Cualquier decisión que dependa del valor de una condición (un número, un
+texto, un booleano) usa `if`. Cuando hay más de dos caminos posibles,
+`else if` evita anidar `if` dentro de `if` — cada nivel de anidación extra
+hace más difícil seguir la lógica de un vistazo.
+
+## Buenas prácticas
+
+- **Mantener las condiciones simples y legibles.** Si una condición se
+  vuelve larga o difícil de leer, conviene guardarla en una variable con
+  nombre antes del `if`:
+
+  ```ts
+  const esLongitudValida = contraseña.length >= 8 && contraseña.length <= 64;
+  ```
+
+  Leer `if (esLongitudValida)` dice qué se está preguntando; leer la
+  condición completa cada vez obliga a reconstruir ese significado de
+  nuevo cada vez que alguien pasa por esa línea.
+- **Usar `else if` para más de dos casos, en vez de anidar.** Con `else
+  if` cada caso queda al mismo nivel de indentación, y ya se sabe que los
+  casos anteriores no se cumplieron — anidar obliga a seguir el rastro de
+  paréntesis y llaves para saber en qué caso real se está parado.
+- **Asignar directamente el resultado de una comparación**, sin pasar por
+  `if/else`. `const envioGratis = monto >= 5000;` hace exactamente lo
+  mismo que un `if/else` de cuatro líneas que termina asignando `true` o
+  `false` — con menos código para mantener y menos lugar para un error de
+  tipeo en una de las dos ramas.
+- **Evitar condiciones negadas cuando se pueda invertir el orden de las
+  ramas.** `if (!esValida) { ... } else { ... }` obliga a leer la negación
+  y el `else` para entender el caso "normal" — `if (esValida) { ... }
+  else { ... }` dice lo mismo sin ese paso extra.
+- **No dejar una rama `else` que no hace nada.** Si una rama queda vacía
+  (o con un comentario tipo "acá no hay que hacer nada"), se puede borrar
+  esa rama completa y dejar solo el `if` — el resultado es el mismo, con
+  menos código para leer.
+
+## Anti-patrones
+
+- **Anidar `if` dentro de `if` dentro de `if`** para condiciones que se
+  podrían combinar en una sola con `&&`, o expresar con `else if`. Cada
+  nivel de anidación obliga a sostener más contexto mental para entender
+  qué se está evaluando.
+- **Usar `if/else` solo para asignar `true`/`false`** a una variable
+  booleana, en vez de asignar directamente el resultado de la
+  comparación. Agrega líneas que no aportan nada sobre simplemente escribir
+  la condición.
+- **Negar una condición sin necesidad** (`if (!tieneError)` en vez de
+  reordenar las ramas), lo que obliga a leer la condición "al revés" cada
+  vez que alguien pasa por ese código.
+- **Repetir casi la misma condición en un `if` y en el `else if`
+  siguiente**, en vez de usar un `else` simple para el caso restante — si
+  los dos casos son complementarios, no hace falta volver a escribir la
+  condición negada.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ConditionalActivity />
+
+<PracticeActivity />
+
+<ClosingQuizActivity />
