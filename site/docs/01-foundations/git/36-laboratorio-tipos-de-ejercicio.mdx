@@ -1,0 +1,228 @@
+---
+title: "Laboratorio: nuevos tipos de ejercicio"
+sidebar_position: 36
+---
+
+import Activity from '@site/src/components/Activity';
+import FillBlank from '@site/src/components/FillBlank';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import Match from '@site/src/components/Match';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import MultiSelect from '@site/src/components/MultiSelect';
+import DecisionPath from '@site/src/components/DecisionPath';
+import SpotToken from '@site/src/components/SpotToken';
+import Terminal from '@site/src/components/Terminal';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  FILLBLANK_TEMPLATE, FILLBLANK_SLOTS, FILLBLANK_BANK, FILLBLANK_EXPLANATION,
+  TYPEANSWER_ACCEPTED, TYPEANSWER_HINTS, TYPEANSWER_EXPLANATION,
+  MATCH_LEFT, MATCH_RIGHT, MATCH_WHY,
+  BUILDER_PREFIX, BUILDER_STEPS, BUILDER_EXPLANATION,
+  MULTISELECT_QUESTIONS,
+  DECISION_START, DECISION_NODES, DECISION_EXPLANATION,
+  SPOTTOKEN_PROMPT, SPOTTOKEN_ROUNDS,
+  TERMINAL_STEPS, TERMINAL_EXPLANATION,
+} from '@site/src/content/lessons/36-laboratorio-tipos-de-ejercicio';
+
+export const LESSON_SLUG = 'foundations-laboratorio-tipos-ejercicio';
+
+export function FillBlankActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['fillblank']);
+  return (
+    <Activity
+      title="Completá el comando"
+      kind="Completar huecos"
+      goal="elegir, de un banco de fichas, las dos piezas que completan correctamente un comando de Git."
+      done={isDone('fillblank')}
+      consigna="Modificaste sin querer `src/cart.ts` y todavía no hiciste commit — querés descartar ese cambio. Completá el comando con las fichas: una ficha por hueco, clickeando primero el hueco (para vaciarlo si ya tiene algo) y después la ficha. La actividad se completa cuando los dos huecos quedan bien."
+    >
+      <FillBlank
+        template={FILLBLANK_TEMPLATE}
+        slots={FILLBLANK_SLOTS}
+        bank={FILLBLANK_BANK}
+        explanation={FILLBLANK_EXPLANATION}
+        alreadyDone={isDone('fillblank')}
+        onSolved={() => markDone('fillblank')}
+      />
+    </Activity>
+  );
+}
+
+export function TypeAnswerActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['typeanswer']);
+  return (
+    <Activity
+      title="Escribí el comando"
+      kind="Respuesta escrita"
+      goal="escribir de memoria el comando exacto para una situación, en vez de reconocerlo entre opciones."
+      done={isDone('typeanswer')}
+      consigna="Escribí el comando que trae los cambios del remoto sin fusionarlos todavía — solo actualiza las referencias remotas, sin tocar tu working directory. Podés escribirlo con o sin `origin`; se acepta más de una forma. La actividad se completa al acertar."
+    >
+      <TypeAnswer
+        accepted={TYPEANSWER_ACCEPTED}
+        hints={TYPEANSWER_HINTS}
+        explanation={TYPEANSWER_EXPLANATION}
+        placeholder="git ..."
+        alreadyDone={isDone('typeanswer')}
+        onSolved={() => markDone('typeanswer')}
+      />
+    </Activity>
+  );
+}
+
+export function MatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['match']);
+  return (
+    <Activity
+      title="Emparejá cada comando con lo que hace"
+      kind="Emparejar"
+      goal="conectar cinco comandos de Git con su efecto real, uno a uno."
+      done={isDone('match')}
+      consigna="Son 5 pares. Elegí un comando de la columna izquierda y después su efecto en la derecha (o al revés) — se puede elegir en cualquier orden. Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={MATCH_LEFT}
+        right={MATCH_RIGHT}
+        leftLabel="Comando"
+        rightLabel="Qué hace"
+        why={MATCH_WHY}
+        alreadyDone={isDone('match')}
+        onSolved={() => markDone('match')}
+      />
+    </Activity>
+  );
+}
+
+export function CommandBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['builder']);
+  return (
+    <Activity
+      title="Armá el comando paso a paso"
+      kind="Armar"
+      goal="construir un comando completo eligiendo cada fragmento en orden, en vez de reconocerlo ya armado."
+      done={isDone('builder')}
+      consigna="Necesitás crear la rama `feature/nueva-funcion` a partir de tu main actualizado y moverte a ella, en un solo comando. Elegí el fragmento correcto en cada paso — recién se habilita el siguiente paso al acertar el anterior. La actividad se completa cuando el comando queda armado entero."
+    >
+      <CommandBuilder
+        prefix={BUILDER_PREFIX}
+        steps={BUILDER_STEPS}
+        explanation={BUILDER_EXPLANATION}
+        alreadyDone={isDone('builder')}
+        onSolved={() => markDone('builder')}
+      />
+    </Activity>
+  );
+}
+
+export function MultiSelectActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['multiselect']);
+  return (
+    <Activity
+      title="Antes de abrir el PR"
+      kind="Marcar todas"
+      goal="reconocer, entre varias prácticas, cuáles corresponden antes de abrir un Pull Request — no una sola, el conjunto completo."
+      done={isDone('multiselect')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todas las que correspondan: el conjunto tiene que ser exacto, ni de más ni de menos. Si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={MULTISELECT_QUESTIONS}
+        alreadyDone={isDone('multiselect')}
+        onSolved={() => markDone('multiselect')}
+      />
+    </Activity>
+  );
+}
+
+export function DecisionPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['decision']);
+  return (
+    <Activity
+      title="Resolvé la situación paso a paso"
+      kind="Escenario encadenado"
+      goal="tomar dos decisiones seguidas en un mismo escenario, donde la segunda depende de la primera."
+      done={isDone('decision')}
+      consigna="Vas a tomar dos decisiones seguidas: la segunda situación depende de qué elegiste en la primera. Si elegís mal, se explica por qué y podés probar otra opción sin perder lo que ya resolviste bien. La actividad se completa al llegar al final del camino correcto."
+    >
+      <DecisionPath
+        startId={DECISION_START}
+        nodes={DECISION_NODES}
+        explanation={DECISION_EXPLANATION}
+        alreadyDone={isDone('decision')}
+        onSolved={() => markDone('decision')}
+      />
+    </Activity>
+  );
+}
+
+export function SpotTokenActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['spottoken']);
+  return (
+    <Activity
+      title="Encontrá la palabra exacta"
+      kind="Señalar en la línea"
+      goal="identificar, dentro de una línea de comando, la palabra puntual que causa el problema — no la línea entera."
+      done={isDone('spottoken')}
+      consigna="Son 3 líneas, cada una con un problema. Hacé click en la palabra exacta de cada línea que lo causa (no en la línea completa). Si tocás la palabra equivocada, se marca en rojo y podés probar otra. La actividad se completa cuando resolviste las 3."
+    >
+      <SpotToken
+        rounds={SPOTTOKEN_ROUNDS}
+        prompt={SPOTTOKEN_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('spottoken')}
+        onSolved={() => markDone('spottoken')}
+      />
+    </Activity>
+  );
+}
+
+export function TerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['terminal']);
+  return (
+    <Activity
+      title="Simulá el flujo en la terminal"
+      kind="Terminal"
+      goal="escribir, uno por uno, los comandos reales de un flujo completo: actualizar, crear rama, confirmar y subir."
+      done={isDone('terminal')}
+      consigna="Son 4 pasos. Cada instrucción aparece como comentario arriba del prompt — escribí el comando y confirmá con Enter. Si el comando no es el esperado, la terminal te avisa y podés corregirlo sin perder lo que ya escribiste antes. La actividad se completa al terminar los 4 pasos."
+    >
+      <Terminal
+        steps={TERMINAL_STEPS}
+        explanation={TERMINAL_EXPLANATION}
+        alreadyDone={isDone('terminal')}
+        onSolved={() => markDone('terminal')}
+      />
+    </Activity>
+  );
+}
+
+Ya resolviste, en el integrador anterior, los dos ejercicios que cierran
+el bloque de Git con los tipos de actividad que ya conocés: clasificar
+situaciones (`FindInCode`) y elegir la opción correcta (`Quiz`). Esta
+página es la continuación de esos ejercicios integradores, pero con un
+objetivo distinto: probar mecánicas de interacción nuevas, para no
+quedarnos solo con clasificar, ordenar y elegir.
+
+Es un laboratorio — los ejercicios siguen usando Git y GitHub como
+excusa (porque ya tenés el contexto fresco del bloque), pero lo que se
+evalúa acá es la mecánica en sí, no contenido nuevo del temario.
+
+## Práctica
+
+Son 8 ejercicios, cada uno con una mecánica distinta. Son independientes
+entre sí y cada bloque avisa cuándo está resuelto.
+
+<FillBlankActivity />
+
+<TypeAnswerActivity />
+
+<MatchActivity />
+
+<CommandBuilderActivity />
+
+<MultiSelectActivity />
+
+<DecisionPathActivity />
+
+<SpotTokenActivity />
+
+<TerminalActivity />
