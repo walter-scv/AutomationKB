@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(/project/**)",
+      "Edit(/docs/best-practices/**)"
+    ]
+  }
+}
