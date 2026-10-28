@@ -91,3 +91,29 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
     ],
   },
 ];
+
+export const TRACE_MATRIX = `Base de prueba: préstamos de la biblioteca
+
+R1  Un préstamo dura 14 días.
+R2  Un socio puede tener hasta 3
+    libros prestados a la vez.
+R3  Un socio con una multa impaga
+    no puede pedir préstamos.
+R4  Un préstamo se puede renovar
+    una vez, si nadie reservó el libro.
+
+Caso    Traza a    Resultado
+CP-01   R1         Pasó
+CP-02   R1, R4     Pasó
+CP-03   R2         Falló (DEF-31)
+CP-04   R2         Pasó
+CP-05   R4         Pasó
+CP-06   R2, R4     Pasó`;
+export const TRACE_ACCEPTED = ['R3', 'la R3', 'regla R3', 'la regla R3'];
+export const TRACE_HINTS = [
+  'Recorré la columna «Traza a» y anotá qué reglas aparecen al menos una vez.',
+  'R1, R2 y R4 aparecen en algún caso. ¿Hay alguna regla de la base que no figure en ninguna fila?',
+  'Escribí el identificador de la regla, como figura en la lista de arriba (por ejemplo, R1).',
+];
+export const TRACE_EXPLANATION =
+  'Ningún caso traza a R3: la restricción por multa impaga no tiene cobertura, aunque las pruebas digan "5 de 6 pasaron". La matriz también responde otras preguntas: si cambia la renovación, hay que volver a probar CP-02, CP-05 y CP-06 (los que trazan a R4), y el riesgo abierto está en R2, que tiene un defecto sin resolver.';

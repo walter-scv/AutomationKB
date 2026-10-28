@@ -4,24 +4,43 @@ sidebar_position: 30
 ---
 
 import Activity from '@site/src/components/Activity';
+import Terminal from '@site/src/components/Terminal';
+import FillBlank from '@site/src/components/FillBlank';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
-import {BRANCH_LINES, BRANCH_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/30-ramas';
+import {
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+  CLOSING_QUIZ,
+  START_BRANCH_TEMPLATE,
+  START_BRANCH_SLOTS,
+  START_BRANCH_BANK,
+  START_BRANCH_EXPLANATION,
+  BRANCHES_STEPS,
+  BRANCHES_EXPLANATION,
+} from '@site/src/content/lessons/30-ramas';
 
 export const LESSON_SLUG = 'foundations-ramas';
 
-export function BranchActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['branch']);
+export function StartBranchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['startbranch']);
   return (
     <Activity
-      title="¿Esta rama está bien?"
-      kind="Clasificar"
-      goal="reconocer un buen nombre de rama, por qué trabajar directo en main es un problema y por qué conviene crear la rama antes de editar."
-      done={isDone('branch')}
-      consigna="Son 7 casos. Si el cambio se hizo directo en main, sin rama propia, elegí «El cambio se hace directo en main, sin rama propia»; si la rama se creó después de empezar a editar en main, elegí «Creó la rama después de empezar a editar en main»; si el nombre no describe qué se hace, elegí «El nombre no describe qué se está haciendo». En los que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+      title="Arrancá la rama del arreglo"
+      kind="Completar huecos"
+      goal="armar la secuencia para empezar un cambio en una rama propia, creada desde main actualizado y con un nombre que diga qué hace."
+      done={isDone('startbranch')}
+      consigna="Te asignaron arreglar que el total del carrito no suma el costo de envío. Completá los cuatro huecos para empezar el trabajo en una rama propia (cada ficha se usa una vez y sobran algunas); clickeá un hueco para vaciarlo. La actividad se completa cuando los cuatro quedan bien."
     >
-      <FindInCode lines={BRANCH_LINES} ruleLabels={BRANCH_RULE_LABELS} itemLabel="Caso" alreadyDone={isDone('branch')} onSolved={() => markDone('branch')} />
+      <FillBlank
+        template={START_BRANCH_TEMPLATE}
+        slots={START_BRANCH_SLOTS}
+        bank={START_BRANCH_BANK}
+        explanation={START_BRANCH_EXPLANATION}
+        alreadyDone={isDone('startbranch')}
+        onSolved={() => markDone('startbranch')}
+      />
     </Activity>
   );
 }
@@ -56,75 +75,181 @@ export function ClosingQuizActivity() {
   );
 }
 
+export function BranchesTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['branchesterminal']);
+  return (
+    <Activity
+      title="Ordená tus ramas en la terminal"
+      kind="Terminal"
+      goal="ver las ramas, resolver un cambio de rama bloqueado por cambios sin confirmar, renombrar una rama y borrar una ya integrada."
+      done={isDone('branchesterminal')}
+      consigna="Son 7 pasos en una terminal simulada. La instrucción de cada uno aparece como comentario arriba del prompt: escribí el comando y confirmá con Enter. Si el comando no es el esperado, la terminal te avisa y podés corregirlo. La actividad se completa al terminar los 7 pasos."
+    >
+      <Terminal
+        steps={BRANCHES_STEPS}
+        explanation={BRANCHES_EXPLANATION}
+        alreadyDone={isDone('branchesterminal')}
+        onSolved={() => markDone('branchesterminal')}
+      />
+    </Activity>
+  );
+}
+
 ## Conceptos
 
-Ya sabés confirmar cambios y revisar el historial. Pero todos esos
-commits, hasta ahora, viven en una sola línea de trabajo. Una **rama**
-(branch) es una línea de trabajo independiente dentro del mismo
-repositorio. `main` (o `master`) es la rama principal — la que
-normalmente refleja el código "estable", el que usa o revisa el resto del
-equipo.
+Hasta acá todos los commits se hicieron sobre una única línea de trabajo.
+En un equipo, varias personas trabajan al mismo tiempo en cambios
+distintos, y no conviene que un cambio a medio terminar quede mezclado con
+el código que usa el resto. Las **ramas** resuelven ese problema.
 
-```bash
-git branch validar-contraseña
-git checkout validar-contraseña
+### Qué es una rama
+
+Una **rama** es una línea de trabajo independiente dentro del mismo
+repositorio. La rama principal, normalmente llamada `main` (en proyectos
+más antiguos, `master`), contiene el código estable: el que se integra,
+se prueba y se libera. Cuando se crea una rama nueva, arranca desde el
+commit en el que se está parado y, a partir de ahí, avanza por su cuenta:
+
+```text
+                 ●───●        fix/telefono-con-guiones
+                /
+●───●───●───●───●───●         main
 ```
 
-El primer comando crea la rama; el segundo cambia a ella. Se puede hacer
-en un solo paso:
+Los commits que se hagan en `fix/telefono-con-guiones` no afectan a
+`main`, y los que el equipo sume a `main` no afectan a la rama. Cuando el
+cambio está listo, se integra a `main` (el *merge*, en la lección
+siguiente). Mientras tanto, se puede probar, corregir o descartar sin
+consecuencias para nadie más.
+
+### Ver las ramas
 
 ```bash
-git checkout -b validar-contraseña
+$ git branch
+  feature/historial-de-pagos
+* fix/telefono-con-guiones
+  main
 ```
 
-Trabajar en una rama propia permite cambiar, deshacer o romper cosas sin
-afectar lo que el resto del equipo tiene en `main`.
+`git branch` lista las ramas locales y marca con `*` aquella en la que se
+está trabajando, que es a la que apunta HEAD. `git status` lo indica
+también en su primera línea: `On branch fix/telefono-con-guiones`.
+
+### Crear una rama y cambiar de rama
+
+`git branch <nombre>` crea una rama pero no cambia a ella; `git switch
+<nombre>` cambia a una rama existente. Como casi siempre se quieren las
+dos cosas, `git switch -c` crea la rama y cambia a ella en un paso:
+
+```bash
+$ git switch -c fix/telefono-con-guiones
+Switched to a new branch 'fix/telefono-con-guiones'
+```
+
+Muchos equipos y tutoriales usan el comando más antiguo, `git checkout`,
+que hace lo mismo con otra sintaxis: `git checkout main` cambia a `main`,
+y `git checkout -b fix/telefono-con-guiones` crea la rama y cambia a ella.
+Los dos funcionan igual. `git switch` se incorporó para separar el cambio
+de rama de otras funciones que tiene `checkout`, y es un poco más difícil
+de usar por error.
+
+### Desde dónde crear la rama
+
+Como una rama arranca desde el commit actual, importa en qué rama y en qué
+estado se está al crearla. Si se crea estando en `feature/historial-de-pagos`,
+una rama de otra persona que todavía no se integró, la rama nueva arrastra
+todos esos commits sin revisar, y el merge final se complica. Si se crea
+desde un `main` desactualizado, se trabaja sobre código viejo y los
+conflictos aparecen recién al integrar. La secuencia habitual es:
+
+```bash
+$ git switch main                       # pararse en main
+$ git pull                              # traer lo último del remoto
+$ git switch -c fix/telefono-con-guiones
+```
+
+(`git pull` trae los cambios del repositorio remoto; se ve en detalle en
+esa lección.)
+
+### Cambiar de rama con cambios sin confirmar
+
+Si hay cambios sin confirmar al cambiar de rama, Git intenta llevarlos al
+working directory de la otra rama. Si esos cambios chocan con algo
+distinto en la rama de destino, se niega a cambiar:
+
+```text
+error: Your local changes to the following files would be overwritten by checkout:
+        perfil.ts
+Please commit your changes or stash them before you switch branches.
+```
+
+El mensaje indica las dos salidas: confirmar el cambio o guardarlo
+temporalmente con `git stash` (que se ve en la lección sobre deshacer
+cambios).
+
+### Nombres de ramas
+
+El nombre de una rama tiene que decir qué contiene, para que cualquiera lo
+entienda sin abrirla. La convención más extendida usa un prefijo según el
+tipo de cambio, seguido de una descripción corta en minúsculas, con
+guiones: `feature/` para funcionalidades nuevas (`feature/historial-de-pagos`),
+`fix/` para correcciones (`fix/telefono-con-guiones`), `docs/` para
+documentación. Nombres como `prueba`, `rama2`, `temp` o `cambios` no
+informan nada: a la semana nadie sabe qué tienen ni si siguen haciendo
+falta.
+
+### Borrar y renombrar ramas
+
+Una vez integrada, una rama se borra:
+
+```bash
+$ git branch -d fix/telefono-con-guiones
+Deleted branch fix/telefono-con-guiones (was 7f8e9d0).
+```
+
+La opción `-d` es segura: si la rama tiene commits que no llegaron a
+ninguna otra rama, Git se niega a borrarla y lo explica:
+
+```text
+error: the branch 'feature/historial-de-pagos' is not fully merged
+hint: If you are sure you want to delete it, run 'git branch -D feature/historial-de-pagos'
+```
+
+`-D`, en mayúscula, borra la rama de todas formas, y sus commits sin
+integrar quedan perdidos de vista. Se usa solo cuando se tiene la certeza
+de que ese trabajo no hace falta. Tampoco se puede borrar la rama en la
+que se está parado: primero hay que cambiar a otra. Para corregir el
+nombre de una rama, `git branch -m` recibe el nombre actual y el nuevo:
+`git branch -m fix/telefono fix/telefono-con-guiones`.
 
 ## Cuándo usarlo
 
-Siempre que vayas a hacer un cambio, por chico que sea, conviene crear una
-rama antes de tocar nada — no solo para cambios grandes. El costo de crear
-una rama es mínimo, y evita que un cambio a medio terminar quede mezclado
-con el código estable que el resto del equipo está usando.
+Se crea una rama para cualquier cambio, por chico que sea, antes de
+empezar a editar. El costo de crearla es nulo, y evita que un cambio a
+medio terminar quede mezclado con el código estable.
 
 ## Buenas prácticas
 
-- **Una rama por cambio**, con un nombre que describa qué contiene
-  (`feature/validar-contraseña`, `fix/operador-comparacion`) — así se
-  revisa y se mergea sin arrastrar nada más.
-- **Crear la rama antes de empezar a editar, no después** — si ya
-  empezaste a cambiar algo directo en `main`, pasar esos cambios a una
-  rama propia es más trabajoso que haberla creado primero.
-- **Mantener la rama corta: mergearla apenas el cambio esté listo**, no
-  dejarla viviendo semanas — cuanto más tiempo pasa, más se aleja de
-  `main` y más conflictos acumula para el día que se mergee.
-- **Borrar la rama después de mergearla** — una rama vieja que sigue ahí
-  no aporta nada y genera confusión sobre cuáles siguen activas.
-- **Crear la rama a partir de `main` recién actualizado**
-  (`git pull` antes de `git checkout -b`), no de una rama vieja propia o
-  de otra persona que todavía no se mergeó.
+- Una rama por cambio, con un nombre que describa qué contiene.
+- Crear la rama antes de editar, desde `main` actualizado.
+- Integrar la rama apenas el cambio está listo, sin dejarla semanas.
+- Borrar la rama una vez integrada.
 
 ## Anti-patrones
 
-- **Nombres de rama que no dicen nada** (`rama2`, `prueba`, `temp`) — en
-  una semana nadie sabe qué cambio contienen sin abrirlas.
-- **Trabajar directo en `main`**, sin ninguna rama propia — mezcla
-  cualquier cambio a medio terminar con el código que el resto del equipo
-  usa.
-- **Mezclar varios cambios sin relación en una misma rama**, el mismo
-  problema de un commit gigante, pero a nivel rama: difícil de revisar y
-  de mergear.
-- **Dejar ramas viejas sin mergear ni borrar acumulándose** en el
-  repositorio, sin que nadie sepa cuáles siguen teniendo trabajo pendiente.
-- **Crear una rama a partir de otra rama vieja** en vez de `main`
-  actualizado — arrastra cambios que todavía no se revisaron y complica el
-  merge final.
+- **Trabajar directo en `main`**.
+- **Nombres que no dicen nada** (`rama2`, `temp`).
+- **Mezclar varios cambios sin relación en una rama**.
+- **Acumular ramas viejas sin integrar ni borrar**.
+- **Crear una rama a partir de otra rama sin integrar**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
-<BranchActivity />
+<StartBranchActivity />
+
+<BranchesTerminalActivity />
 
 <PracticeActivity />
 

@@ -1,0 +1,323 @@
+---
+title: "JSON: datos como texto"
+sidebar_position: 23.8
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import SpotToken from '@site/src/components/SpotToken';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import MultiSelect from '@site/src/components/MultiSelect';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  JSON_TOKEN_ROUNDS,
+  JSON_TOKEN_PROMPT,
+  PATH_ACCEPTED,
+  PATH_HINTS,
+  PATH_EXPLANATION,
+  PATH_CODE,
+  STRINGIFY_QUESTIONS,
+  CONTRACT_ITEMS,
+  CONTRACT_COLUMNS,
+  CONTRACT_CODE,
+} from '@site/src/content/lessons/23c-json';
+
+export const LESSON_SLUG = 'foundations-json';
+
+export function JsonTokenActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['jsontoken']);
+  return (
+    <Activity
+      title="¿Por qué no es JSON válido?"
+      kind="Señalar en la línea"
+      goal="detectar el detalle exacto que hace inválido un texto JSON."
+      done={isDone('jsontoken')}
+      consigna="Son 4 líneas de JSON, cada una con un único error. Hacé click en la parte que lo causa. Si tocás otra, se marca en rojo, recibís una pista y podés probar de nuevo. La actividad se completa cuando resolviste las 4."
+    >
+      <SpotToken
+        rounds={JSON_TOKEN_ROUNDS}
+        prompt={JSON_TOKEN_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('jsontoken')}
+        onSolved={() => markDone('jsontoken')}
+      />
+    </Activity>
+  );
+}
+
+export function PathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['path']);
+  return (
+    <Activity
+      title="Llegá al dato"
+      kind="Respuesta escrita"
+      goal="escribir el acceso a un dato anidado dentro de un JSON ya parseado."
+      done={isDone('path')}
+      consigna="El código parsea la respuesta de una reserva de hotel. Escribí la expresión, empezando por `datos`, que devuelve el tipo de documento de Tomás. Si te equivocás, recibís una pista, cada vez más concreta, y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="ts">{PATH_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={PATH_ACCEPTED}
+        hints={PATH_HINTS}
+        explanation={PATH_EXPLANATION}
+        placeholder="datos..."
+        alreadyDone={isDone('path')}
+        onSolved={() => markDone('path')}
+      />
+    </Activity>
+  );
+}
+
+export function StringifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['stringify']);
+  return (
+    <Activity
+      title="¿Qué llega a la API?"
+      kind="Marcar todas"
+      goal="predecir qué propiedades conserva `JSON.stringify` y cuáles descarta."
+      done={isDone('stringify')}
+      consigna="Es 1 pregunta con 6 propiedades de un objeto. Marcá todas las que aparecen en el texto JSON resultante. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={STRINGIFY_QUESTIONS}
+        alreadyDone={isDone('stringify')}
+        onSolved={() => markDone('stringify')}
+      />
+    </Activity>
+  );
+}
+
+export function ContractActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['contract']);
+  return (
+    <Activity
+      title="¿La respuesta cumple?"
+      kind="Clasificar"
+      goal="revisar respuestas JSON contra la forma esperada: campos presentes, tipos correctos y la diferencia entre `null` y un campo ausente."
+      done={isDone('contract')}
+      consigna="La interface muestra qué tiene que devolver la API. Son 7 respuestas y 3 cajas: Cumple, Tipo incorrecto y Falta un campo. Arrastrá cada respuesta a su caja. Para decidir: si una propiedad obligatoria no aparece, falta un campo; si aparece con un valor de otro tipo (incluido null donde no se admite), es tipo incorrecto. Cada respuesta tiene a lo sumo un problema. La actividad se completa cuando ubicaste las 7."
+    >
+      <CodeBlock language="ts">{CONTRACT_CODE}</CodeBlock>
+      <Classify
+        items={CONTRACT_ITEMS}
+        columns={CONTRACT_COLUMNS}
+        itemLabel="Respuesta"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('contract')}
+        onSolved={() => markDone('contract')}
+      />
+    </Activity>
+  );
+}
+
+Los objetos y las interfaces organizan y describen datos dentro de un programa. Para que esos datos viajen entre sistemas se escriben como texto, casi siempre en formato JSON. Esta lección explica sus reglas, cómo pasar de texto a objeto y de objeto a texto, y qué revisar en un JSON al probar.
+
+## Conceptos
+
+Un objeto existe solo dentro del programa que lo creó. Cuando dos sistemas
+tienen que intercambiar datos (una aplicación web y su servidor, un
+servicio y otro, un programa y su archivo de configuración), los datos
+viajan como **texto**, y el formato de texto más usado para eso es
+**JSON** (*JavaScript Object Notation*). Es lo que devuelve la mayoría de
+las APIs, lo que se ve en la pestaña *Network* del navegador al
+inspeccionar una petición, y lo que contienen archivos como `package.json`.
+Leerlo con soltura es parte del trabajo diario de quien prueba un sistema,
+haga o no automatización.
+
+### La sintaxis de JSON
+
+JSON se parece a un objeto de TypeScript, pero sus reglas son más
+estrictas:
+
+```json
+{
+  "id": 1042,
+  "cliente": "Marta Ríos",
+  "pagado": true,
+  "descuento": null,
+  "items": [
+    { "sku": "LIB-201", "cantidad": 2, "precio": 8900.5 },
+    { "sku": "LIB-415", "cantidad": 1, "precio": 12300 }
+  ],
+  "envio": { "tipo": "domicilio", "ciudad": "Mendoza" }
+}
+```
+
+Los valores posibles son seis: string, número, booleano (`true` o
+`false`), `null`, objeto (`{...}`) y array (`[...]`). Objetos y arrays se
+pueden anidar sin límite, como `items` y `envio`.
+
+Las diferencias con un objeto de TypeScript son las que causan casi todos
+los errores al escribir JSON a mano. Los nombres de las propiedades van
+**siempre entre comillas dobles**. Los strings también, y solo con
+comillas dobles: `'Marta'` no es válido. No se permite una **coma después
+del último elemento**. No hay comentarios. Y no existen `undefined`, las
+funciones ni las fechas: una fecha viaja como string (`"2026-10-28"`) o
+como número. Los booleanos y `null` se escriben en minúscula.
+
+Este fragmento es un objeto válido de TypeScript y un JSON inválido por
+cuatro motivos:
+
+```ts
+{ id: 1042, cliente: 'Marta Ríos', pagado: true, descuento: undefined, }
+```
+
+`id` y las demás propiedades no tienen comillas, `'Marta Ríos'` usa
+comillas simples, `undefined` no existe en JSON, y hay una coma final.
+
+### `JSON.parse`: de texto a valor
+
+`JSON.parse` recibe un texto en formato JSON y devuelve el valor que
+representa, con el que ya se puede trabajar como con cualquier objeto:
+
+```ts
+const texto = '{"id": 1042, "envio": {"tipo": "domicilio", "ciudad": "Mendoza"}}';
+const pedido = JSON.parse(texto);
+
+pedido.id;             // 1042 (un number, no el texto "1042")
+pedido.envio.ciudad;   // 'Mendoza'
+```
+
+Para llegar a un dato anidado se encadenan los accesos igual que en
+cualquier objeto: `.propiedad` para entrar a un objeto e `[índice]` para
+entrar a un array. En el JSON completo de arriba, el precio del segundo
+ítem es `pedido.items[1].precio`.
+
+Si el texto no es JSON válido, `JSON.parse` lanza un `SyntaxError` y
+detiene el programa (salvo que se lo atrape con `try`/`catch`, como se ve
+en manejo de errores). El mensaje indica qué esperaba y dónde:
+
+```text
+SyntaxError: Expected double-quoted property name in JSON at position 17 (line 1 column 18)
+```
+
+Ese es el mensaje de una coma final: después de la coma, `JSON.parse`
+esperaba otra propiedad entre comillas y encontró `}` en la columna 18.
+Hay otro mensaje que conviene reconocer, porque aparece muy seguido al
+probar APIs:
+
+```text
+SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+```
+
+El texto empieza con `<`: no es JSON sino una página HTML. Casi siempre
+significa que el servidor respondió con una página de error (un 404 o un
+500) en lugar de los datos. El problema no está en el código que lee la
+respuesta, sino en la respuesta.
+
+### `JSON.stringify`: de valor a texto
+
+`JSON.stringify` hace el camino inverso: convierte un valor en texto JSON,
+por ejemplo para enviarlo a una API o guardarlo en un archivo.
+
+```ts
+const filtro = { ciudad: 'Mendoza', soloPagados: true };
+JSON.stringify(filtro);           // '{"ciudad":"Mendoza","soloPagados":true}'
+JSON.stringify(filtro, null, 2);  // el mismo texto, con saltos de línea y 2 espacios de sangría
+```
+
+El tercer argumento indica la sangría; el segundo, que acá es `null`,
+permite filtrar propiedades y casi nunca se usa. La versión con sangría es
+la que conviene para leer un objeto grande en la consola.
+
+Como JSON tiene menos tipos que TypeScript, `stringify` tiene que decidir
+qué hacer con lo que no existe en JSON, y no siempre es obvio:
+
+```ts
+const sesion = {
+  usuario: 'mrios',
+  token: undefined,
+  inicio: new Date(Date.UTC(2026, 9, 28, 13, 5)),
+  recordar: false,
+  ultimoError: null,
+  intentos: NaN,
+  cerrar() { /* ... */ },
+};
+JSON.stringify(sesion);
+// '{"usuario":"mrios","inicio":"2026-10-28T13:05:00.000Z","recordar":false,"ultimoError":null,"intentos":null}'
+```
+
+Leído propiedad por propiedad: `usuario` se conserva. `token`, que vale
+`undefined`, **desaparece**: la propiedad no está en el texto. `inicio`, una
+fecha, se convierte en un string con formato ISO (año, mes, día, hora en
+UTC). `recordar` se conserva aunque sea `false`, y `ultimoError` se conserva
+como `null`: ninguno de los dos es "vacío" para JSON. `intentos`, que es
+`NaN`, se convierte en `null`. Y el método `cerrar` desaparece, porque las
+funciones no son datos.
+
+La diferencia entre `undefined` y `null` tiene consecuencias concretas: un
+campo con `null` llega al otro sistema como "presente y sin valor"; un
+campo con `undefined` directamente no llega.
+
+### JSON y tipos
+
+`JSON.parse` no sabe qué forma tienen los datos, así que su resultado es de
+tipo `any`: TypeScript deja de revisar lo que se haga con él. Lo habitual
+es asignarlo a una variable con una interfaz:
+
+```ts
+interface Pedido {
+  id: number;
+  pagado: boolean;
+}
+const pedido: Pedido = JSON.parse(texto);
+```
+
+Esa anotación ayuda a escribir el resto del código, pero **no verifica
+nada al ejecutar**: los tipos desaparecen al compilar. Si el servidor manda
+`"id": "1042"` (un string), el programa sigue funcionando con un string
+donde el código espera un número, y el error aparece más adelante, en otro
+lugar. Comprobar que los datos que llegan tienen la forma y los tipos
+esperados es, justamente, una de las cosas que se prueban en una API.
+
+### Qué mirar en un JSON al probar
+
+Al revisar una respuesta, la lectura útil va más allá de "llegaron los
+datos". Hay que mirar que estén **todos los campos** esperados, y que cada
+uno tenga el **tipo** correcto: `"precio": 1500` y `"precio": "1500"` se
+ven parecidos y son distintos. También hay que distinguir un campo con
+`null` de un campo ausente, porque el sistema que lo recibe puede tratarlos
+de forma distinta. Conviene revisar que los arrays vacíos lleguen como
+`[]` y no como `null`, y que los textos con tildes y eñes lleguen intactos
+(`"Ríos"`, no `"Ríos"` mal decodificado ni `"R?os"`).
+
+Una última trampa: dos JSON con los mismos datos pueden diferir en el
+orden de las propiedades, así que compararlos como texto puede dar
+"distintos" cuando no lo son. `JSON.stringify({a: 1, b: 2}) ===
+JSON.stringify({b: 2, a: 1})` es `false`.
+
+## Cuándo usarlo
+
+Se usa `JSON.parse` cada vez que llega texto JSON (una respuesta de API,
+el contenido de un archivo) y hay que trabajar con sus datos, y
+`JSON.stringify` cada vez que hay que enviar o guardar un valor como texto,
+o mostrarlo legible en la consola.
+
+## Buenas prácticas
+
+- Escribir JSON con comillas dobles, sin comas finales ni comentarios.
+- Mostrar objetos grandes con `JSON.stringify(valor, null, 2)`.
+- Ante un `SyntaxError` al parsear, mirar primero qué texto llegó.
+- Revisar en cada respuesta los campos, sus tipos y la diferencia entre
+  `null` y ausente.
+
+## Anti-patrones
+
+- **Escribir JSON con la sintaxis de un objeto de TypeScript**.
+- **Confiar en que la interfaz verifica los datos que llegan**.
+- **Comparar dos JSON como texto** cuando el orden de las propiedades puede
+  variar.
+- **Mandar `undefined` esperando que el campo llegue vacío**.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<JsonTokenActivity />
+
+<PathActivity />
+
+<ContractActivity />
+
+<StringifyActivity />

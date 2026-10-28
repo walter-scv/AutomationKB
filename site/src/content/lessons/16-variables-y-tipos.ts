@@ -1,4 +1,6 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
+import type {FillBlankSlot} from '@site/src/components/FillBlank';
+import type {SpotTokenRound} from '@site/src/components/SpotToken';
 
 export const VARIABLE_RULE_LABELS = [
   'El tipo es `any`, y TypeScript deja de revisar ese dato',
@@ -50,54 +52,33 @@ export const VARIABLE_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Reasigna una variable que se declaró `const`',
-  'El `any` apaga el chequeo de tipos de ese dato',
-  'Usa `object` donde corresponde un tipo más preciso',
-];
-
-export const PRACTICE_LINES: CodeLine[] = [
+export const TYPE_TOKEN_PROMPT = '¿Qué palabra de esta línea hay que cambiar para que quede bien declarada y TypeScript la siga revisando?';
+export const TYPE_TOKEN_ROUNDS: SpotTokenRound[] = [
   {
-    code: 'const nombre = \'Ana\';',
-    rule: 0,
-    why: 'El tipo se infiere como `string` sin ambigüedad y el nombre describe el valor. No hace falta anotar el tipo cuando el valor asignado ya lo deja claro.',
-    hint: '¿Hace falta anotar el tipo cuando el valor asignado ya dice cuál es?',
+    line: 'let pendientes: any[] = [];',
+    targetIndex: 2,
+    why: '`any[]` apaga el chequeo de cada elemento: TypeScript no avisa si se mete cualquier cosa en la lista. Con el tipo real (por ejemplo `Pedido[]`) el chequeo sigue activo.',
+    hint: '¿Qué revisa TypeScript sobre los elementos que se agreguen a esta lista?',
   },
   {
-    code: 'function procesar(dato: any) {\n  return dato.cualquierPropiedadQueSeMeOcurra;\n}',
-    rule: 2,
-    why: 'Con `any` en el parámetro, TypeScript acepta cualquier propiedad. Si el dato real no tiene `cualquierPropiedadQueSeMeOcurra`, el error recién aparece cuando la función corre con datos reales.',
-    hint: '¿TypeScript puede avisar acá si esa propiedad no existe en el dato que llega?',
+    line: 'const intentos = 0; intentos = intentos + 1;',
+    targetIndex: 0,
+    why: 'Un `const` no se puede reasignar, y la segunda instrucción lo hace. Como el valor cambia, se declara con `let`.',
+    hint: 'La segunda instrucción le asigna un valor nuevo. ¿La forma en que se declaró la variable lo permite?',
   },
   {
-    code: 'const total = 0;\ntotal = total + precio;',
-    rule: 1,
-    why: 'Esto es un error de compilación: `total` se declaró `const` y después se le asigna otro valor. Si el total tiene que ir cambiando, se declara `let` desde el principio.',
-    hint: '¿Esta variable se declaró de una forma que permita cambiarle el valor después?',
-  },
-  {
-    code: 'const usuarios: Usuario[] = await obtenerUsuarios();',
-    rule: 0,
-    why: 'Tipo específico (`Usuario[]`), y no genérico: TypeScript puede avisar si más abajo se usa una propiedad que `Usuario` no tiene, o si se le pasa algo que no es un `Usuario`.',
-    hint: '¿Este tipo le deja a TypeScript revisar los usos que le siguen?',
-  },
-  {
-    code: 'const configuracion: object = {timeout: 5000};',
-    rule: 3,
-    why: '`object` es tan genérico como `any` para efectos de chequeo: no dice qué propiedades tiene. Un tipo como `{timeout: number}` o una interfaz `Configuracion` le permiten a TypeScript revisar los usos.',
-    hint: '¿Este tipo dice qué se puede hacer con la variable, o solo que es "algo"?',
-  },
-  {
-    code: 'const pedidos: Pedido[] = await obtenerPedidos();',
-    rule: 0,
-    why: 'Tipo preciso y declarado: `Pedido[]` documenta qué se guarda y activa el chequeo de tipos en cada uso posterior.',
-    hint: '¿El tipo elegido le permite a TypeScript revisar lo que se hace con la lista?',
-  },
-  {
-    code: 'let pendientes: any[] = [];',
-    rule: 2,
-    why: 'El `any` está en el tipo del elemento: cada pendiente puede ser de cualquier forma, y TypeScript no va a avisar cuando se le acceda a una propiedad que no existe.',
-    hint: 'Mirá el tipo de cada elemento del array, no solo el del array.',
+    line: "const opciones: object = {idioma: 'es', tema: 'oscuro'};",
+    targetIndex: 2,
+    why: '`object` acepta cualquier objeto y no dice qué propiedades tiene: después, `opciones.idioma` da error. Un tipo con la forma (`{idioma: string; tema: string}`) o la inferencia sí lo describen.',
+    hint: 'Con ese tipo, ¿TypeScript sabe que `opciones` tiene una propiedad `idioma`?',
   },
 ];
 
+export const DECLARATION_TEMPLATE = '{{kw}} intentosRestantes: {{type}} = 3;';
+export const DECLARATION_SLOTS: FillBlankSlot[] = [
+  {id: 'kw', answer: 'let'},
+  {id: 'type', answer: 'number'},
+];
+export const DECLARATION_BANK = ['const', 'let', 'number', 'any', 'string'];
+export const DECLARATION_EXPLANATION =
+  'Esta variable guarda cuántos intentos quedan y se va descontando en cada intento fallido — como el valor cambia, tiene que ser `let`, no `const`. Y como cuenta una cantidad, el tipo correcto es `number`: `any` apagaría el chequeo de tipos, y `string` no es lo que se está contando.';

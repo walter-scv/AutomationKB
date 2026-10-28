@@ -1,4 +1,7 @@
+import type {MatchItem} from '@site/src/components/Match';
 import type {CodeLine} from '@site/src/components/FindInCode';
+import type {BuilderStep} from '@site/src/components/CommandBuilder';
+import type {TerminalStep} from '@site/src/components/Terminal';
 
 export const ARRAY_RULE_LABELS = [
   'Usa un nombre en singular para una lista de valores',
@@ -97,3 +100,95 @@ export const PRACTICE_LINES: CodeLine[] = [
 ];
 
 
+
+export const CHAIN_PREFIX = 'const totalEnOferta = productos';
+export const CHAIN_STEPS: BuilderStep[] = [
+  {
+    options: [
+      '\n  .find((producto) => producto.enOferta)',
+      '\n  .map((producto) => producto.enOferta)',
+      '\n  .filter((producto) => producto.enOferta)',
+    ],
+    correct: '\n  .filter((producto) => producto.enOferta)',
+    hint: 'Puede haber muchos productos en oferta. ¿Ese método te deja todos los que cumplen la condición, o hace otra cosa con ellos?',
+  },
+  {
+    options: [
+      '\n  .filter((producto) => producto.precio)',
+      '\n  .map((producto) => producto.precio)',
+      '\n  .find((producto) => producto.precio)',
+    ],
+    correct: '\n  .map((producto) => producto.precio)',
+    hint: 'Ya tenés los productos correctos. ¿Qué necesitás hacer con cada uno para quedarte con un número por producto?',
+  },
+  {
+    options: [
+      '\n  .length;',
+      '\n  .map((precio) => precio + precio);',
+      '\n  .reduce((acumulado, precio) => acumulado + precio, 0);',
+    ],
+    correct: '\n  .reduce((acumulado, precio) => acumulado + precio, 0);',
+    hint: 'Releé qué pide la consigna: ¿el resultado es una lista, una cantidad de productos, u otra cosa?',
+  },
+];
+export const CHAIN_EXPLANATION =
+  '`filter` se queda con todos los productos en oferta (`find` daría solo el primero, y `map` convertiría cada producto en `true` o `false`). `map` transforma cada producto en su precio: una lista de números. Y `reduce` suma esa lista en un solo valor arrancando desde `0` — `.length` contaría cuántos productos hay, no cuánto suman sus precios. El orden filtrar → transformar → acumular es el más común al encadenar.';
+
+/** Acepta la expresión sola, con `;` al final, o envuelta en `console.log(...)`. */
+function consoleVariants(...expressions: string[]): string[] {
+  return expressions.flatMap((e) => [e, e + ';', `console.log(${e})`, `console.log(${e});`]);
+}
+
+export const CONSOLE_STEPS: TerminalStep[] = [
+  {
+    instruction: "Ya existe const codigos = ['A-101', 'A-102', 'A-103', 'A-104']. Mostrá cuántos elementos tiene.",
+    accepted: consoleVariants('codigos.length'),
+    hint: 'Es una propiedad del array, no un método: se escribe después de un punto y sin paréntesis.',
+    output: '4',
+  },
+  {
+    instruction: 'Mostrá el primer código.',
+    accepted: consoleVariants('codigos[0]'),
+    hint: 'Se accede con corchetes y la posición. ¿En qué número empiezan las posiciones?',
+    output: "'A-101'",
+  },
+  {
+    instruction: 'Mostrá el último código sin escribir su posición a mano: tiene que seguir funcionando si la lista crece.',
+    accepted: consoleVariants('codigos[codigos.length - 1]', 'codigos[codigos.length-1]', 'codigos.at(-1)'),
+    hint: 'La posición del último depende de cuántos elementos hay. ¿Qué relación hay entre la cantidad y el último índice válido?',
+    output: "'A-104'",
+  },
+  {
+    instruction: 'Pedí el elemento en la posición 4, para ver qué devuelve una posición que no existe.',
+    accepted: consoleVariants('codigos[4]'),
+    hint: 'Es el mismo acceso con corchetes que antes, con el número 4.',
+    output: 'undefined',
+  },
+];
+export const CONSOLE_EXPLANATION =
+  'Con 4 elementos, `length` vale 4 pero las posiciones van de 0 a 3: por eso el último es `codigos[codigos.length - 1]` y `codigos[4]` devuelve `undefined` sin dar ningún error. Ese silencio es lo peligroso: el `undefined` sigue de largo y falla más adelante.';
+
+export const ARRAY_Q_LEFT: MatchItem[] = [
+  {id: 'includes', text: "¿El talle 'XL' está entre los talles disponibles?"},
+  {id: 'some', text: '¿Hay al menos una nota menor a 4 en la planilla?'},
+  {id: 'every', text: '¿Son mayores de edad todos los pasajeros de la reserva?'},
+  {id: 'find', text: 'La primera temperatura mayor a 38, para mostrar cuándo empezó la fiebre.'},
+  {id: 'filter', text: 'Todas las temperaturas mayores a 38, para listarlas.'},
+  {id: 'sortcopy', text: 'Las cantidades de menor a mayor, sin alterar la lista original, que se usa en otra pantalla.'},
+];
+export const ARRAY_Q_RIGHT: MatchItem[] = [
+  {id: 'sortcopy', text: '`[...cantidades].sort((a, b) => a - b)`'},
+  {id: 'every', text: '`edades.every((edad) => edad >= 18)`'},
+  {id: 'filter', text: '`temperaturas.filter((temperatura) => temperatura > 38)`'},
+  {id: 'includes', text: "`talles.includes('XL')`"},
+  {id: 'find', text: '`temperaturas.find((temperatura) => temperatura > 38)`'},
+  {id: 'some', text: '`notas.some((nota) => nota < 4)`'},
+];
+export const ARRAY_Q_WHY: Record<string, string> = {
+  includes: 'Se pregunta si un valor concreto está en la lista: `includes` compara cada elemento con `===` y devuelve `true` o `false`.',
+  some: 'Alcanza con que un elemento cumpla: `some`. Con una planilla vacía devuelve `false`.',
+  every: 'Tienen que cumplir todos: `every`. Ojo: con una lista vacía devuelve `true`, así que una reserva sin pasajeros cargados pasaría la validación.',
+  find: 'Se necesita un solo elemento, el primero que cumple: `find` lo devuelve (o `undefined` si no hay ninguno).',
+  filter: 'Se necesitan todos los que cumplen, como un array nuevo: `filter`.',
+  sortcopy: '`sort` modifica el array original y, sin función, compara como texto. Se ordena una copia (`[...cantidades]`) con `(a, b) => a - b`.',
+};

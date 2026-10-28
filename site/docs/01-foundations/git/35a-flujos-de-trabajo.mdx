@@ -1,0 +1,252 @@
+---
+title: "Flujos de trabajo con ramas"
+sidebar_position: 35.2
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import SpotToken from '@site/src/components/SpotToken';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  FLOW_ITEMS,
+  FLOW_COLUMNS,
+  RELEASE_PREFIX,
+  RELEASE_STEPS,
+  RELEASE_EXPLANATION,
+  FLOW_TOKEN_ROUNDS,
+  FLOW_TOKEN_PROMPT,
+} from '@site/src/content/lessons/35a-flujos-de-trabajo';
+
+export const LESSON_SLUG = 'foundations-flujos-de-trabajo';
+
+export function FlowClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['flowclassify']);
+  return (
+    <Activity
+      title="¿Qué flujo usa este equipo?"
+      kind="Clasificar"
+      goal="reconocer el flujo de trabajo de un equipo a partir de cómo publica y cómo integra."
+      done={isDone('flowclassify')}
+      consigna="Son 6 descripciones de equipos y 3 cajas: GitHub flow, Git flow y Trunk-based. Arrastrá cada descripción a su caja. Para decidir, fijate primero cómo se publica (cada cambio, o versiones planificadas) y después cuánto viven las ramas. La actividad se completa cuando ubicaste las 6."
+    >
+      <Classify
+        items={FLOW_ITEMS}
+        columns={FLOW_COLUMNS}
+        itemLabel="Equipo"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('flowclassify')}
+        onSolved={() => markDone('flowclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function ReleaseBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['release']);
+  return (
+    <Activity
+      title="Congelá la versión"
+      kind="Armar el comando"
+      goal="crear una rama de versión en Git flow desde el punto de partida correcto."
+      done={isDone('release')}
+      consigna="El equipo usa Git flow y decidió que lo que está terminado sale como la versión 3.2.0. Armá, fragmento por fragmento, el comando que crea la rama donde se va a probar esa versión. Si elegís mal, recibís una pista y podés elegir otro. La actividad se completa cuando el comando está entero."
+    >
+      <CommandBuilder
+        prefix={RELEASE_PREFIX}
+        steps={RELEASE_STEPS}
+        explanation={RELEASE_EXPLANATION}
+        alreadyDone={isDone('release')}
+        onSolved={() => markDone('release')}
+      />
+    </Activity>
+  );
+}
+
+export function FlowTokenActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['flowtoken']);
+  return (
+    <Activity
+      title="La palabra que rompe el flujo"
+      kind="Señalar en la línea"
+      goal="detectar en una descripción de trabajo el detalle que contradice el flujo del equipo."
+      done={isDone('flowtoken')}
+      consigna="Son 4 líneas; cada una indica un flujo y describe una acción que lo contradice en una sola palabra. Hacé click en esa palabra. Si tocás otra, se marca en rojo, recibís una pista y podés probar de nuevo. La actividad se completa cuando resolviste las 4."
+    >
+      <SpotToken
+        rounds={FLOW_TOKEN_ROUNDS}
+        prompt={FLOW_TOKEN_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('flowtoken')}
+        onSolved={() => markDone('flowtoken')}
+      />
+    </Activity>
+  );
+}
+
+Con ramas, remotos, etiquetas y Pull Requests ya están todas las piezas. Esta lección muestra cómo las combinan los equipos en un flujo de trabajo, y qué rama hay que probar en cada uno.
+
+## Conceptos
+
+Las lecciones anteriores mostraron las piezas: ramas, merge, rebase,
+remotos, etiquetas y Pull Requests. Un equipo necesita además un acuerdo
+sobre cómo combinarlas: desde qué rama se crea una rama nueva, cómo se
+llama, hacia dónde se integra y cómo se publica una versión. Ese acuerdo es
+el **flujo de trabajo** (*branching strategy*). Sin él, cada persona crea
+ramas desde lugares distintos, y nadie sabe qué versión está probando.
+
+Hay tres flujos de uso extendido. Ninguno es "el correcto": cada uno
+responde a una forma distinta de publicar el software. Para quien prueba,
+conocer el flujo del equipo responde una pregunta concreta: **qué rama hay
+que probar, y en qué momento**.
+
+### GitHub flow
+
+Es el flujo más simple, descripto en la documentación de GitHub. Tiene una
+sola rama permanente, `main`, que siempre tiene que poder publicarse. Todo
+cambio sigue el mismo ciclo:
+
+1. Se crea una rama desde `main` con un nombre descriptivo.
+2. Se hacen commits en esa rama y se la sube al remoto.
+3. Se abre un Pull Request.
+4. El equipo revisa y prueba el cambio en esa rama.
+5. Se integra a `main`, se publica y se borra la rama.
+
+```bash
+$ git switch main
+$ git pull
+$ git switch -c feature/filtro-por-especialidad
+# ... commits ...
+$ git push -u origin feature/filtro-por-especialidad
+# Pull Request → revisión y prueba → merge a main → publicación
+```
+
+Encaja con productos que se publican de forma continua, como una aplicación
+web donde cada cambio integrado sale a producción en poco tiempo. Como
+`main` se publica enseguida, **la prueba ocurre en la rama del Pull
+Request, antes del merge**. Muchos equipos generan para cada PR un entorno
+temporal (*preview*) donde se puede probar esa rama sola.
+
+### Git flow
+
+Lo propuso Vincent Driessen en 2010 para productos con versiones numeradas
+que se publican cada cierto tiempo. Usa dos ramas permanentes y tres tipos
+de ramas temporales.
+
+Las permanentes son `main`, que contiene solo lo publicado (cada versión
+lleva su etiqueta, `v2.4.0`, `v2.5.0`), y `develop`, donde se integra el
+trabajo terminado para la próxima versión.
+
+Las temporales son tres. Las ramas **`feature/*`** se crean desde
+`develop` y vuelven a `develop`. Cuando lo acumulado en `develop` alcanza
+para una versión, se crea una rama **`release/*`** desde `develop`: en ella
+ya no entran funcionalidades nuevas, solo correcciones de los defectos que
+aparecen al probar. Cuando está lista, se integra a `main` (con su
+etiqueta) y también a `develop`, para que las correcciones no se pierdan.
+Las ramas **`hotfix/*`** se crean desde `main` para corregir un defecto
+urgente en producción, y se integran a `main` y a `develop`.
+
+`git switch -c` acepta un segundo argumento: el punto de partida de la rama
+nueva. Sin él, la rama nace del commit actual; con él, nace de la rama o
+etiqueta indicada, sin necesidad de cambiarse antes:
+
+```bash
+$ git switch -c feature/turnos-recurrentes develop    # funcionalidad nueva
+$ git switch -c release/2.5.0 develop                 # se congela la versión 2.5.0
+$ git switch -c hotfix/2.4.1 main                     # urgencia en producción
+```
+
+Así se ve el cierre de una versión:
+
+```bash
+$ git switch main
+$ git merge release/2.5.0
+$ git tag -a v2.5.0 -m "Versión 2.5.0"
+$ git switch develop
+$ git merge release/2.5.0
+$ git branch -d release/2.5.0
+```
+
+En Git flow, **la prueba de la versión se hace sobre la rama `release/*`**.
+Un defecto encontrado ahí se corrige en esa misma rama, no en `develop`,
+porque `develop` ya puede tener funcionalidades de la versión siguiente.
+Un defecto en producción se reproduce sobre la etiqueta publicada y se
+corrige en un `hotfix/*`.
+
+El propio Driessen agregó en 2020 una nota a su artículo: para software que
+se publica de forma continua, recomienda un flujo más simple como GitHub
+flow. Git flow sigue siendo útil cuando hay versiones planificadas, o
+varias versiones en producción que hay que mantener a la vez (por ejemplo,
+una aplicación de escritorio o móvil).
+
+### Desarrollo basado en trunk
+
+En el **trunk-based development**, todo el equipo integra en una sola rama,
+`main` (el *trunk*), varias veces por día o al menos una. Las ramas, si se
+usan, viven horas o uno o dos días, nunca semanas. El objetivo es que nunca
+haya dos versiones del código que se alejen mucho entre sí, y por lo tanto
+que no haya conflictos grandes.
+
+Como el trabajo se integra antes de estar terminado, las funcionalidades
+incompletas se esconden con **feature flags** (interruptores de
+funcionalidad): una configuración que activa o desactiva una parte del
+sistema sin cambiar el código.
+
+```ts
+if (flags.turnosRecurrentes) {
+  mostrarOpcionDeRepetirTurno();
+}
+```
+
+El código de los turnos recurrentes ya está en `main` y en producción, pero
+nadie lo ve hasta que se activa el flag. Para quien prueba, esto implica
+probar `main` con el flag activado y desactivado: con el flag apagado, el
+sistema tiene que comportarse exactamente como antes.
+
+Este flujo exige que cada integración se verifique rápido, porque `main`
+recibe cambios todo el tiempo y un defecto afecta a todo el equipo enseguida.
+
+### Cómo se elige
+
+La pregunta que decide es cómo se publica el producto. Si cada cambio
+integrado sale a producción en poco tiempo y hay una sola versión vigente,
+GitHub flow alcanza. Si las versiones se planifican y se numeran, o hay que
+mantener más de una en producción, Git flow ordena ese trabajo. Si el
+equipo integra muchas veces por día y puede esconder lo incompleto detrás
+de flags, el desarrollo basado en trunk minimiza los conflictos.
+
+En la práctica, quien se suma a un equipo no elige el flujo: lo encuentra
+definido, normalmente en el `README` o en una guía de contribución
+(`CONTRIBUTING.md`). Lo importante es reconocerlo para saber de dónde
+salen las ramas y qué hay que probar.
+
+## Cuándo usarlo
+
+El flujo se define una vez para todo el equipo y se aplica en cada cambio.
+Conocerlo es lo primero que hay que averiguar al sumarse a un proyecto,
+antes de crear la primera rama.
+
+## Buenas prácticas
+
+- Crear cada rama desde el punto de partida que indica el flujo.
+- Respetar los prefijos de nombres (`feature/`, `release/`, `hotfix/`).
+- En Git flow, integrar cada `release` y cada `hotfix` también a `develop`.
+- En trunk-based, probar con el flag activado y desactivado.
+
+## Anti-patrones
+
+- **Crear ramas desde cualquier lugar**, sin seguir el flujo del equipo.
+- **Agregar funcionalidades a una rama `release`** ya congelada.
+- **Integrar un `hotfix` solo a `main`**, y que el defecto reaparezca en la
+  versión siguiente.
+- **Ramas de semanas en un flujo basado en trunk**.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<FlowClassifyActivity />
+
+<ReleaseBuilderActivity />
+
+<FlowTokenActivity />

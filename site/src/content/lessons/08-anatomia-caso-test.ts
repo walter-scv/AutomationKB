@@ -1,70 +1,40 @@
+import type {FillBlankSlot} from '@site/src/components/FillBlank';
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {BuilderStep} from '@site/src/components/CommandBuilder';
 
-export const STRUCTURE_QUIZ: QuizQuestion[] = [
+export const CASE_PREFIX = 'Caso: cambiar la contraseña desde el perfil';
+export const CASE_STEPS: BuilderStep[] = [
   {
-    question:
-      'Un caso dice: "Precondición: no existe una cuenta con el email indicado. Pasos: completar el formulario con los datos del ticket. Resultado esperado: aparece el texto \'Cuenta creada\'." ¿Qué parte está floja?',
     options: [
-      {
-        text: 'La precondición: no aclara cuál es el email indicado.',
-        correct: false,
-        why: 'La precondición sí dice qué estado hace falta: que no exista una cuenta con ese email. El problema aparece después, cuando los pasos no dicen cuál usar.',
-      },
-      {
-        text: 'Los pasos: "los datos del ticket" no dice qué valores completar.',
-        correct: true,
-        why: 'Cada persona podría tomar datos distintos del ticket. Sin el email y la contraseña exactos, dos ejecuciones prueban cosas diferentes.',
-      },
-      {
-        text: 'El resultado esperado: "Cuenta creada" admite interpretación.',
-        correct: false,
-        why: 'Es un texto exacto y verificable; cualquiera puede confirmar si aparece o no.',
-      },
+      '\nPrecondición: existe una cuenta con "leo@mail.com" y contraseña "Abcd1234!", con la sesión iniciada.',
+      '\nPrecondición: el usuario tiene una cuenta.',
+      '\nPrecondición: ninguna; se parte desde donde quedó el caso anterior.',
     ],
+    correct: '\nPrecondición: existe una cuenta con "leo@mail.com" y contraseña "Abcd1234!", con la sesión iniciada.',
+    hint: 'Con esa precondición, ¿cualquier persona sabría con qué cuenta, con qué contraseña y en qué estado arrancar?',
   },
   {
-    question:
-      'Dos personas ejecutan el mismo caso: una obtiene "Cuenta creada" y la otra "El email ya está registrado". El caso no menciona cuentas existentes. ¿Qué parte falta?',
     options: [
-      {
-        text: 'La precondición: no dice si tiene que existir una cuenta con ese email.',
-        correct: true,
-        why: 'Sin ese dato, una ejecución crea la cuenta y la otra se encuentra con una que ya estaba. El estado de partida es parte del caso.',
-      },
-      {
-        text: 'Los pasos: no dicen qué botón tocar al final.',
-        correct: false,
-        why: 'El resultado distinto no viene de un botón, sino de que cada ejecución arrancó desde un estado distinto de la base.',
-      },
-      {
-        text: 'El resultado esperado: debería aceptar los dos mensajes.',
-        correct: false,
-        why: 'Aceptar los dos mensajes escondería el problema. El caso tiene que definir desde qué estado arranca, no ampliar qué considera éxito.',
-      },
+      '\nPasos: cambiar la contraseña con datos válidos y guardar.',
+      '\nPasos: probar varias contraseñas nuevas hasta que alguna sea aceptada.',
+      '\nPasos: 1) Ir a Perfil > Seguridad. 2) Escribir "Abcd1234!" en contraseña actual. 3) Escribir "Nueva5678!" en nueva contraseña y en confirmación. 4) Tocar "Guardar".',
     ],
+    correct: '\nPasos: 1) Ir a Perfil > Seguridad. 2) Escribir "Abcd1234!" en contraseña actual. 3) Escribir "Nueva5678!" en nueva contraseña y en confirmación. 4) Tocar "Guardar".',
+    hint: 'Si dos personas siguen estos pasos en días distintos, ¿escribirían exactamente los mismos valores?',
   },
   {
-    question: '"Resultado esperado: la pantalla de confirmación se ve completa y ordenada." ¿Qué problema tiene?',
     options: [
-      {
-        text: 'Le falta la precondición.',
-        correct: false,
-        why: 'La precondición es el estado previo a los pasos; el problema señalado está en cómo se describe el resultado, no en lo que falta antes de empezar.',
-      },
-      {
-        text: 'Los pasos son genéricos.',
-        correct: false,
-        why: 'El fragmento no muestra los pasos; lo que falla es la forma de describir el resultado esperado.',
-      },
-      {
-        text: 'Es subjetivo: "completa y ordenada" no se puede confirmar sin opinar.',
-        correct: true,
-        why: 'Dos personas pueden mirar la misma pantalla y decidir distinto. Un resultado verificable diría qué texto, qué URL o qué valor tiene que aparecer.',
-      },
+      '\nResultado esperado: el cambio de contraseña funciona correctamente.',
+      '\nResultado esperado: aparece el texto "Contraseña actualizada".',
+      '\nResultado esperado: aparece "Contraseña actualizada", se cierran las otras sesiones y llega un email de aviso.',
     ],
+    correct: '\nResultado esperado: aparece el texto "Contraseña actualizada".',
+    hint: '¿Ese resultado se puede confirmar sin opinar? Y si falla, ¿queda claro qué fue lo que se rompió?',
   },
 ];
+export const CASE_EXPLANATION =
+  'La precondición dice la cuenta exacta, su contraseña y el estado de partida; los pasos usan datos concretos que cualquiera repite igual; y el resultado esperado es un solo hecho verificable. "Funciona correctamente" es subjetivo, y juntar tres verificaciones en un resultado hace que, si falla, no se sepa cuál se rompió: esas otras dos merecen sus propios casos.';
 
 export const PRACTICE_RULE_LABELS = ['Resultado esperado subjetivo', 'Pasos genéricos, sin datos concretos', 'Falta la precondición'];
 
@@ -163,3 +133,19 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
     ],
   },
 ];
+
+export const CONCRETE_TEMPLATE = `Caso lógico: transferir más que el saldo disponible → se rechaza.
+
+CT-105 · Transferencia mayor al saldo
+Precondición: la cuenta {{cuenta}} tiene un saldo de {{saldo}}.
+Pasos: transferir {{monto}} a la cuenta 0002-7781 y confirmar.
+Resultado esperado: aparece el mensaje {{mensaje}} y no se genera ningún movimiento.`;
+export const CONCRETE_SLOTS: FillBlankSlot[] = [
+  {id: 'cuenta', answer: '0001-5520'},
+  {id: 'saldo', answer: '$ 10.000'},
+  {id: 'monto', answer: '$ 12.000'},
+  {id: 'mensaje', answer: '«Saldo insuficiente»'},
+];
+export const CONCRETE_BANK = ['$ 8.000', '0001-5520', 'un monto alto', '$ 12.000', 'una cuenta con saldo', '«Saldo insuficiente»', '$ 10.000', 'un mensaje de error'];
+export const CONCRETE_EXPLANATION =
+  'Un caso concreto fija cada dato: una cuenta identificable, un saldo exacto, un monto que efectivamente lo supera ($ 12.000 contra $ 10.000; $ 8.000 no probaría el caso lógico) y el texto exacto del mensaje. "Un monto alto" o "un mensaje de error" dejan que dos personas ejecuten pruebas distintas y las den por buenas.';

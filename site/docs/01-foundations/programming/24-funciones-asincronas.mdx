@@ -4,10 +4,29 @@ sidebar_position: 24
 ---
 
 import Activity from '@site/src/components/Activity';
+import Terminal from '@site/src/components/Terminal';
+import Order from '@site/src/components/Order';
+import DecisionPath from '@site/src/components/DecisionPath';
+import Match from '@site/src/components/Match';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
-import {ASYNC_LINES, ASYNC_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/24-funciones-asincronas';
+import {
+  ASYNC_LINES,
+  ASYNC_RULE_LABELS,
+  CLOSING_QUIZ,
+  ASYNC_MATCH_LEFT,
+  ASYNC_MATCH_RIGHT,
+  ASYNC_MATCH_WHY,
+  LOAD_START,
+  LOAD_NODES,
+  LOAD_EXPLANATION,
+  DEPS_ORDER_ITEMS,
+  DEPS_ORDER_CORRECT,
+  DEPS_ORDER_RULES,
+  PROMISE_STEPS,
+  PROMISE_EXPLANATION,
+} from '@site/src/content/lessons/24-funciones-asincronas';
 
 export const LESSON_SLUG = 'foundations-funciones-asincronas';
 
@@ -26,17 +45,23 @@ export function AsyncActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function LoadActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['load']);
   return (
     <Activity
-      title="¿Se podría esperar más rápido?"
-      kind="Buscar en el código"
-      goal="reconocer operaciones independientes que se esperan de a una pudiendo ir en paralelo, y una función marcada `async` sin necesidad."
-      done={isDone('practice')}
-      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+      title="Hacé que el panel cargue más rápido"
+      kind="Escenario encadenado"
+      goal="decidir, en un mismo código, qué esperas van juntas, cuáles en orden y dónde sobra un `async`."
+      done={isDone('load')}
+      consigna="Vas a revisar la carga de un panel en tres decisiones seguidas. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al final."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <DecisionPath
+        startId={LOAD_START}
+        nodes={LOAD_NODES}
+        explanation={LOAD_EXPLANATION}
+        alreadyDone={isDone('load')}
+        onSolved={() => markDone('load')}
+      />
     </Activity>
   );
 }
@@ -52,6 +77,66 @@ export function ClosingQuizActivity() {
       consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
     >
       <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+export function AsyncMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['asyncmatch']);
+  return (
+    <Activity
+      title="¿Qué hace cada espera?"
+      kind="Emparejar"
+      goal="distinguir formas de esperar que se parecen mucho entre sí, según qué arrancan juntas, qué esperan en orden y qué devuelven."
+      done={isDone('asyncmatch')}
+      consigna="Son 6 pares. Elegí una línea de la izquierda y después lo que hace en la derecha (o al revés). Ojo: hay pares que se parecen a propósito — fijate si las operaciones van juntas o una después de la otra. Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={ASYNC_MATCH_LEFT}
+        right={ASYNC_MATCH_RIGHT}
+        leftLabel="Línea"
+        rightLabel="Qué hace"
+        why={ASYNC_MATCH_WHY}
+        alreadyDone={isDone('asyncmatch')}
+        onSolved={() => markDone('asyncmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function DepsOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['depsorder']);
+  return (
+    <Activity
+      title="Ordená las esperas por dependencia"
+      kind="Ordenar"
+      goal="ordenar operaciones asíncronas según qué dato necesita cada una de la anterior."
+      done={isDone('depsorder')}
+      consigna="Son 4 líneas desordenadas de una función que muestra el resumen de compras de un usuario. Ordenalas para que cada una tenga, al ejecutarse, los datos que usa: movelas con las flechas (o arrastrándolas) y usá «Comprobar orden» para verificar. La actividad se completa cuando el orden es correcto."
+    >
+      <Order items={DEPS_ORDER_ITEMS} correctOrder={DEPS_ORDER_CORRECT} rules={DEPS_ORDER_RULES} onSolved={() => markDone('depsorder')} />
+    </Activity>
+  );
+}
+
+export function PromiseConsoleActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['promiseconsole']);
+  return (
+    <Activity
+      title="Mirá la Promise en la consola"
+      kind="Terminal"
+      goal="ver en la consola la diferencia entre una Promise pendiente y el dato que se obtiene al esperarla."
+      done={isDone('promiseconsole')}
+      consigna="Son 4 pasos en una consola de JavaScript simulada, que permite usar await directamente. La instrucción de cada uno aparece como comentario arriba del prompt: escribí la expresión y confirmá con Enter. Si no es la esperada, la consola te avisa y podés corregirla. La actividad se completa al terminar los 4 pasos."
+    >
+      <Terminal
+        steps={PROMISE_STEPS}
+        explanation={PROMISE_EXPLANATION}
+        promptSymbol=">"
+        commentPrefix="//"
+        alreadyDone={isDone('promiseconsole')}
+        onSolved={() => markDone('promiseconsole')}
+      />
     </Activity>
   );
 }
@@ -93,6 +178,54 @@ async function mostrarDatos(): Promise<void> {
   console.log(datos.toUpperCase());
 }
 ```
+
+### En qué orden se ejecuta el código
+
+El código se ejecuta línea por línea, pero una operación que tarda no
+frena el programa: se inicia y el programa sigue con la línea siguiente.
+`await` es lo que indica "hasta que esto termine, no sigas". El orden en que
+aparecen los mensajes de este fragmento lo muestra:
+
+```ts
+async function cargarAgenda(): Promise<void> {
+  console.log('1. Pido los turnos');
+  const pedido = obtenerTurnos();          // se inicia la consulta, sin esperar
+  console.log('2. Sigo sin esperar');
+  const turnos = await pedido;             // acá sí espera a que la consulta termine
+  console.log('3. Llegaron', turnos.length, 'turnos');
+}
+```
+
+```text
+1. Pido los turnos
+2. Sigo sin esperar
+3. Llegaron 12 turnos
+```
+
+La consulta empieza en la segunda línea, pero el mensaje 2 aparece antes de
+que termine. Recién la línea con `await` detiene la función hasta tener el
+resultado, y por eso el mensaje 3 ya puede usar `turnos.length`.
+
+### Los estados de una Promise
+
+Una Promise está siempre en uno de tres estados: **pendiente**, mientras la
+operación sigue en curso; **cumplida**, cuando terminó bien y tiene un
+valor; o **rechazada**, cuando falló y tiene un error. Si se muestra una
+Promise sin esperarla, la consola indica que todavía está pendiente:
+
+```ts
+const pedido = obtenerTurnos();
+console.log(pedido);         // Promise { <pending> }
+
+const turnos = await pedido;
+console.log(turnos);         // [ { id: 1, ... }, { id: 2, ... }, ... ]
+```
+
+Ver `Promise { <pending> }` donde se esperaba un dato es la señal más
+directa de que falta un `await`. Una Promise rechazada, si nadie la
+maneja, aparece en la consola como un error del tipo `Uncaught (in
+promise)`; cómo manejarla se ve en la sección sobre errores y en la
+lección siguiente.
 
 ### Qué pasa si falta `await`
 
@@ -208,46 +341,31 @@ trabajan todos con operaciones que tardan en responder.
 
 ## Buenas prácticas
 
-- **Poner `await` antes de toda operación que tarde en responder.** Sin
-  él, el programa sigue antes de tener el resultado real, y el error que
-  provoca aparece de forma inconsistente — a veces pasa desapercibido
-  porque el resultado llegó a tiempo por casualidad.
-- **Marcar como `async` solo las funciones que realmente usan `await`
-  adentro.** Una función `async` siempre devuelve una `Promise`, aunque no
-  tenga ninguna operación que esperar — eso obliga a quien la usa a tratar
-  el resultado como asíncrono sin necesidad real.
-- **Correr en paralelo las operaciones que son independientes entre sí**,
-  con `Promise.all`. Esperarlas una por una cuando ninguna depende de la
-  otra hace que el programa tarde la suma de los tiempos, en vez de tardar
-  solo lo que tarda la más lenta.
-- **Esperar en secuencia solo cuando una operación necesita el resultado
-  de la anterior.** Forzar el paralelismo ahí no funciona: la segunda
-  operación no tiene con qué arrancar hasta que la primera termine.
-- **Nunca asumir que un resultado ya está listo sin haberlo esperado.** Un
-  valor que viene de una operación asíncrona solo es confiable después de
-  un `await` — antes de eso, es una promesa pendiente, no el dato final.
+- Poner `await` antes de toda operación que tarde en responder.
+- Marcar como `async` solo las funciones que realmente usan `await` adentro.
+- Correr en paralelo las operaciones que son independientes entre sí.
+- Esperar en secuencia solo cuando una operación necesita el resultado de la anterior.
+- Nunca asumir que un resultado ya está listo sin haberlo esperado.
 
 ## Anti-patrones
 
-- **Olvidarse del `await`** antes de una operación asíncrona: el código
-  sigue sin esperar el resultado real, y falla de forma inconsistente — a
-  veces el resultado llega a tiempo por casualidad, a veces no.
-- **Usar el resultado de una función `async` sin `await`**, como si ya
-  fuera el valor final, cuando en realidad todavía es una promesa
-  pendiente.
-- **Esperar operaciones independientes una por una** en vez de con
-  `Promise.all`, haciendo que el programa tarde mucho más de lo
-  necesario sin ninguna razón real.
-- **Marcar `async` una función que no tiene ningún `await` adentro**,
-  agregando una `Promise` innecesaria que obliga a tratar un resultado
-  inmediato como si tardara.
+- **Olvidarse del `await`**.
+- **Usar el resultado de una función `async` sin `await`**.
+- **Esperar operaciones independientes una por una**.
+- **Marcar `async` una función que no tiene ningún `await` adentro**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 6 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <AsyncActivity />
 
-<PracticeActivity />
+<PromiseConsoleActivity />
+
+<AsyncMatchActivity />
+
+<LoadActivity />
+
+<DepsOrderActivity />
 
 <ClosingQuizActivity />

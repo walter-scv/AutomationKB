@@ -1,99 +1,33 @@
+import type {DecisionNode} from '@site/src/components/DecisionPath';
 import type {CodeLine} from '@site/src/components/FindInCode';
-import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {MatchItem} from '@site/src/components/Match';
 
-export const COMBINATION_RULE_LABELS = [
-  'Repite una combinación que ya está cubierta',
-  'Combina una condición que no interactúa con la lógica',
-  'Deja afuera una combinación relevante',
+export const ROWS_ACCEPTED = ['16', 'dieciséis', 'dieciseis'];
+export const ROWS_HINTS = [
+  'Arrancá por lo que ya sabés: con 2 condiciones de sí/no, la tabla de la teoría tiene 4 filas. ¿Qué le pasa a esa cantidad al sumar una condición más?',
+  'Cada condición nueva de sí/no duplica las filas: cada fila que ya tenías aparece una vez con "sí" y otra con "no". Contá: 2 condiciones → 4, 3 → 8, 4 → ...',
 ];
+export const ROWS_EXPLANATION =
+  'Con 4 condiciones de sí/no hay 2 × 2 × 2 × 2 = 16 combinaciones. Por eso una decision table incluye solo las condiciones que de verdad interactúan en el resultado: cada condición de más duplica el trabajo.';
 
-export const COMBINATION_LINES: CodeLine[] = [
-  {
-    code: '«Monto > $5000 + cuenta premium» → envío gratis.',
-    rule: 0,
-    why: 'Es una de las cuatro combinaciones posibles entre monto y cuenta: con premium y monto alto. Suma una fila que la tabla necesita.',
-  },
-  {
-    code: 'Se agrega «idioma de la interfaz = español» a la tabla, duplicando las filas, aunque el idioma no cambia si el envío es gratis.',
-    rule: 2,
-    why: 'El idioma no participa en la decisión de envío gratis: combinarlo multiplica filas sin que cambie ningún resultado.',
-    hint: '¿Esta condición cambia el resultado de las otras dos, o es independiente?',
-  },
-  {
-    code: '«Monto ≤ $5000 + cuenta premium» → sin envío gratis.',
-    rule: 0,
-    why: 'Aunque la cuenta sea premium, el monto no alcanza. Es una combinación distinta a la de premium con monto alto, y la tabla la necesita.',
-  },
-  {
-    code: 'La tabla lista tres filas y deja afuera «monto ≤ $5000 + sin premium».',
-    rule: 3,
-    why: 'Con dos condiciones binarias hay cuatro combinaciones. Faltar una deja sin probar un caso que un usuario real puede encontrar.',
-    hint: '¿Cuántas combinaciones posibles hay entre dos condiciones binarias?',
-  },
-  {
-    code: '«Monto > $5000 + sin premium» → sin envío gratis.',
-    rule: 0,
-    why: 'Completa el cruce: monto alto sin premium. No repite ninguna fila anterior y documenta un resultado distinto.',
-  },
-  {
-    code: 'Se agrega una fila con «$8000 + premium», que repite la combinación de «monto > $5000 + premium».',
-    rule: 1,
-    why: 'El número cambia, pero la combinación de condiciones es la misma que ya está en la tabla: con premium y monto alto.',
-    hint: '¿Cambia la combinación de condiciones, o solo el número del monto?',
-  },
-  {
-    code: 'Se agrega «método de pago = tarjeta» como tercera condición, aunque no cambia si el envío es gratis.',
-    rule: 2,
-    why: 'El método de pago no afecta la regla de envío gratis. Agregarlo infla la tabla sin sumar una combinación relevante.',
-    hint: '¿El método de pago interviene en la decisión de envío gratis?',
-  },
+export const TECHNIQUE_MATCH_LEFT: MatchItem[] = [
+  {id: 'bva', text: 'La edad para registrarse tiene que estar entre 18 y 99 años.'},
+  {id: 'ep', text: 'El país y la moneda se validan cada uno con sus propias reglas, sin que uno afecte al otro.'},
+  {id: 'dt', text: 'Una función nueva se muestra solo si el usuario es premium Y además está en la lista de beta testers.'},
+  {id: 'dtcut', text: 'El envío es gratis si el monto supera $5000 Y la cuenta es premium; el formulario también pide el idioma, que no cambia el envío.'},
 ];
-
-export const WHEN_QUIZ: QuizQuestion[] = [
-  {
-    question: 'El acceso a una función nueva depende de si el usuario tiene cuenta premium Y de si está en la lista de beta testers: ambas condiciones juntas definen si la ve o no. ¿Qué técnica conviene?',
-    options: [
-      {text: 'Equivalence partitioning sobre cada condición, sin combinarlas.', correct: false, why: 'Eso dejaría sin probar combinaciones como premium sin beta tester, que es un caso real que la lógica contempla.'},
-      {text: 'Decision table: el resultado depende de cómo se combinen las dos condiciones.', correct: true, why: 'Exactamente el caso: dos condiciones que interactúan, y el resultado cambia según la combinación. Hay cuatro filas posibles.'},
-      {text: 'Boundary value analysis sobre la antigüedad de la cuenta.', correct: false, why: 'La antigüedad no es la condición que define el acceso acá. BVA miraría límites de un dato que no participa en esta decisión.'},
-    ],
-  },
-  {
-    question: 'El campo «país» y el campo «moneda» son independientes: cada uno se valida con sus propias reglas, sin que uno afecte al otro. ¿Conviene armar una decision table para estos dos campos?',
-    options: [
-      {text: 'Sí, porque cualquier par de campos del mismo formulario interactúa en la validación.', correct: false, why: 'Estar en el mismo formulario no implica interacción. Lo que importa es si el resultado de uno cambia según el valor del otro.'},
-      {text: 'Sí, pero solo si se combinan también con el idioma de la interfaz.', correct: false, why: 'Sumar otra condición independiente solo agranda la tabla. El problema no es cuántas condiciones hay, sino si interactúan.'},
-      {text: 'No: si no interactúan, alcanza con probar cada uno por separado.', correct: true, why: 'Una decision table se justifica cuando el resultado depende de la combinación. Si son independientes, combinarlos multiplica filas sin sumar cobertura.'},
-    ],
-  },
-  {
-    question: 'Un sistema de envíos calcula el costo según el peso del paquete Y el tipo de envío elegido (estándar o urgente). Las dos condiciones juntas determinan el costo final. ¿Qué técnica se aplica?',
-    options: [
-      {text: 'Decision table, combinando rangos de peso con tipo de envío.', correct: true, why: 'El resultado depende de la combinación de dos condiciones, no de cada una por separado. La tabla hace explícitas las filas que hay que cubrir.'},
-      {text: 'Boundary value analysis sobre el peso, sin considerar el tipo de envío.', correct: false, why: 'Cubriría bien los bordes del peso, pero dejaría sin probar cómo cambia el costo al combinarlo con cada tipo de envío.'},
-      {text: 'Testing exploratorio, porque el costo cambia según el contexto.', correct: false, why: 'Que el resultado dependa del contexto no lo vuelve exploratorio: acá las condiciones están definidas y se pueden combinar de forma sistemática.'},
-    ],
-  },
+export const TECHNIQUE_MATCH_RIGHT: MatchItem[] = [
+  {id: 'dtcut', text: 'Decision table con las combinaciones de las condiciones que deciden, dejando afuera la que no influye.'},
+  {id: 'bva', text: 'Boundary value analysis sobre los dos bordes del rango.'},
+  {id: 'dt', text: 'Decision table con todas las combinaciones de las dos condiciones.'},
+  {id: 'ep', text: 'Una partición por campo, probando cada uno por separado.'},
 ];
-
-export const CLOSING_QUIZ: QuizQuestion[] = [
-  {
-    question: '¿Por qué una decision table no enumera combinaciones de TODOS los campos de un formulario grande, solo de los que interactúan en la lógica?',
-    options: [
-      {text: 'Porque el formato de tabla no admite más de tres columnas.', correct: false, why: 'No hay un límite técnico de columnas. El límite es de criterio: solo tiene sentido incluir las condiciones que se afectan entre sí.'},
-      {text: 'Porque combinar campos que no interactúan multiplica filas sin agregar cobertura real.', correct: true, why: 'El valor de la tabla está en capturar las combinaciones que sí cambian el resultado. Sumar condiciones independientes solo infla el trabajo.'},
-      {text: 'Porque cada campo siempre se valida con una tabla aparte y después se suman los resultados.', correct: false, why: 'Eso es justamente lo que una decision table evita cuando hay interacción: el resultado puede depender de la combinación, no de sumar validaciones aisladas.'},
-    ],
-  },
-  {
-    question: 'Un sistema otorga un descuento solo cuando el cliente es nuevo Y el monto supera $10.000. ¿Qué técnica anticipa mejor los casos?',
-    options: [
-      {text: 'Boundary value analysis sobre el monto, sin mirar si el cliente es nuevo.', correct: false, why: 'El monto solo no explica el descuento: un cliente recurrente con el mismo monto no lo recibe. Falta la otra condición.'},
-      {text: 'State transition: el cliente pasa de nuevo a recurrente.', correct: false, why: 'El estado del cliente puede cambiar con el tiempo, pero el descuento de esta compra depende del cruce con el monto, no de una transición entre estados.'},
-      {text: 'Decision table: el descuento depende de la combinación de las dos condiciones.', correct: true, why: 'Hay dos condiciones que interactúan y cuatro combinaciones posibles. La tabla obliga a cubrir, por ejemplo, cliente nuevo con monto bajo.'},
-    ],
-  },
-];
+export const TECHNIQUE_MATCH_WHY: Record<string, string> = {
+  bva: 'Un solo campo con un rango ordenado: lo importante está en los bordes (17, 18, 99 y 100).',
+  ep: 'Si los campos no interactúan, combinarlos multiplica filas sin sumar cobertura: alcanza con probar cada uno por separado.',
+  dt: 'El resultado depende de cómo se combinan las dos condiciones: hay que cubrir las cuatro combinaciones, incluida "premium sin beta".',
+  dtcut: 'Monto y premium interactúan, así que van en la tabla. El idioma no cambia el envío: sumarlo duplicaría las filas sin agregar cobertura.',
+};
 
 export const PRACTICE_RULE_LABELS = [
   'Repite una combinación ya cubierta con otro dato',
@@ -142,3 +76,45 @@ export const PRACTICE_LINES: CodeLine[] = [
     why: 'Una combinación que el sistema resuelve de una forma particular queda explícita. Así nadie la confunde con un olvido al leer la tabla.',
   },
 ];
+
+export const RENTAL_START = 'hueco';
+export const RENTAL_NODES: Record<string, DecisionNode> = {
+  hueco: {
+    id: 'hueco',
+    situation: 'Requisito de una agencia de alquiler de autos: «Se confirma el alquiler si el conductor tiene licencia vigente y tarjeta de crédito. Si además tiene más de 25 años, no paga recargo. Sin licencia vigente, siempre se rechaza.» Al armar la tabla, la combinación «licencia vigente, sin tarjeta de crédito» no tiene resultado en el texto. ¿Qué hacés?',
+    options: [
+      {text: 'Asumir que se rechaza, que es lo más lógico, y seguir con la tabla.', correct: false, why: 'Podría ser rechazo, pago con débito o un depósito en efectivo: es una decisión de negocio, no de quien prueba. Asumirla esconde un defecto del requisito.'},
+      {text: 'Consultarlo con el responsable del producto antes de diseñar los casos.', correct: true, why: 'Una combinación sin resultado definido es un defecto del requisito, y encontrarlo antes de ejecutar es uno de los aportes de la técnica.', next: 'simplificar'},
+      {text: 'Sacar esa combinación de la tabla, porque el requisito no la menciona.', correct: false, why: 'Que el requisito no la mencione no la hace imposible: un conductor sin tarjeta va a llegar al mostrador igual.'},
+    ],
+  },
+  simplificar: {
+    id: 'simplificar',
+    situation: 'El responsable confirma que sin tarjeta también se rechaza. Ahora, las cuatro reglas sin licencia vigente dan «Rechazado», tenga o no tarjeta y sea cual sea la edad. ¿Cómo se simplifican?',
+    options: [
+      {text: 'Se eliminan: con licencia vencida es obvio que se rechaza.', correct: false, why: 'Que el resultado parezca obvio no lo saca de la cobertura: sin esa regla, ningún caso comprueba que el sistema rechace.'},
+      {text: 'Se unen en una sola regla: licencia = No, tarjeta = –, edad = – → Rechazado.', correct: true, why: 'Tarjeta y edad no cambian el resultado cuando no hay licencia: se marcan con guion y las cuatro reglas pasan a ser una.', next: 'riesgo'},
+      {text: 'Se unen también con las reglas con licencia, porque en todas la edad parece no importar.', correct: false, why: 'Con licencia y tarjeta, la edad sí decide si hay recargo: no es irrelevante ahí y esas reglas no se pueden unir.'},
+    ],
+  },
+  riesgo: {
+    id: 'riesgo',
+    situation: 'Alquilarle un auto a alguien sin licencia vigente expone a la agencia a una sanción legal. La regla unida representa cuatro combinaciones. ¿Cuántas probás?',
+    options: [
+      {text: 'Al menos dos de las combinaciones unidas, por ejemplo con y sin tarjeta.', correct: true, why: 'La simplificación asume que el sistema ignora tarjeta y edad cuando no hay licencia. Con un riesgo alto, conviene confirmar esa suposición con más de una combinación.', next: 'caso'},
+      {text: 'Una sola: la regla unida es una regla.', correct: false, why: 'Para la cobertura alcanza una, pero si el sistema tuviera un defecto en alguna de las combinaciones unidas, un solo caso no lo vería. Con este riesgo, no conviene.'},
+      {text: 'Ninguna: el sistema seguramente valida la licencia.', correct: false, why: 'Una regla sin caso queda sin cobertura, y es justamente la de mayor riesgo.'},
+    ],
+  },
+  caso: {
+    id: 'caso',
+    situation: 'Diseñando los casos concretos: conductor de 22 años, licencia vigente, tarjeta de crédito. ¿Qué resultado esperado lleva ese caso?',
+    options: [
+      {text: 'Rechazado, porque es menor de 25.', correct: false, why: 'La edad no decide si se confirma, solo si paga recargo.'},
+      {text: 'Confirmado sin recargo.', correct: false, why: 'El alquiler sin recargo exige más de 25 años.'},
+      {text: 'Confirmado, con recargo.', correct: true, why: 'Cumple licencia y tarjeta, así que se confirma; como no supera los 25 años, paga recargo. Es la regla «licencia Sí, tarjeta Sí, > 25 No».'},
+    ],
+  },
+};
+export const RENTAL_EXPLANATION =
+  'La tabla primero encontró un hueco en el requisito; después se simplificó uniendo lo que no cambia el resultado, se decidió cuánto probar de lo unido según el riesgo, y cada regla factible se convirtió en un caso con datos concretos.';

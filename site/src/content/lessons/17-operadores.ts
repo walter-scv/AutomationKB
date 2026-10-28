@@ -1,5 +1,9 @@
+import type {TerminalStep} from '@site/src/components/Terminal';
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {FillBlankSlot} from '@site/src/components/FillBlank';
+import type {MultiSelectQuestion} from '@site/src/components/MultiSelect';
+import type {BuilderStep} from '@site/src/components/CommandBuilder';
 
 export const OPERATOR_RULE_LABELS = [
   'Usa `=` (asignación) donde iba una comparación',
@@ -55,53 +59,26 @@ export const OPERATOR_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Usa `||` cuando las dos condiciones tienen que cumplirse',
-  'Niega solo una parte de una condición compuesta',
-  'Mezcla `&&` y `||` sin paréntesis, y no se lee qué se evalúa primero',
-];
-
-export const PRACTICE_LINES: CodeLine[] = [
+export const EDIT_PREFIX = 'const puedeEditar = ';
+export const EDIT_STEPS: BuilderStep[] = [
   {
-    code: 'const puedeContactar = tieneEmail && tieneTelefono || tieneDireccion;',
-    rule: 3,
-    why: 'Con `&&` y `||` mezclados, el resultado técnico es `(tieneEmail && tieneTelefono) || tieneDireccion`, pero quien lee tiene que recordar la precedencia para saberlo. Con paréntesis, la intención queda escrita.',
-    hint: '¿Esta línea deja claro, sin recordar precedencias, cuál de las tres condiciones alcanza?',
+    options: ['!(esAutor', 'esAutor', '(esAutor'],
+    correct: '(esAutor',
+    hint: 'Las dos primeras condiciones van juntas y se evalúan antes que la tercera. ¿Cómo lo dejás explícito?',
   },
   {
-    code: 'const puedeComprar = (edadValida && tieneDni) || esMenorConTutor;',
-    rule: 0,
-    why: 'Los paréntesis muestran que la primera opción exige las dos primeras condiciones y la segunda es una alternativa aparte. Sin ellos el resultado sería el mismo, pero acá la lectura no depende de la precedencia.',
+    options: ['&& !bloqueado)', '|| !bloqueado)', '&& bloqueado)'],
+    correct: '&& !bloqueado)',
+    hint: 'Tienen que cumplirse las dos a la vez: ser el autor y que el documento no esté bloqueado.',
   },
   {
-    code: 'const sinDatosDeContacto = !tieneEmail && tieneTelefono;',
-    rule: 2,
-    why: 'El nombre dice "sin datos de contacto", pero la expresión solo exige que falte el email y que haya teléfono: da `true` justo cuando sí hay un dato de contacto. Falta negar también el teléfono.',
-    hint: '¿Qué pasa con alguien que no tiene email pero sí teléfono?',
-  },
-  {
-    code: 'const edadEnRango = edad > 18 || edad < 65;',
-    rule: 1,
-    why: 'Estar "en rango" pide las dos condiciones a la vez, pero `||` alcanza con una: una persona de 10 años cumple `< 65` y una de 80 cumple `> 18`, así que casi cualquier edad entra. Acá correspondía `&&`.',
-    hint: '¿Qué edades hacen verdadera esta expresión: las que están dentro del rango, o casi todas?',
-  },
-  {
-    code: 'const puedeReintentar = !bloqueado && intentos < 3;',
-    rule: 0,
-    why: 'La negación es correcta: se reintenta solo si no está bloqueado y quedan intentos. `&&` exige las dos condiciones y los dos lados son booleanos.',
-  },
-  {
-    code: 'const alerta = !pedido.pagado && pedido.vencido || pedido.cancelado;',
-    rule: 3,
-    why: 'Otra mezcla sin paréntesis: `(!pedido.pagado && pedido.vencido) || pedido.cancelado`. Aunque la precedencia existe, la línea no la muestra, y agregar una condición más puede cambiar el significado sin que se note.',
-    hint: '¿Qué parte de la expresión se agrupa con qué, sin mirar la tabla de precedencia?',
-  },
-  {
-    code: 'const accesoTotal = esAdmin && !estaSuspendido;',
-    rule: 0,
-    why: 'Une dos booleanos con `&&` y niega una sola condición, sin ambigüedad: se necesita ser admin y no estar suspendido. No hay nada que agrupar de nuevo.',
+    options: ['&& esAdmin;', '|| esAdmin;', '|| !esAdmin;'],
+    correct: '|| esAdmin;',
+    hint: 'Ser admin alcanza por sí solo, aunque no se cumpla lo anterior.',
   },
 ];
+export const EDIT_EXPLANATION =
+  '`(esAutor && !bloqueado) || esAdmin`: los paréntesis dejan claro que "autor y no bloqueado" se evalúa junto, `&&` exige las dos cosas, `!` niega solo `bloqueado`, y `||` deja pasar al admin aunque no sea el autor. Sin paréntesis, quien lea tiene que recordar qué operador se evalúa primero.';
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {
@@ -127,4 +104,83 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
   },
 ];
 
+export const APPROVAL_TEMPLATE = 'const puedeAprobar = saldoDisponible {{cmp}} montoTotal {{logic}} terminosAceptados;';
+export const APPROVAL_SLOTS: FillBlankSlot[] = [
+  {id: 'cmp', answer: '>='},
+  {id: 'logic', answer: '&&'},
+];
+export const APPROVAL_BANK = ['>=', '=', '==', '&&', '||'];
+export const APPROVAL_EXPLANATION =
+  'Hace falta que el saldo alcance Y que los términos estén aceptados, así que la unión correcta es `&&`: `||` aprobaría con que se cumpla una sola de las dos. Para comparar el saldo sin conversión de tipos corresponde `>=`: `=` asignaría el monto en vez de compararlo, y `==` convertiría tipos antes de comparar.';
 
+
+
+export const TRUTH_QUESTIONS: MultiSelectQuestion[] = [
+  {
+    prompt: 'Con `edad = 18` (un `number`) y `tieneEntrada = false`, ¿cuáles de estas expresiones dan `true`? Marcá todas las que correspondan.',
+    options: [
+      {
+        text: '`edad > 18`',
+        correct: false,
+        why: '`>` es estricto: 18 no es mayor que 18. Para incluir el 18 hace falta `>=`.',
+      },
+      {
+        text: '`edad >= 18 || tieneEntrada`',
+        correct: true,
+        why: 'Con `||` alcanza con que una de las dos sea verdadera, y `edad >= 18` lo es.',
+      },
+      {
+        text: "`edad === '18'`",
+        correct: false,
+        why: '`===` compara también el tipo: `18` es un `number` y `\'18\'` es un `string`, así que nunca son iguales.',
+      },
+      {
+        text: '`!tieneEntrada`',
+        correct: true,
+        why: '`!` invierte el valor: `tieneEntrada` es `false`, así que `!tieneEntrada` es `true`.',
+      },
+      {
+        text: '`edad >= 18 && tieneEntrada`',
+        correct: false,
+        why: 'Con `&&` las dos tienen que ser verdaderas, y `tieneEntrada` es `false`.',
+      },
+      {
+        text: '`edad >= 18`',
+        correct: true,
+        why: '`>=` incluye el propio valor: 18 es mayor o igual que 18.',
+      },
+    ],
+  },
+];
+
+function exprVariants(...expressions: string[]): string[] {
+  return expressions.flatMap((e) => [e, e + ';', e.replace(/ /g, ''), e.replace(/ /g, '') + ';']);
+}
+export const ARITH_STEPS: TerminalStep[] = [
+  {
+    instruction: "En la consola existe const stock = '12', que llegó como texto desde un formulario. Mostrá cuánto queda en stock si entran 5 unidades más, como número.",
+    accepted: exprVariants('Number(stock) + 5'),
+    hint: "Con stock + 5 el resultado sería el texto '125': primero hay que convertir stock a número.",
+    output: '17',
+  },
+  {
+    instruction: 'Existe const mesas = 7. Escribí la expresión que da true si la cantidad de mesas es par.',
+    accepted: exprVariants('mesas % 2 === 0'),
+    hint: 'Un número es par cuando el resto de dividirlo por 2 es 0, y la comparación exacta usa tres signos.',
+    output: 'false',
+  },
+  {
+    instruction: 'Existen const envio = 10.10 y const seguro = 20.20. Sumalos redondeando el resultado a dos decimales.',
+    accepted: exprVariants('Math.round((envio + seguro) * 100) / 100'),
+    hint: 'Multiplicá la suma por 100, redondeala con Math.round y dividí el resultado por 100.',
+    output: '30.3',
+  },
+  {
+    instruction: "Existe const codigo = '', un código de descuento que la persona dejó vacío. Negalo con ! para ver cómo se comporta en una condición.",
+    accepted: exprVariants('!codigo'),
+    hint: 'Es el operador de negación delante del nombre de la variable.',
+    output: 'true',
+  },
+];
+export const ARITH_EXPLANATION =
+  "Un texto que representa un número se convierte con `Number(...)` antes de sumarlo; `%` da el resto, y con `=== 0` dice si la división es exacta. Sin redondear, `envio + seguro` da `30.299999999999997`. Y `!codigo` da `true` porque el texto vacío es falsy: en una condición se comporta como `false`, igual que `0` o `null`.";

@@ -4,10 +4,28 @@ sidebar_position: 18
 ---
 
 import Activity from '@site/src/components/Activity';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import Match from '@site/src/components/Match';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
+import DecisionPath from '@site/src/components/DecisionPath';
+import CodeBlock from '@theme/CodeBlock';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
-import {CONDITIONAL_LINES, CONDITIONAL_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/18-condicionales';
+import {
+  CONDITIONAL_LINES,
+  CONDITIONAL_RULE_LABELS,
+  CLOSING_QUIZ,
+  GRADE_START,
+  GRADE_NODES,
+  GRADE_EXPLANATION,
+  SIMPLIFY_LEFT,
+  SIMPLIFY_RIGHT,
+  SIMPLIFY_WHY,
+  SWITCH_ACCEPTED,
+  SWITCH_HINTS,
+  SWITCH_EXPLANATION,
+  SWITCH_CODE,
+} from '@site/src/content/lessons/18-condicionales';
 
 export const LESSON_SLUG = 'foundations-condicionales';
 
@@ -31,17 +49,25 @@ export function ConditionalActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function SimplifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['simplify']);
   return (
     <Activity
-      title="¿Esta condición está bien escrita?"
-      kind="Buscar en el código"
-      goal="reconocer una condición negada que complica la lectura, un `if/else` que solo asigna `true`/`false`, y una rama vacía que se puede borrar."
-      done={isDone('practice')}
-      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+      title="Cada condicional con su versión directa"
+      kind="Emparejar"
+      goal="reconocer cómo se simplifica un condicional sin cambiar lo que hace: sin `else` vacío, sin `if` para asignar booleanos y sin negaciones innecesarias."
+      done={isDone('simplify')}
+      consigna="Son 4 pares. A la izquierda, condicionales que funcionan pero se pueden escribir más directo; a la derecha, versiones que hacen exactamente lo mismo. Emparejá cada original con su versión directa. Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 4."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <Match
+        left={SIMPLIFY_LEFT}
+        right={SIMPLIFY_RIGHT}
+        leftLabel="Código original"
+        rightLabel="Versión más directa"
+        why={SIMPLIFY_WHY}
+        alreadyDone={isDone('simplify')}
+        onSolved={() => markDone('simplify')}
+      />
     </Activity>
   );
 }
@@ -57,6 +83,50 @@ export function ClosingQuizActivity() {
       consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
     >
       <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+export function GradeChainActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['gradechain']);
+  return (
+    <Activity
+      title="Seguí la cadena de decisión"
+      kind="Escenario encadenado"
+      goal="aplicar, con valores concretos, la regla de que las condiciones de un `else if` se evalúan en orden y se ejecuta la primera verdadera."
+      done={isDone('gradechain')}
+      consigna="Tomando como referencia la cadena `if` / `else if` / `else` de la sección de Conceptos (la de `nota` y `resultado`), resolvé qué queda guardado en `resultado` para tres notas distintas, una después de la otra. Fijate en el operador de cada condición. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al resolver las tres."
+    >
+      <DecisionPath
+        startId={GRADE_START}
+        nodes={GRADE_NODES}
+        explanation={GRADE_EXPLANATION}
+        alreadyDone={isDone('gradechain')}
+        onSolved={() => markDone('gradechain')}
+      />
+    </Activity>
+  );
+}
+
+export function SwitchTraceActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['switchtrace']);
+  return (
+    <Activity
+      title="¿Qué imprime el switch?"
+      kind="Respuesta escrita"
+      goal="seguir a mano un `switch` con un `break` olvidado y un ternario que depende de su resultado."
+      done={isDone('switchtrace')}
+      consigna="Leé el código y escribí exactamente lo que imprime la última línea: los dos valores separados por un espacio. Si te equivocás, recibís una pista, cada vez más concreta, y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="ts">{SWITCH_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={SWITCH_ACCEPTED}
+        hints={SWITCH_HINTS}
+        explanation={SWITCH_EXPLANATION}
+        placeholder="Lo que imprime"
+        alreadyDone={isDone('switchtrace')}
+        onSolved={() => markDone('switchtrace')}
+      />
     </Activity>
   );
 }
@@ -100,6 +170,12 @@ if (nota < 4) {
 El orden importa. Con `nota = 3`, la primera condición ya es verdadera y las
 siguientes no se evalúan. Si se invirtiera el orden y `nota <= 7` fuera
 primero, un `3` caería en "Aprobado" aunque debería estar desaprobado.
+
+Los valores justo en el borde de cada condición son los que más se
+confunden. Acordate de la entrada anterior: `<` y `>` son estrictos (el
+valor del límite **no** cumple la condición), mientras que `<=` y `>=`
+incluyen el propio valor. Para saber en qué rama cae un número que está
+justo en un límite, mirá el operador de esa condición, no solo el número.
 
 Un `else if` que repite una condición ya cubierta no aporta nada:
 
@@ -219,6 +295,101 @@ Conviene usarlo solo para decisiones cortas. Anidar varios ternarios hace
 que la condición sea difícil de leer; en ese caso, `if/else if` es más
 claro.
 
+### `switch`: un valor contra varias opciones
+
+Cuando una misma variable se compara contra una lista de valores
+concretos, `switch` lo expresa de forma más ordenada que una cadena de
+`else if`:
+
+```ts
+switch (metodoDePago) {
+  case 'tarjeta':
+    cobrarConTarjeta();
+    break;
+  case 'transferencia':
+    mostrarDatosBancarios();
+    break;
+  case 'efectivo':
+    generarCuponDePago();
+    break;
+  default:
+    mostrarError('Método de pago no soportado');
+}
+```
+
+Cada `case` compara `metodoDePago` con un valor usando `===`. El `break`
+termina el `switch`: si se omite, la ejecución sigue con el `case`
+siguiente aunque no coincida, un error frecuente que se nota porque se
+ejecutan dos acciones. `default` cubre cualquier valor no previsto y
+cumple el mismo papel que el `else` final.
+
+### Salir temprano
+
+Cuando una función tiene que verificar varias condiciones antes de hacer su
+trabajo, anidarlas empuja la lógica principal hacia la derecha y la vuelve
+difícil de seguir:
+
+```ts
+function confirmarReserva(reserva: Reserva) {
+  if (reserva.fecha) {
+    if (reserva.personas <= 8) {
+      if (hayDisponibilidad(reserva)) {
+        guardar(reserva);
+      }
+    }
+  }
+}
+```
+
+La alternativa es resolver primero los casos que impiden continuar y
+salir de la función con `return` (las funciones se ven en la lección
+siguiente). Estas comprobaciones al principio se llaman **cláusulas de
+guarda**:
+
+```ts
+function confirmarReserva(reserva: Reserva) {
+  if (!reserva.fecha) return;
+  if (reserva.personas > 8) return;
+  if (!hayDisponibilidad(reserva)) return;
+
+  guardar(reserva);
+}
+```
+
+Las dos versiones hacen lo mismo, pero en la segunda cada condición se lee
+sola y la acción principal queda al final, sin anidamiento.
+
+### Cada rama es un caso de prueba
+
+Un condicional define caminos distintos, y cada camino es un
+comportamiento que hay que probar. Esta cadena define el descuento según
+la cantidad de unidades compradas:
+
+```ts
+if (unidades < 3) {
+  descuento = 0;
+} else if (unidades <= 9) {
+  descuento = 0.1;
+} else {
+  descuento = 0.2;
+}
+```
+
+Tiene tres ramas, así que necesita al menos un caso por rama. Y como cada
+condición tiene un límite, conviene probar los valores en los bordes, que
+es donde un `<` escrito en lugar de un `<=` cambia el resultado:
+
+```text
+unidades = 2    → primera rama           (sin descuento)
+unidades = 3    → borde: segunda rama    (10%), porque 3 < 3 es falso
+unidades = 9    → borde: segunda rama    (10%), porque 9 <= 9 es verdadero
+unidades = 10   → tercera rama           (20%)
+```
+
+Es la misma idea de la cobertura de ramas y de boundary value analysis del
+bloque de Testing, aplicada al leer el código: quien entiende qué ramas
+tiene un condicional sabe qué casos no pueden faltar.
+
 ## Cuándo usarlo
 
 Cualquier decisión que dependa del valor de una condición (un número, un
@@ -228,59 +399,29 @@ hace más difícil seguir la lógica de un vistazo.
 
 ## Buenas prácticas
 
-- **Mantener las condiciones simples y legibles.** Si una condición se
-  vuelve larga o difícil de leer, conviene guardarla en una variable con
-  nombre antes del `if`:
-
-  ```ts
-  const esLongitudValida = contraseña.length >= 8 && contraseña.length <= 64;
-  ```
-
-  Leer `if (esLongitudValida)` dice qué se está preguntando; leer la
-  condición completa cada vez obliga a reconstruir ese significado de
-  nuevo cada vez que alguien pasa por esa línea.
-- **Usar `else if` para más de dos casos, en vez de anidar.** Con `else
-  if` cada caso queda al mismo nivel de indentación, y ya se sabe que los
-  casos anteriores no se cumplieron — anidar obliga a seguir el rastro de
-  paréntesis y llaves para saber en qué caso real se está parado.
-- **Asignar directamente el resultado de una comparación**, sin pasar por
-  `if/else`. `const envioGratis = monto >= 5000;` hace exactamente lo
-  mismo que un `if/else` de cuatro líneas que termina asignando `true` o
-  `false` — con menos código para mantener y menos lugar para un error de
-  tipeo en una de las dos ramas.
-- **Evitar condiciones negadas cuando se pueda invertir el orden de las
-  ramas.** `if (!esValida) { ... } else { ... }` obliga a leer la negación
-  y el `else` para entender el caso "normal" — `if (esValida) { ... }
-  else { ... }` dice lo mismo sin ese paso extra.
-- **No dejar una rama `else` que no hace nada.** Si una rama queda vacía
-  (o con un comentario tipo "acá no hay que hacer nada"), se puede borrar
-  esa rama completa y dejar solo el `if` — el resultado es el mismo, con
-  menos código para leer.
+- Mantener las condiciones simples y legibles.
+- Usar `else if` para más de dos casos, en vez de anidar.
+- Asignar directamente el resultado de una comparación.
+- Evitar condiciones negadas cuando se pueda invertir el orden de las ramas.
+- No dejar una rama `else` que no hace nada.
 
 ## Anti-patrones
 
-- **Anidar `if` dentro de `if` dentro de `if`** para condiciones que se
-  podrían combinar en una sola con `&&`, o expresar con `else if`. Cada
-  nivel de anidación obliga a sostener más contexto mental para entender
-  qué se está evaluando.
-- **Usar `if/else` solo para asignar `true`/`false`** a una variable
-  booleana, en vez de asignar directamente el resultado de la
-  comparación. Agrega líneas que no aportan nada sobre simplemente escribir
-  la condición.
-- **Negar una condición sin necesidad** (`if (!tieneError)` en vez de
-  reordenar las ramas), lo que obliga a leer la condición "al revés" cada
-  vez que alguien pasa por ese código.
-- **Repetir casi la misma condición en un `if` y en el `else if`
-  siguiente**, en vez de usar un `else` simple para el caso restante — si
-  los dos casos son complementarios, no hace falta volver a escribir la
-  condición negada.
+- **Anidar `if` dentro de `if` dentro de `if`**.
+- **Usar `if/else` solo para asignar `true`/`false`**.
+- **Negar una condición sin necesidad**.
+- **Repetir casi la misma condición en un `if` y en el `else if` siguiente**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <ConditionalActivity />
 
-<PracticeActivity />
+<GradeChainActivity />
+
+<SimplifyActivity />
+
+<SwitchTraceActivity />
 
 <ClosingQuizActivity />

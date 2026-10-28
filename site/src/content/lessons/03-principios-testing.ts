@@ -1,5 +1,6 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
-import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {MatchItem} from '@site/src/components/Match';
+import type {BuilderStep} from '@site/src/components/CommandBuilder';
 
 export const PRACTICE_RULE_LABELS = [
   'Contradice el principio 4 (agrupación de defectos)',
@@ -60,47 +61,63 @@ export const PRACTICE_LINES: CodeLine[] = [
   },
 ];
 
-export const CLOSING_QUIZ: QuizQuestion[] = [
+export const PRINCIPLE_MATCH_LEFT: MatchItem[] = [
+  {id: 'p1', text: '1. Testing muestra la presencia de defectos, no su ausencia'},
+  {id: 'p2', text: '2. Testing exhaustivo es imposible'},
+  {id: 'p3', text: '3. Testing temprano ahorra tiempo y dinero'},
+  {id: 'p4', text: '4. Los defectos se agrupan'},
+  {id: 'p5', text: '5. Paradoja del pesticida'},
+  {id: 'p6', text: '6. Testing depende del contexto'},
+  {id: 'p7', text: '7. Falacia de "ausencia de errores"'},
+];
+export const PRINCIPLE_MATCH_RIGHT: MatchItem[] = [
+  {id: 'p5', text: 'Una suite que se corre igual desde hace dos años no encontró ningún defecto nuevo en los últimos diez releases, aunque el producto cambió mucho.'},
+  {id: 'p3', text: 'Un requisito ambiguo detectado en la revisión se aclara en diez minutos; el mismo error detectado en producción obligó a corregir datos de miles de clientes.'},
+  {id: 'p7', text: 'La app de turnos pasa todos sus casos sin un solo fallo, pero los pacientes la dejan de usar porque no permite reprogramar un turno.'},
+  {id: 'p1', text: 'El informe dice que los 120 casos pasaron; una semana después aparece en producción un fallo en una situación que ningún caso cubría.'},
+  {id: 'p6', text: 'El equipo descarta usar en la web de inscripción a un torneo barrial la misma checklist de 300 casos que usa el sistema de control de vuelos.'},
+  {id: 'p2', text: 'Un buscador de vuelos combina origen, destino, fechas, pasajeros y clase: el equipo elige 40 combinaciones representativas en vez de intentar todas.'},
+  {id: 'p4', text: 'Tres de los veinte módulos del sistema acumulan el 70% de los incidentes del año.'},
+];
+export const PRINCIPLE_MATCH_WHY: Record<string, string> = {
+  p1: 'Que los 120 casos pasen solo dice que esos casos no encontraron nada; no prueba que no haya defectos en lo que no se miró.',
+  p2: 'Las combinaciones posibles son demasiadas para probarlas todas: hay que elegir un subconjunto representativo.',
+  p3: 'El mismo problema cuesta minutos en la revisión del requisito y mucho más una vez que llegó a producción.',
+  p4: 'Pocos módulos concentran la mayoría de los defectos: es la señal para concentrar ahí el esfuerzo.',
+  p5: 'Repetir los mismos casos sin cambios deja de encontrar defectos nuevos, aunque la suite siga en verde.',
+  p6: 'El rigor se ajusta a qué tan crítico es el sistema: lo que se justifica en control de vuelos es desproporcionado en una inscripción barrial.',
+  p7: 'Que no haya defectos encontrados no sirve si el sistema no resuelve lo que el usuario necesita.',
+};
+
+export const REPORT_PREFIX = 'Informe de cierre: módulo de pagos';
+export const REPORT_STEPS: BuilderStep[] = [
   {
-    question:
-      'Un sistema pasa todos sus casos de test, pero los usuarios lo abandonan porque no resuelve lo que necesitaban. ¿Qué principio explica la situación?',
     options: [
-      {
-        text: 'La falacia de "ausencia de errores": un sistema puede no tener defectos encontrados y aun así ser inútil.',
-        correct: true,
-        why: 'Pasar los casos solo confirma que el sistema hace lo que esos casos verificaron. Si lo verificado no era lo que el usuario necesitaba, no hay defecto visible y el producto igual fracasa.',
-      },
-      {
-        text: 'Que testing exhaustivo es imposible.',
-        correct: false,
-        why: 'El problema no es la cantidad de combinaciones probadas, sino que se verificó algo que no coincidía con la necesidad real del usuario.',
-      },
-      {
-        text: 'La paradoja del pesticida.',
-        correct: false,
-        why: 'Ese principio habla de suites que dejan de encontrar defectos por repetir los mismos casos, no de un producto que cumple los tests y no sirve para lo que el usuario necesita.',
-      },
+      '\nSe ejecutaron 120 casos: el módulo de pagos no tiene defectos.',
+      '\nSe ejecutaron 120 casos y no se encontraron defectos en lo que se probó.',
+      '\nSe probaron todas las combinaciones posibles de medios de pago y montos.',
     ],
+    correct: '\nSe ejecutaron 120 casos y no se encontraron defectos en lo que se probó.',
+    hint: 'A partir de 120 casos, ¿qué puede afirmar el informe: algo sobre lo probado, o sobre todo el módulo?',
   },
   {
-      question:
-        'Un formulario tiene 5 campos, cada uno con 10 valores posibles. El equipo decide probar solo un subconjunto. ¿Qué principio respalda esa decisión?',
-      options: [
-        {
-          text: 'Que las herramientas de testing no soportan tantos casos a la vez.',
-          correct: false,
-          why: 'El límite no es de la herramienta: aunque pudiera ejecutar 100.000 casos, el número de combinaciones crece demasiado rápido como para agotarlo en cualquier sistema real.',
-        },
-        {
-          text: 'Que el testing exhaustivo es imposible y hay que elegir un subconjunto representativo.',
-          correct: true,
-          why: 'Las 100.000 combinaciones no se pueden agotar en la práctica. Elegir un subconjunto con criterio es la respuesta correcta a esa imposibilidad, no una concesión de calidad.',
-        },
-        {
-          text: 'Que los defectos se agrupan en unos pocos módulos.',
-          correct: false,
-          why: 'La agrupación habla de dónde aparecen los defectos dentro del sistema, no de cuántas combinaciones de un mismo formulario conviene probar.',
-        },
-      ],
-    }
+    options: [
+      '\nEl próximo ciclo repite exactamente los mismos 120 casos, que siempre dan verde.',
+      '\nComo no aparecieron defectos, el próximo ciclo se saltea pagos.',
+      '\nPara el próximo ciclo se suman casos a partir de los incidentes reportados este mes.',
+    ],
+    correct: '\nPara el próximo ciclo se suman casos a partir de los incidentes reportados este mes.',
+    hint: 'Una suite que no cambia nunca, ¿sigue encontrando defectos nuevos?',
+  },
+  {
+    options: [
+      '\nEl próximo ciclo prioriza pagos y facturación, que concentraron el 70% de los incidentes del año.',
+      '\nEl esfuerzo del próximo ciclo se reparte igual entre los 12 módulos.',
+      '\nPagos se testea con el mismo rigor que la página de ayuda.',
+    ],
+    correct: '\nEl próximo ciclo prioriza pagos y facturación, que concentraron el 70% de los incidentes del año.',
+    hint: '¿Todos los módulos tienen la misma historia de defectos? ¿Y el mismo impacto si fallan?',
+  },
 ];
+export const REPORT_EXPLANATION =
+  'El informe dice lo que el testing puede respaldar: que no aparecieron defectos en lo probado, no que no existan (principio 1; probar todas las combinaciones es imposible, principio 2). La suite se renueva para no caer en la paradoja del pesticida (principio 5), y el esfuerzo va donde se agrupan los defectos (principio 4) y donde el contexto lo exige (principio 6).';

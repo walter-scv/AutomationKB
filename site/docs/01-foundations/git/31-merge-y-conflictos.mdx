@@ -4,10 +4,22 @@ sidebar_position: 31
 ---
 
 import Activity from '@site/src/components/Activity';
+import Order from '@site/src/components/Order';
+import DecisionPath from '@site/src/components/DecisionPath';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
-import {MERGE_LINES, MERGE_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/31-merge-y-conflictos';
+import {
+  MERGE_LINES,
+  MERGE_RULE_LABELS,
+  CLOSING_QUIZ,
+  CONFLICT_START,
+  CONFLICT_NODES,
+  CONFLICT_EXPLANATION,
+  MERGE_ORDER_ITEMS,
+  MERGE_ORDER_CORRECT,
+  MERGE_ORDER_RULES,
+} from '@site/src/content/lessons/31-merge-y-conflictos';
 
 export const LESSON_SLUG = 'foundations-merge-y-conflictos';
 
@@ -26,17 +38,23 @@ export function MergeActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function ConflictActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['conflict']);
   return (
     <Activity
-      title="¿Buena práctica o anti-patrón?"
-      kind="Clasificar"
-      goal="reconocer, en una situación real de merge, si se pospuso por miedo, se resolvió sin leer la otra versión o no se volvió a probar — o si está bien resuelta."
-      done={isDone('practice')}
-      consigna="Son 7 situaciones. Si se pospuso el merge por miedo, elegí «Posterga el merge por miedo, en vez de integrar en partes»; si se resolvió eligiendo una versión sin leer la otra, elegí «Resuelve el conflicto eligiendo una versión sin leer la otra»; si no se volvió a probar después de resolver a mano, elegí «No vuelve a probar después de resolver el conflicto a mano». En las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+      title="Resolvé el conflicto"
+      kind="Escenario encadenado"
+      goal="enfrentar un conflicto de merge de punta a punta: no postergarlo, combinar las dos versiones cuando corresponde y volver a probar antes de confirmar."
+      done={isDone('conflict')}
+      consigna="Vas a seguir un mismo conflicto en tres decisiones: qué hacer cuando aparece, cómo resolverlo y qué hacer antes de confirmar. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al final."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <DecisionPath
+        startId={CONFLICT_START}
+        nodes={CONFLICT_NODES}
+        explanation={CONFLICT_EXPLANATION}
+        alreadyDone={isDone('conflict')}
+        onSolved={() => markDone('conflict')}
+      />
     </Activity>
   );
 }
@@ -56,78 +74,211 @@ export function ClosingQuizActivity() {
   );
 }
 
+export function MergeOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['mergeorder']);
+  return (
+    <Activity
+      title="Ordená la integración a main"
+      kind="Ordenar"
+      goal="ordenar los pasos para integrar una rama a main cuando aparece un conflicto, de principio a fin."
+      done={isDone('mergeorder')}
+      consigna="Terminaste el arreglo en la rama fix/total-con-envio y lo vas a integrar a main; al mergear va a aparecer un conflicto en carrito.ts. Son 7 pasos desordenados: ordenalos del primero al último con las flechas (o arrastrándolos) y usá «Comprobar orden» para verificar. La actividad se completa cuando el orden es correcto."
+    >
+      <Order items={MERGE_ORDER_ITEMS} correctOrder={MERGE_ORDER_CORRECT} rules={MERGE_ORDER_RULES} onSolved={() => markDone('mergeorder')} />
+    </Activity>
+  );
+}
+
 ## Conceptos
 
-Ya sabés crear una rama propia para trabajar. En algún momento, ese
-trabajo tiene que volver a `main`:
+Una rama tiene sentido mientras el cambio está en curso. Cuando está
+terminado, sus commits tienen que llegar a `main`. Esa integración se hace
+con `git merge`, y en la mayoría de los casos Git la resuelve sola. La
+excepción son los **conflictos**, que requieren una decisión humana.
+
+### `git merge`
+
+`git merge <rama>` incorpora los commits de esa rama a la rama en la que
+se está parado. Para integrar una rama de trabajo a `main`, primero hay
+que estar en `main`:
 
 ```bash
-git checkout main
-git merge validar-contraseña
+$ git switch main
+$ git merge feature/descuento-por-volumen
 ```
 
-`git merge` suma los commits de una rama a la rama en la que estás
-parado — en este caso, los commits de `validar-contraseña` se suman a
-`main`.
+Según cómo haya evolucionado el historial, el merge termina de una de dos
+maneras.
 
-Un **conflicto de merge** aparece cuando dos ramas cambiaron las mismas
-líneas de un archivo de formas distintas, y Git no puede decidir solo cuál
-versión usar. Marca el conflicto directamente en el archivo:
+Si `main` no recibió commits nuevos desde que se creó la rama, no hay nada
+que combinar: Git simplemente mueve `main` hasta el último commit de la
+rama. Esto se llama **fast-forward**:
 
+```text
+Antes:
+●───●───●              main
+         \
+          ●───●        feature/descuento-por-volumen
+
+Después:
+●───●───●───●───●      main (y la rama, en el mismo commit)
 ```
+
+```text
+Updating 4d5e6f7..7f8e9d0
+Fast-forward
+ precios.ts | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+```
+
+Si `main` también avanzó, porque otras personas integraron cambios
+mientras tanto, Git combina las dos líneas y crea un **commit de merge**,
+que tiene dos padres:
+
+```text
+Antes:
+●───●───●───●          main
+         \
+          ●───●        feature/descuento-por-volumen
+
+Después:
+●───●───●───●───◆      main
+         \     /
+          ●───●        feature/descuento-por-volumen
+```
+
+```text
+Merge made by the 'ort' strategy.
+ precios.ts | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+```
+
+En el historial, ese commit aparece con un mensaje del tipo `Merge branch
+'feature/descuento-por-volumen'`.
+
+### Traer `main` a la rama de trabajo
+
+El merge también se usa en el sentido inverso. Si una rama lleva varios
+días abierta, conviene incorporarle periódicamente lo que se sumó a
+`main`, estando en la rama:
+
+```bash
+$ git switch feature/descuento-por-volumen
+$ git merge main
+```
+
+Así los conflictos aparecen de a poco, cuando son chicos y todavía se
+recuerda el contexto, en lugar de acumularse para el día de la
+integración final.
+
+### Qué es un conflicto
+
+Un conflicto ocurre cuando las dos ramas modificaron **las mismas líneas**
+de un archivo de maneras distintas, y Git no puede decidir cuál de las dos
+versiones conservar. Si los cambios están en archivos distintos, o en
+partes distintas del mismo archivo, Git los combina sin intervención.
+
+```bash
+$ git merge main
+Auto-merging precios.ts
+CONFLICT (content): Merge conflict in precios.ts
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+El merge queda en pausa. `git status` muestra qué archivos necesitan
+resolución:
+
+```bash
+$ git status
+You have unmerged paths.
+  (fix conflicts and run "git commit")
+  (use "git merge --abort" to abort the merge)
+
+Unmerged paths:
+        both modified:   precios.ts
+```
+
+Un conflicto no indica que algo esté roto: indica que hay una decisión
+pendiente. Git la deja marcada dentro del archivo:
+
+```text
 <<<<<<< HEAD
-contraseña.length >= 8
+const aplicaDescuento = cantidad >= 10 || esMayorista;
 =======
-contraseña.length >= 10
->>>>>>> validar-contraseña
+const aplicaDescuento = cantidad >= 12;
+>>>>>>> main
 ```
 
-Alguien tiene que elegir (o combinar) qué versión queda, editar el
-archivo a mano, y recién ahí confirmar el merge.
+Entre `<<<<<<< HEAD` y `=======` está la versión de la rama en la que se
+está parado; entre `=======` y `>>>>>>> main`, la que llega de la otra
+rama. En el ejemplo, la rama de trabajo agregó el descuento para clientes
+mayoristas, y en `main` alguien subió la cantidad mínima de 10 a 12
+unidades.
+
+### Resolver el conflicto
+
+Resolver es editar el archivo hasta dejar la versión correcta y quitar las
+tres marcas. La versión correcta no siempre es una de las dos: cuando
+ambos cambios son válidos, es una tercera que los combina. Acá los dos
+cambios responden a decisiones de negocio distintas, y la resolución
+correcta conserva ambas:
+
+```ts
+const aplicaDescuento = cantidad >= 12 || esMayorista;
+```
+
+Los editores como Visual Studio Code muestran botones sobre cada
+conflicto: **Accept Current Change** conserva la versión de la rama
+actual (la de arriba), **Accept Incoming Change** conserva la que llega
+(la de abajo) y **Accept Both Changes** pega las dos una debajo de la
+otra. Son atajos útiles cuando una de las versiones es claramente la
+correcta, pero no reemplazan la lectura: en el ejemplo, aceptar cualquiera
+de las dos versiones habría borrado una regla de negocio.
+
+Con el archivo editado, el resto del procedimiento es fijo:
+
+```bash
+$ git add precios.ts       # marcar el conflicto como resuelto
+$ git commit               # confirmar el merge; Git propone el mensaje
+```
+
+Entre editar y confirmar falta un paso que Git no exige y que es
+imprescindible: compilar y volver a correr las pruebas. La línea
+combinada es código nuevo, que nadie probó, y que puede tener un error de
+lógica aunque Git ya no marque ningún conflicto.
+
+Si durante la resolución se prefiere empezar de nuevo, `git merge --abort`
+cancela el merge y deja todo como estaba antes de iniciarlo.
 
 ## Cuándo usarlo
 
-Un merge hace falta cada vez que el trabajo de una rama está listo para
-sumarse a `main` — o cada vez que `main` avanzó y tu rama necesita
-ponerse al día con esos cambios.
+Se hace un merge cuando el trabajo de una rama está listo para integrarse
+a `main`, y también cuando `main` avanzó y la rama de trabajo necesita
+ponerse al día. Cuanto más seguido se hace, más chicos son los conflictos.
 
 ## Buenas prácticas
 
-- **Mergear seguido:** cada pocos días, no dejar una rama viviendo
-  semanas — así, si aparece un conflicto, es chico y fácil de resolver.
-- **Entender ambas versiones antes de resolver un conflicto:** leer qué
-  hace cada lado, no elegir una al azar — combinar a ciegas puede borrar
-  un cambio real de otra persona.
-- **Traer los cambios de `main` a la rama propia seguido** (no solo al
-  final), para encontrar conflictos chicos de a poco en vez de uno
-  gigante al mergear.
-- **Volver a probar el código después de resolver un conflicto a mano:**
-  una combinación manual puede compilar y aun así tener un error de
-  lógica que ningún conflicto marcado iba a avisar.
-- **Avisar al equipo antes de mergear algo grande,** para que nadie quede
-  trabajando sobre una base que está por cambiar mucho.
+- Traer `main` a la rama de trabajo con frecuencia.
+- Leer las dos versiones de un conflicto antes de decidir.
+- Combinar los cambios cuando ambos son válidos.
+- Volver a probar después de resolver un conflicto a mano.
+- Avisar al equipo antes de integrar un cambio grande.
 
 ## Anti-patrones
 
-- **Dejar una rama sin mergear durante semanas** mientras el resto del
-  equipo sigue sumando cambios a `main` — el conflicto, cuando aparezca,
-  va a ser mucho más grande.
-- **Resolver un conflicto a las apuradas**, eligiendo una versión sin
-  entender qué hacía la otra — puede borrar un cambio real de alguien más.
-- **Quedarse con una versión sin leer la otra** ("la mía total"), en vez
-  de combinar lo que corresponde de cada una.
-- **No volver a correr nada después de resolver un conflicto a mano** —
-  una combinación mal hecha puede dejar el código roto aunque Git ya no
-  marque ningún conflicto pendiente.
-- **Posponer un merge por miedo al conflicto** — evitarlo no lo hace
-  desaparecer, solo garantiza que sea más grande cuando no quede otra.
+- **Dejar una rama sin integrar durante semanas**.
+- **Resolver un conflicto eligiendo una versión sin leer la otra**.
+- **No volver a probar después de resolver**.
+- **Postergar un merge por miedo al conflicto**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <MergeActivity />
 
-<PracticeActivity />
+<ConflictActivity />
+
+<MergeOrderActivity />
 
 <ClosingQuizActivity />

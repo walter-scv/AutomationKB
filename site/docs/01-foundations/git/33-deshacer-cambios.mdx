@@ -4,28 +4,44 @@ sidebar_position: 33
 ---
 
 import Activity from '@site/src/components/Activity';
+import SpotToken from '@site/src/components/SpotToken';
+import DecisionPath from '@site/src/components/DecisionPath';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
+import Terminal from '@site/src/components/Terminal';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  TOOL_LINES, TOOL_RULE_LABELS,
-  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
   CLOSING_QUIZ,
+  UNDO_START,
+  UNDO_NODES,
+  UNDO_EXPLANATION,
+  CMD_PROMPT,
+  CMD_ROUNDS,
+  REFLOG_STEPS,
+  REFLOG_EXPLANATION,
 } from '@site/src/content/lessons/33-deshacer-cambios';
 
 export const LESSON_SLUG = 'foundations-deshacer-cambios';
 
-export function ToolActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['tool']);
+export function UndoActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['undo']);
   return (
     <Activity
-      title="¿Qué herramienta es?"
-      kind="Clasificar"
-      goal="distinguir restore, stash y revert según en qué momento se usa cada una."
-      done={isDone('tool')}
-      consigna="Son 7 escenarios. Elegí qué correspondía hacer (descartar con `restore`, guardar con `stash` o deshacer con `revert`); si se usó la herramienta correcta, elegí «Se usó la herramienta correcta». La actividad se completa cuando encontraste los 3 con error."
+      title="¿Restore o revert?"
+      kind="Escenario encadenado"
+      goal="elegir la herramienta para deshacer según si el cambio ya está confirmado y compartido."
+      done={isDone('undo')}
+      consigna="Vas a resolver dos problemas seguidos: un cambio que todavía no confirmaste y un commit que ya está compartido. En cada uno elegí el comando que corresponde. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al resolver los dos."
     >
-      <FindInCode lines={TOOL_LINES} ruleLabels={TOOL_RULE_LABELS} okLabel="Se usó la herramienta correcta" prompt="¿Correspondía esta herramienta?" itemLabel="Escenario" alreadyDone={isDone('tool')} onSolved={() => markDone('tool')} />
+      <DecisionPath
+        startId={UNDO_START}
+        nodes={UNDO_NODES}
+        explanation={UNDO_EXPLANATION}
+        alreadyDone={isDone('undo')}
+        onSolved={() => markDone('undo')}
+      />
     </Activity>
   );
 }
@@ -62,68 +78,347 @@ export function ClosingQuizActivity() {
   );
 }
 
+export function CmdActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['cmd']);
+  return (
+    <Activity
+      title="La herramienta equivocada"
+      kind="Señalar en la línea"
+      goal="detectar, dentro de un comando, la palabra que elige la herramienta equivocada para deshacer o recuperar un cambio."
+      done={isDone('cmd')}
+      consigna="Son 3 comandos, cada uno con un comentario que dice qué se quería hacer. En cada uno, hacé click en la palabra del comando que no corresponde con eso. Si tocás otra, se marca en rojo, recibís una pista y podés probar de nuevo. La actividad se completa cuando resolviste los 3."
+    >
+      <SpotToken
+        rounds={CMD_ROUNDS}
+        prompt={CMD_PROMPT}
+        itemLabel="Comando"
+        alreadyDone={isDone('cmd')}
+        onSolved={() => markDone('cmd')}
+      />
+    </Activity>
+  );
+}
+
+export function ReflogActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['reflog']);
+  return (
+    <Activity
+      title="Recuperá los commits del reset"
+      kind="Terminal"
+      goal="usar el reflog para encontrar y recuperar commits que un `reset --hard` sacó de la rama."
+      done={isDone('reflog')}
+      consigna="Son 3 pasos en una terminal simulada. La instrucción de cada uno aparece como comentario arriba del prompt: escribí el comando y confirmá con Enter. Si el comando no es el esperado, la terminal te avisa y podés corregirlo. La actividad se completa al terminar los 3 pasos."
+    >
+      <Terminal
+        steps={REFLOG_STEPS}
+        explanation={REFLOG_EXPLANATION}
+        alreadyDone={isDone('reflog')}
+        onSolved={() => markDone('reflog')}
+      />
+    </Activity>
+  );
+}
+
 ## Conceptos
 
-Tres herramientas deshacen cambios, cada una para un momento distinto:
+Git ofrece varias formas de deshacer, y elegir la equivocada puede costar
+trabajo perdido o un historial roto para el resto del equipo. La pregunta
+que decide cuál usar es siempre la misma: **¿el cambio ya está confirmado
+y compartido?** Un cambio sin confirmar se descarta con `restore` o se
+guarda con `stash`. Un commit que todavía no se subió se puede rehacer.
+Un commit que ya está en el remoto se deshace con `revert`.
 
-- **`git restore <archivo>`** descarta cambios sin confirmar en el
-  working directory, volviendo el archivo a como estaba en el último
-  commit. El cambio se pierde.
-- **`git stash`** guarda temporalmente cambios sin confirmar, sin
-  perderlos, para poder cambiar de rama o hacer otra cosa — y
-  recuperarlos después con `git stash pop`.
-- **`git revert <commit>`** deshace un commit ya confirmado (y quizás ya
-  subido al remoto), creando un commit **nuevo** que aplica el cambio
-  contrario. A diferencia de borrar el commit del historial, `revert` deja
-  registro de que algo se deshizo, y por qué.
+### `git restore`: descartar un cambio sin confirmar
 
-La pregunta que distingue cuál usar es: **¿el cambio ya está confirmado?**
-Si no, `restore` (para descartarlo) o `stash` (para guardarlo). Si ya está
-confirmado y compartido, `revert`.
+```bash
+$ git restore estilos.css
+```
+
+Vuelve el archivo al estado del último commit, descartando lo que se
+modificó desde entonces. No muestra ningún mensaje y no tiene vuelta
+atrás: lo descartado no queda guardado en ningún lado. Por eso conviene
+mirar antes qué se va a perder:
+
+```bash
+$ git diff estilos.css      # revisar exactamente qué cambios se descartan
+$ git restore estilos.css
+$ git status                # estilos.css ya no figura como modificado
+```
+
+Se pueden indicar varios archivos o una carpeta. `git restore .` descarta
+todos los cambios sin confirmar del directorio actual, y se usa con el
+mismo cuidado.
+
+La misma herramienta, con `--staged`, sirve para otra situación: sacar un
+archivo del staging area sin perder el cambio. Si `git add .` incluyó un
+archivo que no correspondía:
+
+```bash
+$ git restore --staged notas.txt
+```
+
+`notas.txt` vuelve a estar solo modificado, y el resto de lo agregado
+sigue en staging.
+
+### `git stash`: guardar un cambio para después
+
+A veces hay que interrumpir un trabajo que todavía no está listo para
+confirmar: hay que cambiar de rama para revisar otra cosa, o traer los
+cambios del remoto con el working directory limpio. `git stash` guarda los
+cambios sin confirmar en una pila aparte y deja el working directory como
+en el último commit:
+
+```bash
+$ git stash push -m "validación de horarios a medias"
+Saved working directory and index state On feature/agenda: validación de horarios a medias
+```
+
+Se pueden acumular varios stashes. La lista muestra el más reciente
+primero, con un identificador para cada uno:
+
+```bash
+$ git stash list
+stash@{0}: On feature/agenda: validación de horarios a medias
+stash@{1}: On main: prueba de colores del calendario
+```
+
+Para retomar el trabajo hay dos opciones. `git stash pop` aplica el último
+stash y lo quita de la lista. `git stash apply` lo aplica pero lo deja
+guardado, útil si se quiere aplicar en más de un lugar. Y `git stash drop`
+**descarta** el último stash sin aplicarlo: el trabajo guardado se pierde.
+Confundir `drop` con `pop` es un error frecuente.
+
+Por defecto, `stash` guarda solo cambios en archivos que Git ya sigue;
+para incluir archivos nuevos se agrega `-u`. El mensaje con `-m` es lo que
+evita que, semanas después, la lista tenga stashes que nadie sabe qué
+contienen.
+
+### `git revert`: deshacer un commit compartido
+
+Cuando el commit a deshacer ya está en el remoto y otras personas lo
+bajaron, no se puede borrar del historial sin romper sus copias. `git
+revert` lo deshace creando un **commit nuevo** que aplica el cambio
+contrario. El primer paso es identificar el commit:
+
+```bash
+$ git log --oneline -4
+d93f0a4 Agregar filtro por categoría
+5b2a8c1 Cambiar el formato de la fecha de entrega
+c08d1f5 Permitir cancelar un turno hasta 2 horas antes
+7a6e3b9 Agregar test del turno superpuesto
+```
+
+Si el commit que hay que deshacer es `5b2a8c1`:
+
+```bash
+$ git revert 5b2a8c1
+```
+
+Git abre el editor con un mensaje propuesto, que conviene completar con el
+motivo:
+
+```text
+Revert "Cambiar el formato de la fecha de entrega"
+
+This reverts commit 5b2a8c1f4e...
+
+Motivo: el nuevo formato mostraba el mes antes que el día.
+```
+
+Al guardar y cerrar el editor, se crea el commit:
+
+```text
+[main 2b4c6d8] Revert "Cambiar el formato de la fecha de entrega"
+ 1 file changed, 3 insertions(+), 5 deletions(-)
+```
+
+El historial conserva el commit original y suma el que lo deshace, de
+modo que queda registrado qué se cambió, que se deshizo y por qué:
+
+```text
+2b4c6d8 Revert "Cambiar el formato de la fecha de entrega"
+d93f0a4 Agregar filtro por categoría
+5b2a8c1 Cambiar el formato de la fecha de entrega
+```
+
+`git revert HEAD` deshace el último commit, y la opción `--no-edit` acepta
+el mensaje propuesto sin abrir el editor. Como el revert es un commit más,
+después se sube con `git push`. Si commits posteriores modificaron las
+mismas líneas, el revert puede producir un conflicto, que se resuelve como
+en un merge. Y como cambia algo que el equipo ya tenía, corresponde
+avisarles.
+
+### Rehacer el último commit, si todavía no se subió
+
+Si el commit recién creado tiene un error y todavía no se hizo push, se
+puede rehacer en lugar de agregar otro commit encima. Para corregir el
+mensaje:
+
+```bash
+$ git commit --amend -m "Validar el horario de atención en la agenda"
+```
+
+Para sumar un archivo que se olvidó, se lo agrega y se rehace el commit
+con el mismo mensaje:
+
+```bash
+$ git add agenda.test.ts
+$ git commit --amend --no-edit
+```
+
+Y para deshacer el commit dejando sus cambios en el staging area, listos
+para confirmarlos de otra forma:
+
+```bash
+$ git reset --soft HEAD~1
+```
+
+`HEAD~1` se refiere al commit anterior al último. Estas tres operaciones
+**reescriben** el historial: el commit original se reemplaza por otro
+distinto. Sobre commits que solo existen en la computadora propia no hay
+problema. Sobre commits que ya están en el remoto, sí: quienes los bajaron
+quedan con un historial que ya no coincide con el del remoto. En ese caso,
+la herramienta correcta es `git revert`.
+
+### `git reset`: mover la rama hacia atrás
+
+`git reset --soft HEAD~1` es un caso particular de un comando más general.
+`git reset <commit>` mueve la rama actual hasta ese commit: los commits que
+quedaban después dejan de formar parte de la rama. La opción indica qué
+pasa con los cambios que tenían esos commits, y hay tres.
+
+Para verlas sobre un mismo caso: la rama tiene estos commits, y los dos de
+arriba se quieren deshacer porque todavía no se subieron y el enfoque
+cambió.
+
+```bash
+$ git log --oneline
+b7c6d5e (HEAD -> main) Mostrar el saldo en dólares
+a3f2e1d Agregar la conversión de moneda
+4d5e6f7 Listar los movimientos de la cuenta
+```
+
+Con **`--soft`**, la rama vuelve a `4d5e6f7` y los cambios de los dos
+commits quedan en el staging area, listos para un commit nuevo. Sirve para
+juntar varios commits en uno:
+
+```bash
+$ git reset --soft HEAD~2
+$ git commit -m "Mostrar el saldo convertido a dólares"
+```
+
+Con **`--mixed`**, que es la opción por defecto (`git reset HEAD~2` hace lo
+mismo), la rama vuelve a `4d5e6f7` y los cambios quedan en el working
+directory, fuera del staging area. Sirve para volver a decidir qué se
+agrega y en qué commits:
+
+```bash
+$ git reset HEAD~2
+Unstaged changes after reset:
+M       saldo.ts
+M       moneda.ts
+```
+
+Con **`--hard`**, la rama vuelve a `4d5e6f7` y los cambios **se
+descartan**: los archivos quedan exactamente como en ese commit.
+
+```bash
+$ git reset --hard HEAD~2
+HEAD is now at 4d5e6f7 Listar los movimientos de la cuenta
+```
+
+`--hard` también descarta cualquier cambio sin confirmar que hubiera en el
+working directory, y esos cambios no se pueden recuperar de ninguna forma:
+Git nunca los guardó. Antes de usarlo, `git status` tiene que estar limpio
+o mostrar solo cambios que se quieren perder.
+
+Las tres opciones reescriben el historial de la rama, y valen las mismas
+reglas que para `--amend`: se usan sobre commits que no se subieron.
+Sobre commits compartidos, `git revert`.
+
+### `git reflog`: recuperar un commit "perdido"
+
+Después de un `reset --hard`, los commits `a3f2e1d` y `b7c6d5e` ya no
+aparecen en `git log`, pero no se borraron: Git los conserva un tiempo, y
+el **reflog** registra cada posición por la que pasó `HEAD`:
+
+```bash
+$ git reflog
+4d5e6f7 (HEAD -> main) HEAD@{0}: reset: moving to HEAD~2
+b7c6d5e HEAD@{1}: commit: Mostrar el saldo en dólares
+a3f2e1d HEAD@{2}: commit: Agregar la conversión de moneda
+4d5e6f7 HEAD@{3}: commit: Listar los movimientos de la cuenta
+```
+
+Cada línea es un movimiento, del más reciente al más antiguo: `HEAD@{0}` es
+el reset, y `HEAD@{1}` es dónde estaba la rama justo antes. Para
+recuperarla hay dos caminos. Volver la rama a ese commit:
+
+```bash
+$ git reset --hard b7c6d5e
+HEAD is now at b7c6d5e Mostrar el saldo en dólares
+```
+
+O, sin tocar la rama actual, crear una rama nueva que apunte ahí, para
+revisar lo recuperado con calma:
+
+```bash
+$ git branch saldo-recuperado b7c6d5e
+```
+
+`git log` acepta el nombre de una rama para mostrar su historial sin
+cambiarse a ella; así se confirma qué quedó en la rama nueva:
+
+```bash
+$ git log --oneline saldo-recuperado
+b7c6d5e (saldo-recuperado) Mostrar el saldo en dólares
+a3f2e1d Agregar la conversión de moneda
+4d5e6f7 (HEAD -> main) Listar los movimientos de la cuenta
+```
+
+En lugar del identificador, también se puede usar la referencia del reflog:
+`git branch saldo-recuperado HEAD@{1}`.
+
+El reflog tiene límites que conviene conocer. Es local: no se sube al
+remoto y cada repositorio tiene el suyo. Sus entradas vencen (por defecto,
+después de 30 a 90 días). Y solo registra commits: un cambio que nunca se
+confirmó no aparece, por eso un `reset --hard` sobre cambios sin confirmar
+no tiene vuelta atrás.
 
 ## Cuándo usarlo
 
-Usá `restore` cuando un cambio sin confirmar resultó ser un error y
-querés volver atrás. Usá `stash` cuando el cambio sin confirmar todavía te
-sirve, pero necesitás un working directory limpio para hacer otra cosa.
-Usá `revert` cuando el commit a deshacer ya se compartió con el equipo —
-reescribir el historial de un commit que otros ya tienen genera
-problemas al resto del equipo.
+`restore` y `stash` se usan sobre cambios sin confirmar: el primero para
+descartarlos, el segundo para guardarlos. `--amend` y `reset`, sobre
+commits que todavía no se subieron; `reflog`, para recuperar uno que
+parecía perdido. `revert`, sobre cualquier
+commit que ya esté compartido.
 
 ## Buenas prácticas
 
-- **Confirmar primero si el cambio ya está confirmado (committeado) o
-  no**, antes de elegir la herramienta — esa pregunta decide todo lo que
-  sigue.
-- **Usar `git stash` en vez de `restore`** cuando el cambio sin confirmar
-  todavía sirve, aunque sea temporalmente — `restore` lo descarta para
-  siempre, sin vuelta atrás.
-- **Preferir `revert` (nunca reescribir el historial) para deshacer un
-  commit ya compartido** con el equipo — reescribir rompe las copias
-  locales de quien ya tiene esos commits.
-- **Revisar con `git log` cuál es exactamente el commit a revertir** antes
-  de ejecutar `revert`, para no deshacer el cambio equivocado.
-- **Avisar al equipo cuando se revierte algo ya compartido**, para que
-  nadie se confunda al ver que un cambio "desapareció" sin explicación.
+- Responder primero si el cambio está confirmado y compartido.
+- Revisar el diff antes de descartar con `restore`.
+- Nombrar cada stash y no dejarlo olvidado.
+- Confirmar con `git log` cuál es el commit antes de revertirlo.
+- Explicar el motivo en el mensaje del revert y avisar al equipo.
 
 ## Anti-patrones
 
-- **Confundir `restore` con `stash`**: usar `restore` cuando el cambio en
-  realidad todavía servía y había que guardarlo temporalmente — se pierde
-  para siempre, sin poder recuperarlo.
-- **Reescribir el historial de un commit ya compartido** en vez de usar
-  `revert` — rompe el repositorio local de quien ya tiene esos commits.
-- **Revertir el commit equivocado** por no revisar el historial antes —
-  hay que confirmar con `git log` cuál es el commit correcto.
-- **Dejar un `stash` guardado y olvidarse de él** — con el tiempo, nadie
-  recuerda qué era ni por qué se había guardado.
+- **Descartar con `restore` un cambio que todavía servía**.
+- **Reescribir el historial de un commit ya compartido**.
+- **Revertir el commit equivocado** por no revisar el historial.
+- **Dejar un `stash` guardado y olvidado**.
+- **Usar `reset --hard` sin revisar antes `git status`**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
-<ToolActivity />
+<UndoActivity />
 
 <PracticeActivity />
 
 <ClosingQuizActivity />
+
+<CmdActivity />
+
+<ReflogActivity />

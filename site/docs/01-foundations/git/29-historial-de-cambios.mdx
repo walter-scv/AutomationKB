@@ -4,28 +4,40 @@ sidebar_position: 29
 ---
 
 import Activity from '@site/src/components/Activity';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import Terminal from '@site/src/components/Terminal';
 import FindInCode from '@site/src/components/FindInCode';
+import CodeBlock from '@theme/CodeBlock';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  DIFF_LINES,
-  DIFF_RULE_LABELS,
   PRACTICE_LINES,
   PRACTICE_RULE_LABELS,
+  REVIEW_STEPS,
+  REVIEW_EXPLANATION,
+  LOG_OUTPUT,
+  LOG_ACCEPTED,
+  LOG_HINTS,
+  LOG_EXPLANATION,
 } from '@site/src/content/lessons/29-historial-de-cambios';
 
 export const LESSON_SLUG = 'foundations-historial-de-cambios';
 
-export function DiffActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['diff']);
+export function ReviewTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['reviewterminal']);
   return (
     <Activity
-      title="¿Se revisó antes de confirmar?"
-      kind="Clasificar"
-      goal="reconocer cuándo revisar el diff antes de un commit hubiera evitado un problema, qué cambia entre `git diff` y `git diff --staged`, y cuándo se está usando el comando equivocado."
-      done={isDone('diff')}
-      consigna="Son 8 situaciones. Si el comando no sirve para responder la pregunta (por ejemplo, `git diff` para ver autores), elegí «Usó el comando equivocado para lo que quería ver»; si el comando era el correcto pero se miró solo una parte y quedó afuera lo que ya estaba en staging, elegí «Revisó solo los cambios sueltos y no lo que ya estaba en staging»; si directamente no se revisó el diff antes de confirmar, elegí «No se revisó el diff antes de confirmar». En las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+      title="Revisá antes de confirmar"
+      kind="Terminal"
+      goal="usar el comando correcto para cada revisión: lo que no agregaste, lo que ya está en staging y la historia de un archivo."
+      done={isDone('reviewterminal')}
+      consigna="Son 4 pasos en una terminal simulada. La instrucción de cada uno aparece como comentario arriba del prompt: escribí el comando y confirmá con Enter. Si el comando no es el esperado, la terminal te avisa y podés corregirlo. La actividad se completa al terminar los 4 pasos."
     >
-      <FindInCode lines={DIFF_LINES} ruleLabels={DIFF_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('diff')} onSolved={() => markDone('diff')} />
+      <Terminal
+        steps={REVIEW_STEPS}
+        explanation={REVIEW_EXPLANATION}
+        alreadyDone={isDone('reviewterminal')}
+        onSolved={() => markDone('reviewterminal')}
+      />
     </Activity>
   );
 }
@@ -45,84 +57,208 @@ export function PracticeActivity() {
   );
 }
 
+export function LogReadActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['logread']);
+  return (
+    <Activity
+      title="Leé el historial"
+      kind="Respuesta escrita"
+      goal="encontrar un commit puntual leyendo la salida de `git log`, sabiendo en qué orden la muestra."
+      done={isDone('logread')}
+      consigna="Soporte quiere comparar el registro de usuarios antes y después de que se empezaran a aceptar emails con `+`. Leé la salida de abajo (`--oneline` muestra cada commit en una línea: id corto y mensaje) y escribí el id del commit que vino justo antes del que agregó ese cambio. Si te equivocás, recibís una pista y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="text">{LOG_OUTPUT}</CodeBlock>
+      <TypeAnswer
+        accepted={LOG_ACCEPTED}
+        hints={LOG_HINTS}
+        explanation={LOG_EXPLANATION}
+        placeholder="id del commit"
+        alreadyDone={isDone('logread')}
+        onSolved={() => markDone('logread')}
+      />
+    </Activity>
+  );
+}
+
 ## Conceptos
 
-Ya sabés crear un commit. El historial que esos commits van formando se
-puede revisar de tres formas:
+Un historial solo es útil si se sabe consultarlo. Tres comandos cubren
+las consultas habituales: `git log` para ver la lista de commits, `git
+diff` para ver qué cambió línea por línea y `git checkout` para revisar
+el código tal como estaba en un commit anterior. Los ejemplos usan el
+repositorio de una aplicación de turnos médicos.
+
+### `git log`: la lista de commits
 
 ```bash
-git log
+$ git log
+commit e41b7c2a9d0f3e5b7c1a2d4f6e8b0c2d4f6a8b0c
+Author: Lucía Pérez <lucia@empresa.com>
+Date:   Tue Oct 28 09:02:11 2026 -0300
+
+    Ordenar los turnos por fecha en la agenda
+
+commit c08d1f5e3b2a7c9d1e0f4a6b8c2d0e3f5a7b9c1d
+Author: Diego Ruiz <diego@empresa.com>
+Date:   Mon Oct 27 16:45:30 2026 -0300
+
+    Permitir cancelar un turno hasta 2 horas antes
 ```
 
-Muestra la lista de commits del repositorio: quién hizo cada uno, cuándo,
-y con qué mensaje. Sirve para entender la historia de un archivo o de todo
-el proyecto.
+Los commits aparecen del más reciente, arriba, al más antiguo, abajo.
+Cuando la lista no entra en la pantalla, la terminal la muestra por
+partes: se avanza con las flechas o la barra espaciadora y se sale con
+`q`.
+
+La salida completa es extensa. Estas opciones la ajustan a lo que se
+necesita, y se pueden combinar:
 
 ```bash
-git diff
+$ git log --oneline             # una línea por commit: id corto y mensaje
+$ git log -5                    # solo los últimos cinco commits
+$ git log -- turnos.ts          # solo los commits que modificaron ese archivo
+$ git log --author="Lucía"      # solo los commits de esa persona
+$ git log --stat                # además, qué archivos tocó cada commit
 ```
-
-Muestra, línea por línea, qué se agregó y qué se borró entre dos
-versiones — típicamente, entre el último commit y lo que todavía no se
-confirmó. Sirve para revisar un cambio antes de confirmarlo, o para
-entender en detalle qué hizo un commit anterior.
 
 ```bash
-git checkout <id-de-commit>
+$ git log --oneline -3
+e41b7c2 Ordenar los turnos por fecha en la agenda
+c08d1f5 Permitir cancelar un turno hasta 2 horas antes
+7a6e3b9 Agregar test del turno superpuesto
 ```
 
-Permite volver a mirar el estado del código tal como estaba en un commit
-anterior, identificado por su id (un código que `git log` muestra junto a
-cada commit).
+La combinación `git log --oneline -- turnos.ts` da la historia resumida de
+un único archivo, y es la consulta que conviene hacer antes de modificar
+código que no se escribió: muestra quién lo cambió, cuándo y con qué
+motivo. También resuelve discusiones que de otro modo dependen de la
+memoria ("¿esto siempre funcionó así o se cambió hace poco?").
+
+Para ver un commit puntual completo, con su mensaje y todos sus cambios,
+se usa `git show` con su identificador:
+
+```bash
+$ git show c08d1f5
+```
+
+### `git diff`: qué cambió, línea por línea
+
+`git diff` compara dos versiones y muestra las diferencias. Sin
+argumentos, compara lo que se modificó en el working directory con el
+último commit:
+
+```bash
+$ git diff
+diff --git a/envio.ts b/envio.ts
+--- a/envio.ts
++++ b/envio.ts
+@@ -12,7 +12,7 @@ export function costoDeEnvio(peso: number) {
+   const base = 800;
+-  const PESO_PESADO = 10;
++  const PESO_PESADO = 1;
+   return peso > PESO_PESADO ? base * 2 : base;
+ }
+```
+
+La salida se lee así. Las líneas que empiezan con `-` (en rojo en la
+terminal) son las que estaban y se quitaron; las que empiezan con `+` (en
+verde) son las nuevas; las que no tienen signo son **contexto**, líneas
+sin cambios que se muestran para ubicar la modificación. La línea `@@`
+indica en qué parte del archivo está el fragmento. En este ejemplo, el
+diff revela algo que conviene detectar antes de confirmar: el umbral de
+peso pasó de 10 a 1, probablemente por un error de tipeo, y con eso casi
+todos los envíos pasarían a costar el doble. Leer también el contexto
+importa: un cambio en una línea puede afectar a la siguiente, aunque esa
+no haya cambiado.
+
+Lo que compara `git diff` depende de cómo se lo llame:
+
+```bash
+$ git diff                     # cambios todavía no agregados al staging
+$ git diff --staged            # cambios ya agregados: lo que va a entrar en el commit
+$ git diff envio.ts            # lo mismo que el primero, limitado a un archivo
+$ git diff 7a6e3b9 e41b7c2     # diferencias entre dos commits
+```
+
+La diferencia entre las dos primeras formas es una fuente frecuente de
+confusión. Una vez que un archivo se agregó con `git add`, el `git diff`
+sin opciones deja de mostrarlo, porque ya no es un cambio suelto. Para
+revisar exactamente lo que va a entrar en el commit hace falta `git diff
+--staged`. Revisar el diff antes de cada commit evita confirmar sin
+querer una línea de prueba olvidada, un valor cambiado por error o un
+archivo de configuración local.
+
+`git diff` muestra qué cambió, pero no quién. Para eso está `git blame`,
+que indica, línea por línea, en qué commit y por quién se escribió cada
+una:
+
+```bash
+$ git blame turnos.ts
+c08d1f5 (Diego Ruiz   2026-10-27) const HORAS_MINIMAS = 2;
+7a6e3b9 (Lucía Pérez  2026-10-25) export function puedeCancelar(turno: Turno) {
+```
+
+### `git checkout`: ver una versión anterior
+
+Para comprobar cómo funcionaba algo antes de un cambio, se puede volver
+el working directory al estado de un commit anterior:
+
+```bash
+$ git checkout 7a6e3b9
+Note: switching to '7a6e3b9'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+```
+
+Los archivos quedan exactamente como estaban en ese commit, y se puede
+ejecutar la aplicación para comparar. El mensaje advierte que el
+repositorio quedó en estado **detached HEAD**: HEAD apunta a un commit
+suelto, no a una rama. Mirar y probar es seguro. Lo riesgoso es editar y
+confirmar en ese estado, porque esos commits no quedan en ninguna rama y
+se pierden de vista al volver.
+
+Para volver a la rama de trabajo:
+
+```bash
+$ git switch main
+```
+
+En versiones antiguas de Git, el mismo resultado se obtiene con `git
+checkout main`. Si después de revisar el commit anterior hace falta
+trabajar a partir de ese punto, lo correcto es crear una rama desde ahí,
+como se ve en la lección de ramas.
 
 ## Cuándo usarlo
 
-`git log` y `git diff` se usan todo el tiempo, no solo cuando algo sale
-mal: antes de confirmar un cambio (para revisar qué se va a incluir), y al
-retomar un archivo que no se toca hace tiempo (para entender su historia
-antes de modificarlo). `git checkout` a un commit anterior sirve para
-inspeccionar un estado pasado puntual, no como forma habitual de trabajar.
+`git log` y `git diff` se usan de forma rutinaria: antes de cada commit,
+para revisar qué se va a incluir, y antes de modificar un archivo
+desconocido, para entender su historia. `git checkout` a un commit
+anterior se usa para investigar un estado puntual del pasado, no como
+forma habitual de trabajo.
 
 ## Buenas prácticas
 
-- **Revisar `git diff` antes de cada `git add`**, para confirmar
-  exactamente qué se va a incluir en el próximo commit, en vez de
-  asumirlo.
-- **Usar `git log` para entender el contexto de un cambio** (quién lo
-  hizo, cuándo, por qué) antes de modificarlo — evita romper algo por no
-  saber por qué estaba escrito así.
-- **Usar `git diff --staged`** para revisar específicamente lo que ya
-  quedó en el staging area, no solo los cambios sueltos — son cosas
-  distintas si ya hiciste `git add` de una parte.
-- **Confirmar con `git log` antes de discutir "de memoria"** si algo
-  cambió hace poco o siempre fue así — el historial tiene la respuesta
-  exacta.
-- **Usar `git log` acotado a un archivo puntual**
-  (`git log -- archivo.ts`) cuando el repositorio tiene muchos commits,
-  en vez de revisar todo el historial del proyecto.
+- Revisar el diff antes de cada commit, con `--staged` si ya se agregó.
+- Consultar el historial de un archivo antes de modificarlo.
+- Resolver con `git log` las dudas sobre cuándo cambió algo.
+- Leer también las líneas de contexto de un diff.
 
 ## Anti-patrones
 
-- **Confirmar cambios sin revisar el diff antes**, lo que puede incluir
-  algo sin darse cuenta (un archivo de configuración local, una línea de
-  debug olvidada).
-- **Modificar un archivo sin mirar su historial**, perdiendo el contexto
-  de por qué estaba escrito así.
-- **Hacer `git checkout` a un commit puntual (no a una rama) y seguir
-  editando ahí**, sin darse cuenta de que Git queda en "detached HEAD" —
-  los commits nuevos pueden perderse si después se cambia de rama sin
-  guardarlos.
-- **Asumir el historial de memoria** ("esto siempre fue así") en vez de
-  confirmarlo con `git log`, cuando la respuesta exacta está a un comando
-  de distancia.
-- **Mirar solo las líneas que cambiaron en `git diff`**, sin las líneas de
-  contexto alrededor, y no notar que el cambio rompe algo que dependía de
-  ese contexto.
+- **Confirmar sin revisar el diff**.
+- **Modificar un archivo sin mirar su historia**.
+- **Editar y confirmar en estado detached HEAD**.
+- **Discutir de memoria lo que el historial responde con un comando**.
+- **Leer solo las líneas cambiadas de un diff**, sin su contexto.
 
 ## Práctica
 
-Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
-<DiffActivity />
+<ReviewTerminalActivity />
 
 <PracticeActivity />
+
+<LogReadActivity />

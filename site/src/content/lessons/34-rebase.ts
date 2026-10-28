@@ -1,5 +1,6 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {TerminalStep} from '@site/src/components/Terminal';
 
 export const REBASE_RULE_LABELS = [
   'Rebasea por costumbre, sin un problema concreto que resolver',
@@ -51,56 +52,34 @@ export const REBASE_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Abandonó el rebase a mitad de camino sin resolver ni cancelar',
-  'Usó `--force` en vez de `--force-with-lease` al re-subir',
-  'Resolvió los conflictos sin entender ni probar cada paso',
-];
-
-export const PRACTICE_LINES: CodeLine[] = [
+export const REBASE_STEPS: TerminalStep[] = [
   {
-    code: 'Durante un rebase de cinco commits, se resuelven los conflictos de los cinco de una vez y se prueba recién al final.',
-    rule: 3,
-    why: 'Si algo falla al final, no se sabe en cuál de los cinco commits se introdujo el error. Resolver y probar de a uno mantiene cada paso verificable.',
-    hint: 'Si al final falla algo, ¿en qué commit se introdujo?',
+    instruction: 'Estás en feature/cupones, una rama que solo usás vos y ya subiste una vez. Rebaseala sobre la última versión de main del remoto (ya hiciste fetch).',
+    accepted: ['git rebase origin/main'],
+    hint: 'Es `git rebase` seguido de la rama sobre la que querés reaplicar tus commits: la copia remota de main.',
+    output: 'Auto-merging cupones.ts\nCONFLICT (content): Merge conflict in cupones.ts\nerror: could not apply 4c2d1e0... Validar largo del código de cupón',
   },
   {
-    code: 'Después de rebasear su rama, la persona corre `git push --force-with-lease` para re-subirla.',
-    rule: 0,
-    why: 'Ese es el comando seguro para reescribir una rama propia en el remoto: rechaza el push si alguien subió algo que la persona no tenía.',
-    hint: '¿Este comando pisa a ciegas, o frena si alguien más subió algo?',
+    instruction: 'Resolviste el conflicto de ese commit leyendo las dos versiones y probaste que compila. Marcá cupones.ts como resuelto.',
+    accepted: ['git add cupones.ts'],
+    hint: 'Un conflicto se marca como resuelto igual que cualquier cambio: agregándolo al staging area.',
+    output: '',
   },
   {
-    code: 'Para re-subir la rama rebaseada, alguien corre `git push --force` sin mirar si el remoto cambió.',
-    rule: 2,
-    why: '`--force` pisa el remoto sin comparar: si un compañero subió un commit mientras se rebaseaba, ese commit desaparece. `--force-with-lease` habría frenado el push.',
-    hint: '¿Qué pasa si alguien subió un commit mientras rebaseabas?',
+    instruction: 'Seguí con el próximo commit del rebase, sin cancelarlo.',
+    accepted: ['git rebase --continue'],
+    hint: 'Es el mismo `git rebase`, con el flag que dice "seguí".',
+    output: 'Successfully rebased and updated refs/heads/feature/cupones.',
   },
   {
-    code: 'Con tres conflictos pendientes, alguien cierra la terminal y deja el rebase a medias, sin `--abort` ni `--continue`.',
-    rule: 1,
-    why: 'El repositorio queda en un estado intermedio: HEAD separado y commits a medio aplicar. Hay que terminarlo o cancelarlo explícitamente, no abandonarlo.',
-    hint: '¿En qué estado queda el repositorio para el próximo comando?',
-  },
-  {
-    code: 'Un rebase queda a medias por un conflicto; la persona decide cancelarlo con `git rebase --abort` y volver al estado anterior.',
-    rule: 0,
-    why: 'Cancelar es una salida válida cuando no conviene seguir: `--abort` devuelve la rama al punto de partida sin dejar el repositorio colgado.',
-    hint: '¿El repositorio queda en un estado intermedio confuso, o se resuelve?',
-  },
-  {
-    code: 'Antes de rebasear, la persona avisa que va a reescribir su rama y confirma que nadie más la está usando.',
-    rule: 0,
-    why: 'La verificación de quién tiene la rama es la que hace seguro el rebase; avisar cubre el caso de alguien que empezó a mirarla sin descargarla formalmente.',
-    hint: '¿Se verificó quién tiene la rama antes de reescribirla?',
-  },
-  {
-    code: 'En un rebase con conflictos, se elige una versión al azar para poder avanzar rápido al siguiente commit.',
-    rule: 3,
-    why: 'Elegir sin entender qué hacía cada versión puede descartar un cambio necesario en un commit y arrastrar el problema a los siguientes. Cada conflicto se resuelve leyendo ambos lados.',
-    hint: '¿Qué cambio de la otra versión puede quedar afuera?',
+    instruction: 'Re-subí la rama rebaseada, pero sin pisar commits que alguien pudiera haber subido mientras tanto.',
+    accepted: ['git push --force-with-lease', 'git push --force-with-lease origin feature/cupones'],
+    hint: '`--force` a secas pisa cualquier cosa que haya en el remoto. Hay una versión del flag que primero chequea que el remoto no haya cambiado.',
+    output: '+ 9a1b2c3...7f8e9d0 feature/cupones -> feature/cupones (forced update)',
   },
 ];
+export const REBASE_EXPLANATION =
+  'Un rebase con conflictos se resuelve commit por commit: resolvés, probás, marcás con `git add` y seguís con `--continue` (o cancelás todo con `--abort`, pero nunca lo dejás a medias). Y como los commits cambiaron, se re-sube con `--force-with-lease`, que se niega a pisar el remoto si alguien subió algo mientras tanto.';
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {

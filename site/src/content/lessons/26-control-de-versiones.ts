@@ -1,5 +1,7 @@
+import type {FillBlankSlot} from '@site/src/components/FillBlank';
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {DecisionNode} from '@site/src/components/DecisionPath';
 
 export const GIT_VS_GITHUB_RULE_LABELS = ['Es una función de GitHub (la plataforma)'];
 
@@ -60,63 +62,76 @@ export const GIT_VS_GITHUB_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Nunca se sube el trabajo a un remoto',
-  'Se nombran versiones a mano en vez de usar el historial',
-  'Se sigue compartiendo "por las dudas" fuera del control de versiones',
-  'Archivos que no deberían versionarse',
-];
-
-export const PRACTICE_LINES: CodeLine[] = [
-  {
-    code: 'El archivo `config.local.ts`, con la clave de la API de pagos, se agrega y se confirma junto con el resto del código.',
-    rule: 4,
-    why: 'Una vez que la clave entra al historial, queda ahí aunque después se borre el archivo: hay que excluirla desde el principio con `.gitignore`, no limpiarla a posteriori.',
-    hint: '¿Ese archivo tiene algo que no debería quedar guardado para siempre en el historial?',
+export const START_START = 'cuando';
+export const START_NODES: Record<string, DecisionNode> = {
+  cuando: {
+    id: 'cuando',
+    situation: 'Arrancás un proyecto nuevo: por ahora son dos archivos y una idea. ¿Cuándo empezás a usar control de versiones?',
+    options: [
+      {
+        text: 'Cuando el proyecto esté más armado; mientras tanto, guardo copias como `app_v1.ts` y `app_v2.ts`.',
+        correct: false,
+        why: 'Lo que pasa antes de empezar a versionar no se puede reconstruir después, y las copias con nombre no dicen qué cambió entre una y otra.',
+      },
+      {
+        text: 'Ahora: inicializo el repositorio con estos dos archivos.',
+        correct: true,
+        why: 'El historial solo cubre lo que pasa después de empezar: cuanto antes, más historia útil.',
+        next: 'env',
+      },
+      {
+        text: 'Cuando se sume otra persona al proyecto, que es cuando hace falta compartir.',
+        correct: false,
+        why: 'El control de versiones sirve aunque trabajes solo: para volver a un estado anterior o saber qué cambió y cuándo.',
+      },
+    ],
   },
-  {
-    code: 'El `.gitignore` excluye `node_modules/` y `dist/`, pero sí versiona `package-lock.json`.',
-    rule: 0,
-    why: 'Las dependencias instaladas y el build se reconstruyen solos; el lockfile, en cambio, fija las versiones exactas que usa el equipo y conviene versionarlo.',
-    hint: '¿`package-lock.json` se regenera solo como `node_modules`, o fija algo que el equipo necesita?',
+  env: {
+    id: 'env',
+    situation: 'Antes del primer commit, aparece un archivo `.env` con la clave real de la API de pagos. ¿Qué hacés?',
+    options: [
+      {
+        text: 'Lo incluyo en el commit y lo borro en el siguiente, cuando el proyecto ya esté andando.',
+        correct: false,
+        why: 'Una vez que algo entra al historial, queda ahí aunque se borre después: cualquiera con acceso al repo puede recuperar la clave.',
+      },
+      {
+        text: 'Lo agrego al `.gitignore` y versiono un `.env.example` con las claves vacías.',
+        correct: true,
+        why: 'La credencial nunca entra al historial, y quien clone el repo sabe qué variables tiene que completar.',
+        next: 'remoto',
+      },
+      {
+        text: 'Lo renombro a `env.txt` para que Git no lo reconozca como configuración.',
+        correct: false,
+        why: 'Git versiona cualquier archivo que no esté excluido, se llame como se llame. Renombrarlo no lo protege.',
+      },
+    ],
   },
-  {
-    code: 'Todo el trabajo de las últimas tres semanas existe solo en la laptop de una persona; nunca se subió a un remoto.',
-    rule: 1,
-    why: 'Si esa máquina se rompe o se pierde, el historial se va con ella. Tener un remoto es la copia que no depende de una sola laptop.',
-    hint: '¿Dónde más existe una copia de este historial además de esa máquina?',
+  remoto: {
+    id: 'remoto',
+    situation: 'Terminás el día con cinco commits nuevos, que por ahora solo existen en tu laptop. ¿Qué hacés?',
+    options: [
+      {
+        text: 'Los subo al repositorio remoto.',
+        correct: true,
+        why: 'El remoto es el respaldo: si la laptop se rompe o se pierde, el historial sigue a salvo y el equipo lo puede ver.',
+      },
+      {
+        text: 'Además de commitear, le mando un `.zip` del proyecto al equipo por chat, por las dudas.',
+        correct: false,
+        why: 'Compartir "por las dudas" por otro canal es no confiar en el control de versiones como fuente de verdad, y crea copias que nadie sabe cuál es la buena.',
+      },
+      {
+        text: 'Nada: los subo todos juntos cuando termine la funcionalidad, dentro de unas semanas.',
+        correct: false,
+        why: 'Mientras tanto, todo el trabajo vive en una sola máquina, sin respaldo.',
+      },
+    ],
   },
-  {
-    code: 'El equipo guarda `informe-v1.docx`, `informe-v2.docx` e `informe-FINAL.docx` en la misma carpeta, y no hay commits que expliquen qué cambió entre uno y otro.',
-    rule: 2,
-    why: 'Los nombres a mano no dicen qué cambió ni permiten volver a un punto intermedio. El historial de commits sí guarda cada cambio con su mensaje y su autor.',
-    hint: '¿Alcanza con el nombre del archivo para saber qué se modificó entre una versión y la siguiente?',
-  },
-  {
-    code: 'Además de commitear, al final de cada sprint alguien manda un `.zip` del proyecto por chat "por las dudas".',
-    rule: 3,
-    why: 'Ese canal paralelo compite con el repositorio como fuente de verdad: si el zip y el repo no coinciden, nadie sabe cuál es la versión buena.',
-    hint: '¿Qué versión es la buena si el zip y el repositorio dicen cosas distintas?',
-  },
-  {
-    code: 'La carpeta `coverage/`, que se regenera en cada corrida de tests, se versiona completa en cada commit.',
-    rule: 4,
-    why: 'Los reportes de cobertura son un producto generado: se reconstruyen corriendo los tests, y versionarlos agranda el repositorio sin agregar información propia.',
-    hint: '¿Esa carpeta aporta algo que no se pueda volver a generar corriendo los tests?',
-  },
-  {
-    code: 'Cada integrante trabaja sobre su clon local y sube sus commits al remoto al menos una vez por día.',
-    rule: 0,
-    why: 'El repositorio remoto es la copia compartida y el respaldo: subir seguido mantiene el trabajo fuera de una sola máquina.',
-    hint: '¿Este hábito deja el historial viviendo en una sola máquina, o lo respalda en otro lado?',
-  },
-  {
-    code: 'El `.env` con valores reales está en `.gitignore`, y se versiona un `.env.example` con las claves vacías.',
-    rule: 0,
-    why: 'El ejemplo documenta qué variables hacen falta sin exponer secretos. Es la forma de compartir la configuración sin versionar credenciales.',
-    hint: '¿Ese archivo de ejemplo expone alguna credencial real?',
-  },
-];
+};
+export const START_EXPLANATION =
+  'Versionar desde el primer archivo, dejar afuera del historial lo que no tiene que estar (credenciales, archivos generados) y subir el trabajo al remoto con frecuencia: así el control de versiones es la única fuente de verdad del proyecto.';
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {
@@ -128,3 +143,20 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
     ],
   },
 ];
+
+export const SETUP_TEMPLATE = `$ {{donde}}
+/Users/tomas
+$ {{mover}} proyectos
+$ git {{cfg}} --global user.email "tomas@estudio.com"
+$ git {{traer}} https://github.com/estudio/turnos-web.git
+Cloning into 'turnos-web'...
+$ cd turnos-web`;
+export const SETUP_SLOTS: FillBlankSlot[] = [
+  {id: 'donde', answer: 'pwd'},
+  {id: 'mover', answer: 'cd'},
+  {id: 'cfg', answer: 'config'},
+  {id: 'traer', answer: 'clone'},
+];
+export const SETUP_BANK = ['ls', 'clone', 'pwd', 'init', 'cd', 'pull', 'config', '--version'];
+export const SETUP_EXPLANATION =
+  '`pwd` muestra en qué carpeta está la terminal, y `cd` entra a otra. `git config --global` guarda la identidad que va a quedar grabada en cada commit. `git clone` descarga el proyecto con todo su historial en una carpeta nueva; `init` crearía un repositorio vacío y `pull` necesita un repositorio que ya exista.';

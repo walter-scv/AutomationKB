@@ -4,17 +4,26 @@ sidebar_position: 15
 ---
 
 import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
 import Classify from '@site/src/components/Classify';
 import FindInCode from '@site/src/components/FindInCode';
 import Order from '@site/src/components/Order';
 import Quiz from '@site/src/components/Quiz';
+import MultiSelect from '@site/src/components/MultiSelect';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  RISK_LINES, RISK_RULE_LABELS,
-  PRIORITY_ORDER_ITEMS, PRIORITY_ORDER_CORRECT, PRIORITY_ORDER_RULES,
-  TROUBLESHOOT_LINES, TROUBLESHOOT_RULE_LABELS,
-  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  RISK_LINES,
+  RISK_RULE_LABELS,
+  PRIORITY_ORDER_ITEMS,
+  PRIORITY_ORDER_CORRECT,
+  PRIORITY_ORDER_RULES,
+  COVERAGE_QUESTIONS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
   CLOSING_QUIZ,
+  RESPONSE_LEFT,
+  RESPONSE_RIGHT,
+  RESPONSE_WHY,
 } from '@site/src/content/lessons/15-risk-based-testing';
 
 export const LESSON_SLUG = 'foundations-strategy';
@@ -64,30 +73,6 @@ export function PriorityOrderActivity() {
   );
 }
 
-export function TroubleshootActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['trouble']);
-  return (
-    <Activity
-      title="¿Qué salió mal con la priorización?"
-      kind="Clasificar"
-      goal="reconocer, en una decisión real del equipo, qué parte del criterio de riesgo no se aplicó."
-      done={isDone('trouble')}
-      consigna="Son 7 situaciones. Si el problema es que un área crítica quedó sin ningún caso, elegí «Un área crítica quedó sin ningún caso»; si se documentó en detalle una feature que todavía cambiaba, elegí «Se armó un caso detallado para una feature que todavía cambiaba demasiado»; si se puso algo de bajo impacto antes que lo crítico, elegí «Se priorizó algo de bajo impacto antes que lo crítico». En las que estén bien, elegí «La priorización siguió el riesgo». La actividad se completa cuando encontraste los 4 problemas."
-    >
-      <FindInCode
-        lines={TROUBLESHOOT_LINES}
-        ruleLabels={TROUBLESHOOT_RULE_LABELS}
-        okLabel="La priorización siguió el riesgo"
-        prompt="¿La priorización siguió el riesgo?"
-        itemLabel="Situación"
-        counterLabel="problemas de priorización"
-        alreadyDone={isDone('trouble')}
-        onSolved={() => markDone('trouble')}
-      />
-    </Activity>
-  );
-}
-
 export function PracticeActivity() {
   const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
   return (
@@ -100,6 +85,25 @@ export function PracticeActivity() {
     >
       <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')}
         onSolved={() => markDone('practice')}
+      />
+    </Activity>
+  );
+}
+
+export function CoverageActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['coverage']);
+  return (
+    <Activity
+      title="¿Qué se cubre con casos detallados?"
+      kind="Marcar todas"
+      goal="decidir qué partes de una release merecen casos detallados combinando impacto y probabilidad, sin dejar lo crítico afuera ni documentar lo que todavía cambia."
+      done={isDone('coverage')}
+      consigna="Es 1 pregunta con 6 partes de una release. Marcá todas las que tienen que quedar cubiertas con casos detallados; las demás pueden esperar o ir a una pasada exploratoria. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={COVERAGE_QUESTIONS}
+        alreadyDone={isDone('coverage')}
+        onSolved={() => markDone('coverage')}
       />
     </Activity>
   );
@@ -120,6 +124,29 @@ export function ClosingQuizActivity() {
   );
 }
 
+export function RiskResponseActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['riskresponse']);
+  return (
+    <Activity
+      title="¿Cómo se responde a cada riesgo?"
+      kind="Emparejar"
+      goal="distinguir un riesgo de proyecto de uno de producto, y elegir cómo controlar cada riesgo: mitigar, aceptar, transferir, preparar una contingencia o volver a evaluarlo."
+      done={isDone('riskresponse')}
+      consigna="Son 6 riesgos de una plataforma de cursos online y 6 respuestas: cada respuesta corresponde a exactamente un riesgo. Elegí un riesgo y después su respuesta (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={RESPONSE_LEFT}
+        right={RESPONSE_RIGHT}
+        why={RESPONSE_WHY}
+        leftLabel="Riesgo"
+        rightLabel="Respuesta"
+        alreadyDone={isDone('riskresponse')}
+        onSolved={() => markDone('riskresponse')}
+      />
+    </Activity>
+  );
+}
+
 Ya sabés escribir un buen caso de test y diseñar buenos valores con las
 técnicas de las secciones anteriores. Pero ningún equipo de QA tiene tiempo
 infinito para cubrir todo con el mismo nivel de detalle — hace falta un
@@ -127,80 +154,163 @@ criterio para decidir con qué empezar, y con cuánta profundidad.
 
 ## Conceptos
 
-**Risk-based testing** prioriza el esfuerzo de testing combinando dos
-dimensiones: **impacto** (si esto falla, ¿qué tan grave es? ¿bloquea
-usuarios, cuesta dinero, o nadie lo nota?) y **probabilidad** (¿qué tan
-seguido falla, o todavía cambia tanto que es fácil que algo se rompa?).
-Algo de alto impacto y alta probabilidad es prioridad alta; algo de bajo
-impacto, o ya tan estable que casi nunca falla, puede esperar.
+Ninguna versión se prueba con tiempo ilimitado. Siempre hay que decidir qué
+se prueba primero, qué se prueba a fondo y qué alcanza con revisar por
+encima. **Risk-based testing** (testing basado en riesgo) es el enfoque
+que toma esas decisiones a partir de un análisis explícito de los riesgos,
+en lugar de la intuición o de lo que resulte más cómodo probar.
+
+### Qué es un riesgo
+
+Un **riesgo** es un evento posible cuya ocurrencia tendría un efecto
+negativo. Se caracteriza con dos factores: la **probabilidad** de que
+ocurra y el **impacto** que tendría si ocurre. Los dos juntos determinan el
+**nivel de riesgo**: cuanto mayor es, más importante es tratarlo.
+
+Los dos factores son necesarios. Un defecto en el cálculo del precio de un
+seguro tiene un impacto alto, y si ese cálculo se reescribió en esta
+versión, también una probabilidad alta: riesgo alto. Un error en el texto
+de la página de preguntas frecuentes tiene impacto bajo y probabilidad
+baja si nadie la tocó: riesgo bajo. Un módulo crítico que no se modifica
+desde hace años tiene impacto alto pero probabilidad baja, y su nivel de
+riesgo queda en un punto intermedio.
+
+### Riesgos de proyecto y riesgos de producto
+
+En testing se trabaja con dos tipos de riesgo. Los **riesgos de proyecto**
+afectan la gestión del proyecto: demoras en las entregas, estimaciones
+equivocadas, falta de personas o de conocimientos, problemas con un
+proveedor. Si ocurren, afectan el plazo, el presupuesto o el alcance. Que
+el ambiente de pruebas no esté listo a tiempo es un riesgo de proyecto.
+
+Los **riesgos de producto** tienen que ver con la calidad del software:
+funcionalidades que faltan o funcionan mal, cálculos incorrectos, tiempos
+de respuesta inadecuados, vulnerabilidades de seguridad, mala experiencia
+de uso. Si ocurren, sus consecuencias recaen sobre los usuarios y el
+negocio: pérdida de ingresos o de confianza, daños a terceros, sanciones,
+sobrecarga de la mesa de ayuda. El risk-based testing trabaja
+principalmente sobre los riesgos de producto.
+
+### Identificar los riesgos
+
+La identificación busca una lista lo más completa posible de lo que podría
+salir mal. No la hace testing solo: el impacto lo conoce el negocio, y la
+probabilidad la estiman mejor quienes conocen el código y el historial de
+defectos. Por eso se usan talleres, entrevistas o una sesión de
+*brainstorming* con producto, desarrollo y testing juntos.
+
+Para una nueva versión del sitio de una aseguradora de autos, que incluye
+cotización online, emisión de pólizas, descarga de la póliza en PDF,
+actualización de datos personales y un chat de ayuda, la sesión de
+identificación produce, entre otros, estos riesgos:
+
+- La cotización calcula mal el precio (el motor de cálculo se reescribió).
+- La póliza se emite con datos del vehículo equivocados.
+- El PDF de la póliza no se genera o sale incompleto.
+- Los datos personales de un cliente quedan visibles para otro.
+- El chat no responde fuera del horario de atención.
+
+### Evaluar los riesgos
+
+La evaluación asigna a cada riesgo una probabilidad y un impacto para
+obtener su nivel, y con eso los prioriza. Puede hacerse de forma
+cualitativa, ubicando cada riesgo en una matriz de alto, medio y bajo, o
+cuantitativa, con escalas numéricas cuyo producto da el nivel. Con
+escalas de 1 a 5, el **registro de riesgos** de la aseguradora queda así:
+
+| Riesgo | Probabilidad | Impacto | Nivel |
+|---|---|---|---|
+| La cotización calcula mal el precio | 4 | 5 | 20 |
+| Datos personales visibles para otro cliente | 2 | 5 | 10 |
+| La póliza se emite con datos equivocados | 2 | 4 | 8 |
+| El PDF no se genera o sale incompleto | 3 | 2 | 6 |
+| El chat no responde fuera de horario | 2 | 1 | 2 |
+
+Los números no son una medición exacta: son una forma de ordenar, de
+manera explícita y discutible, lo que el equipo sabe. Su valor está en que
+la prioridad deja de depender de quién insiste más en la reunión.
+
+### Cómo el riesgo define el testing
+
+El resultado del análisis se traduce en decisiones concretas sobre el
+alcance, la profundidad, las técnicas y el orden. En la aseguradora:
+
+La **cotización** (nivel 20) recibe el mayor esfuerzo: casos formales con
+boundary value analysis sobre la edad del conductor y el valor del
+vehículo, una decision table para las combinaciones de cobertura, zona y
+uso, revisión del código del motor nuevo y una regresión completa sobre
+las cotizaciones de la versión anterior, comparando precios. Se ejecuta
+primero, para encontrar los defectos críticos lo antes posible.
+
+La **exposición de datos personales** (nivel 10), aunque es poco probable,
+tiene un impacto tan alto que justifica pruebas de seguridad específicas:
+intentar acceder a la póliza de otro cliente cambiando el identificador
+en la dirección de la página.
+
+La **emisión con datos equivocados** y el **PDF** reciben casos formales
+para sus flujos principales. El **chat** (nivel 2) queda cubierto con una
+sesión exploratoria corta.
+
+Un nivel bajo no significa "no probar nunca": significa probar con menos
+profundidad, y volver a evaluarlo si las condiciones cambian.
+
+### Controlar los riesgos
+
+Una vez analizado un riesgo, hay varias formas de responder. La más
+habitual en testing es **mitigarlo**: reducir su nivel con las acciones
+que se acaban de describir (técnicas y coberturas adecuadas, revisiones,
+tipos de prueba específicos, personas con la experiencia necesaria). Pero
+no es la única. Un riesgo se puede **aceptar** de forma consciente, como
+el del chat fuera de horario. Se puede **transferir**, por ejemplo si el
+servicio de generación de PDF lo provee un tercero con un acuerdo de
+nivel de servicio. Y se puede preparar un **plan de contingencia**: si la
+cotización falla en producción, volver a la versión anterior del motor
+de cálculo.
+
+El análisis no se hace una sola vez. El **monitoreo de riesgos** verifica
+durante el proyecto que las acciones funcionen y detecta riesgos nuevos.
+Si a mitad del ciclo se decide que el chat también va a atender reclamos
+por siniestros, su impacto sube y su lugar en el registro cambia. Al
+cerrar, el informe dice qué riesgos se mitigaron y cuál es el **riesgo
+residual**: lo que queda abierto y alguien decide asumir.
 
 ## Cuándo usarlo
 
-Risk-based testing aplica siempre que el tiempo o los recursos para
-testear son limitados — es decir, casi siempre. También decide, dentro de
-una misma feature, cuánto detalle amerita un caso puntual: uno que se va a
-ejecutar muchas veces (una regresión) justifica un caso de test formal y
-detallado; uno de una sola vez (una migración de datos) no amortiza ese
-costo. Una feature que el equipo todavía cambia seguido conviene cubrirla
-con una pasada exploratoria primero, y documentarla en detalle recién
-cuando se estabilice.
+El análisis de riesgo conviene empezarlo temprano, con la planificación, y
+revisarlo en cada ciclo. Es especialmente útil cuando el tiempo no alcanza
+para probar todo con la misma profundidad, que es casi siempre.
 
 ## Buenas prácticas
 
-- **Evaluar impacto y probabilidad por separado**, antes de combinarlos —
-  evaluarlos juntos "a ojo" tiende a sobrepesar el que es más fácil de
-  estimar.
-- **Documentar la matriz de riesgo** (qué se priorizó y por qué), para
-  poder revisarla cuando cambien las condiciones, en vez de depender de
-  que alguien se acuerde del criterio original.
-- **Revisar la priorización cuando una feature de bajo riesgo empieza a
-  usarse más**, o una de alto riesgo se estabiliza — el riesgo no es fijo
-  en el tiempo.
-- **Involucrar a alguien del negocio para estimar el impacto real**, no
-  solo a QA o a desarrollo. El equipo técnico puede estimar bien la
-  probabilidad de que algo falle, pero cuánto cuesta ese fallo (en plata,
-  en usuarios, en reputación) suele conocerlo mejor otro rol.
-- **Usar una escala simple (alto/medio/bajo)** en vez de un número exacto
-  de riesgo. Lo que importa es el orden relativo entre features para
-  decidir con qué empezar, no un valor preciso que da una falsa sensación
-  de exactitud.
+- Estimar el impacto con el negocio y la probabilidad con quienes
+  conocen el código y su historial.
+- Mantener un registro de riesgos explícito, con su nivel y su respuesta.
+- Ajustar profundidad, técnicas y orden de ejecución al nivel de cada
+  riesgo.
+- Revisar el registro cuando cambian las condiciones del producto.
+- Informar el riesgo residual al cerrar.
 
 ## Anti-patrones
 
-- **Priorizar por lo más fácil de cubrir**, en vez de por riesgo real.
-- **Mirar solo el impacto, ignorando la probabilidad** (o viceversa) — las
-  dos dimensiones son necesarias, ninguna alcanza sola.
-- **Fijar la priorización una sola vez y no revisarla** — el riesgo de una
-  feature cambia con el tiempo.
-- **Priorizar según la opinión más ruidosa en la reunión**, en vez de
-  datos de impacto y probabilidad — quien insiste más fuerte no
-  necesariamente tiene razón sobre qué es más riesgoso.
-- **Tratar "bajo riesgo" como sinónimo de "no hay que testear nunca
-  más"** — bajo riesgo significa menor prioridad hoy, no cero cobertura
-  para siempre; algo puede fallar igual, solo que cuesta menos si falla.
-
-## Cuando la priorización sale mal
-
-Para la app del formulario de registro, una matriz de riesgo simple ya
-alcanza para decidir el orden:
-
-| Feature | Impacto | Probabilidad / uso | Prioridad |
-|---|---|---|---|
-| Registro de usuarios | Alto | Alta (en desarrollo activo) | 1 — cubrir en detalle ya |
-| Checkout de compra | Alto | Alta (se usa todo el día) | 1 — cubrir en detalle ya |
-| Validación de email (3 años estable) | Medio | Baja (casi no cambia) | 3 — cubrir si sobra tiempo |
-| Cambio de tema claro/oscuro | Bajo | Baja | 4 — exploratorio, no prioritario |
+- **Calcular el impacto sin involucrar al negocio**.
+- **Priorizar según la opinión más insistente** en lugar de un análisis.
+- **Tratar el riesgo bajo como "no hace falta testear nunca"**.
+- **Dejar sin ningún caso un área crítica**.
+- **Documentar en detalle una funcionalidad que todavía cambia todas las
+  semanas**.
 
 ## Práctica
 
-Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 6 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <RiskActivity />
 
 <PriorityOrderActivity />
 
-<PracticeActivity />
+<RiskResponseActivity />
 
-<TroubleshootActivity />
+<CoverageActivity />
+
+<PracticeActivity />
 
 <ClosingQuizActivity />

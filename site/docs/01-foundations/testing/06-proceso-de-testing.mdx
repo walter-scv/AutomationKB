@@ -4,14 +4,23 @@ sidebar_position: 6
 ---
 
 import Activity from '@site/src/components/Activity';
+import TypeAnswer from '@site/src/components/TypeAnswer';
 import Order from '@site/src/components/Order';
 import Quiz from '@site/src/components/Quiz';
+import CodeBlock from '@theme/CodeBlock';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import FindInCode from '@site/src/components/FindInCode';
 import {
-  PROCESS_ORDER_ITEMS, PROCESS_ORDER_CORRECT, PROCESS_ORDER_RULES,
-  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  PROCESS_ORDER_ITEMS,
+  PROCESS_ORDER_CORRECT,
+  PROCESS_ORDER_RULES,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
   CLOSING_QUIZ,
+  TRACE_ACCEPTED,
+  TRACE_HINTS,
+  TRACE_EXPLANATION,
+  TRACE_MATRIX,
 } from '@site/src/content/lessons/06-proceso-de-testing';
 
 export const LESSON_SLUG = 'foundations-proceso-de-testing';
@@ -61,77 +70,223 @@ export function ClosingQuizActivity() {
   );
 }
 
+export function TraceActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['trace']);
+  return (
+    <Activity
+      title="Leé la matriz de trazabilidad"
+      kind="Respuesta escrita"
+      goal="usar la trazabilidad entre reglas y casos para encontrar qué parte de la base de prueba quedó sin cobertura."
+      done={isDone('trace')}
+      consigna="La matriz relaciona cada caso con las reglas que prueba. Escribí el identificador de la regla que no tiene ningún caso. Si te equivocás, recibís una pista, cada vez más concreta, y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="text">{TRACE_MATRIX}</CodeBlock>
+      <TypeAnswer
+        accepted={TRACE_ACCEPTED}
+        hints={TRACE_HINTS}
+        explanation={TRACE_EXPLANATION}
+        placeholder="Regla sin casos"
+        alreadyDone={isDone('trace')}
+        onSolved={() => markDone('trace')}
+      />
+    </Activity>
+  );
+}
+
 ## Conceptos
 
-El testing no es solo "ejecutar casos" — es un conjunto de actividades que
-se solapan y se repiten durante todo el proyecto. Seis de ellas tienen un
-orden claro: **Planificación** (definir objetivos y enfoque), **Análisis**
-(determinar qué testear, a partir de requisitos, historias de usuario o
-riesgos), **Diseño** (elegir técnicas y diseñar los casos concretos),
-**Implementación** (preparar casos, datos y entorno), **Ejecución** (correr
-los casos y comparar el resultado real contra el esperado), y
-**Finalización** (reportar resultados y documentar lecciones aprendidas).
+Testing no es una única tarea sino un conjunto de actividades que, juntas,
+forman el **proceso de testing**. Seis de ellas siguen un orden lógico:
+planificación, análisis, diseño, implementación, ejecución y finalización.
+Una séptima, el monitoreo y control, acompaña a todas. En la práctica las
+actividades se solapan y se repiten (en un equipo ágil, el ciclo completo
+puede ocurrir en cada sprint), y su nivel de detalle se adapta al
+contexto. Lo que no cambia es que cada una responde una pregunta distinta
+y deja un resultado concreto que usa la siguiente.
 
-Una séptima actividad, **Monitoreo y control**, no tiene un lugar fijo en
-esa secuencia: corre en paralelo con todas las demás, comparando el
-progreso real contra lo planificado y ajustando el plan si hace falta.
+El recorrido que sigue aplica el proceso a una funcionalidad de un home
+banking: las transferencias entre cuentas propias del mismo cliente.
+
+### Planificación
+
+La planificación define los objetivos del testing y el enfoque para
+alcanzarlos dentro de las restricciones de tiempo, alcance y recursos.
+Su resultado es el **plan de pruebas**, que puede ser un documento o unas
+pocas líneas acordadas con el equipo, pero que siempre deja explícito qué
+se busca, qué se cubre y cuándo se considera terminado:
+
+```text
+Objetivo:          Verificar las reglas de transferencia entre cuentas propias
+                   y reducir el riesgo de movimientos incorrectos de dinero.
+Alcance:           Transferencias en pesos y en dólares entre cuentas del mismo
+                   cliente. Fuera de alcance: transferencias a terceros.
+Entorno:           Ambiente de pruebas con la versión candidata 5.2.
+Criterio de inicio: La versión 5.2 está instalada y las cuentas de prueba existen.
+Criterio de fin:   Todas las condiciones de prioridad alta ejecutadas; ningún
+                   defecto de severidad alta abierto.
+Plazo:             3 días.
+```
+
+Los criterios de inicio y de fin evitan dos problemas frecuentes: empezar
+a ejecutar sobre un entorno que no está listo, y no saber cuándo parar.
+
+### Análisis
+
+El análisis responde **qué probar**. Se estudia la base de prueba (aquí,
+las reglas de negocio de la transferencia) y se identifican las
+condiciones de prueba, priorizadas según su riesgo. También se evalúa la
+propia base de prueba en busca de defectos:
+
+```text
+Condiciones de prueba
+  [Alta]  El monto no puede superar el saldo disponible de la cuenta de origen.
+  [Alta]  Origen y destino deben ser cuentas distintas.
+  [Alta]  Una transferencia entre monedas distintas aplica la cotización del día.
+  [Media] El límite diario es de $500.000 por cliente.
+  [Baja]  El comprobante muestra fecha, hora, cuentas y monto.
+
+Defecto encontrado en la base de prueba
+  No se define qué cotización se usa si la transferencia ocurre fuera
+  del horario bancario. Consultado al responsable del producto.
+```
+
+Diseñar casos sin haber hecho el análisis es la causa más común de huecos
+de cobertura: sin la lista de condiciones, no hay forma de saber qué
+quedó sin probar.
+
+### Diseño
+
+El diseño responde **cómo probar**: convierte cada condición en casos de
+prueba concretos, en general con ayuda de técnicas de diseño (que se ven a
+partir de la entrada de técnicas). También define qué datos y qué entorno
+van a hacer falta. Para la condición del saldo, por ejemplo:
+
+```text
+CP-01  Saldo $10.000, transferir $10.000       → Se acepta (monto igual al saldo)
+CP-02  Saldo $10.000, transferir $10.000,01    → Se rechaza: «Saldo insuficiente»
+CP-03  Saldo $10.000, transferir $0            → Se rechaza: «Ingresá un monto»
+
+Datos necesarios: un cliente con caja de ahorro en pesos con saldo $10.000
+                  y una cuenta corriente en pesos.
+```
+
+### Implementación
+
+La implementación prepara todo lo necesario para ejecutar. Se crean los
+datos de prueba (el cliente con sus cuentas y los saldos exactos que
+piden los casos), se organizan los casos en el orden en que conviene
+ejecutarlos y se verifica que el entorno esté listo: que la versión
+instalada sea la 5.2 y que la cotización de prueba esté cargada.
+
+Ejecutar sin completar esta actividad produce resultados que no sirven.
+Si la cuenta de prueba tiene $9.800 en lugar de $10.000, CP-01 falla, y se
+reporta como defecto algo que es un problema de preparación.
+
+### Ejecución
+
+La ejecución corre los casos según lo planificado, compara el resultado
+real con el esperado y registra cada resultado. Cuando algo no coincide,
+se analiza la anomalía para descartar errores propios (un dato mal
+cargado, un paso salteado) y, si se confirma el fallo, se reporta:
+
+```text
+CP-01  Pasa
+CP-02  Falla  → DEF-310: con saldo $10.000 se acepta una transferencia
+                de $10.000,01; el saldo queda en -$0,01
+CP-03  Pasa
+```
+
+### Finalización
+
+La finalización ocurre en un hito del proyecto, como el fin de un sprint
+o de una versión. Se redacta el informe de cierre, se registran como
+pendientes los defectos que quedan abiertos, se archiva lo que puede
+reutilizarse (los casos y los datos de prueba) y se analiza qué aprender
+del ciclo:
+
+```text
+Informe de cierre — Transferencias entre cuentas propias, versión 5.2
+Condiciones: 14 de 14 ejecutadas (5 de prioridad alta).
+Defectos:    3 encontrados; 2 corregidos y confirmados; 1 abierto (DEF-318,
+             severidad baja, pasa a la próxima versión).
+Lección:     la cotización fuera de horario no estaba definida y frenó el
+             diseño un día; para la próxima funcionalidad con monedas,
+             revisar ese punto en el análisis.
+```
+
+Saltear esta actividad es perder justamente lo que permite mejorar el
+ciclo siguiente.
+
+### Monitoreo y control
+
+El monitoreo compara de forma continua el avance real con el plan; el
+control toma las decisiones necesarias para cumplir los objetivos cuando
+hay un desvío. No es un paso más de la secuencia: ocurre durante todas
+las demás actividades.
+
+En el ejemplo, al final del primer día solo se ejecutaron 4 de 14
+condiciones porque el ambiente de pruebas estuvo caído medio día
+(monitoreo). Con dos días por delante, se decide ejecutar primero las 5
+condiciones de prioridad alta y dejar las de prioridad baja para el final,
+avisando que podrían quedar fuera del plazo (control). Sin ese ajuste, el
+plazo se agotaría con condiciones de prioridad baja ejecutadas y otras de
+prioridad alta pendientes.
+
+### Trazabilidad
+
+A lo largo del proceso conviene mantener la relación entre cada elemento
+de la base de prueba y lo que se generó a partir de él: la regla de
+negocio, sus condiciones, sus casos, sus resultados y sus defectos. Esa
+**trazabilidad** permite responder preguntas que de otro modo no tienen
+respuesta precisa: si la regla del saldo está cubierta (sí, por CP-01 a
+CP-03), qué hay que volver a probar si cambia el límite diario (los casos
+que trazan a esa regla) y cuánto riesgo queda abierto (las condiciones de
+prioridad alta con defectos sin resolver).
+
+### El proceso según el contexto
+
+El proceso siempre está, pero su formalidad se adapta. Para las
+transferencias de un banco, cada actividad deja documentación porque una
+auditoría puede pedirla. Para corregir un texto mal escrito en una
+pantalla, el plan es una frase ("verificar el texto nuevo en esa
+pantalla"), el análisis y el diseño se resuelven en una conversación de
+cinco minutos y la ejecución es un solo caso; las actividades siguen
+existiendo, aunque duren minutos.
 
 ## Cuándo usarlo
 
-Este proceso aplica a cualquier esfuerzo de testing que valga la pena
-planificar — desde probar una feature nueva hasta una regresión completa
-antes de un release. Para una exploración muy chica y puntual, varias de
-estas actividades se reducen a casi nada (por ejemplo, el análisis puede
-ser mental, no documentado), pero conceptualmente siguen estando todas.
+El proceso se aplica a cualquier esfuerzo de testing que valga la pena
+planificar, desde una funcionalidad nueva hasta una regresión antes de un
+release. Lo que se ajusta en cada caso es cuánto se documenta cada
+actividad, no si se hace.
 
 ## Buenas prácticas
 
-- **Confirmar que existe un objetivo claro (Planificación) antes de
-  empezar a diseñar casos.** Sin un objetivo explícito, cada persona del
-  equipo puede interpretar "qué estamos probando" de forma distinta, y
-  terminan cubriendo cosas distintas sin darse cuenta.
-- **No pasar a Ejecución sin haber completado la Implementación** (datos y
-  entorno listos). Ejecutar con datos a medio preparar genera resultados
-  poco confiables — un caso puede fallar porque el entorno no estaba
-  listo, no porque el sistema esté roto, y eso hace perder tiempo
-  investigando algo que no era un bug real.
-- **Dedicar tiempo real a la Finalización**, no un trámite de dos
-  minutos. Las lecciones aprendidas (qué tardó más de lo esperado, qué
-  caso resultó redundante) son las que evitan repetir el mismo problema
-  de estimación o de cobertura en el próximo ciclo.
-- **Tratar el Monitoreo y control como continuo**, no como una revisión
-  puntual al principio. Revisar el progreso solo una vez no deja margen
-  para ajustar el plan si algo se desvía a mitad de camino.
-- **Adaptar el nivel de formalidad de cada actividad al tamaño del
-  esfuerzo.** Para una exploración chica, Análisis puede ser una
-  conversación de cinco minutos, no un documento — lo que importa es que
-  la actividad conceptualmente pase, no que quede toda por escrito.
+- Definir en la planificación los criterios de inicio y de fin.
+- No diseñar casos sin una lista de condiciones priorizadas.
+- Verificar datos y entorno antes de ejecutar.
+- Dedicar tiempo real a la finalización y registrar lo aprendido.
+- Revisar el avance contra el plan durante todo el ciclo, no solo al
+  final.
 
 ## Anti-patrones
 
-- **Diseñar casos sin haber hecho Análisis.** Sin saber qué testear
-  primero, el diseño no tiene una base clara — es fácil terminar
-  cubriendo lo más fácil de escribir y dejando afuera lo más riesgoso.
-- **Saltear la Finalización** y pasar directo al próximo ciclo sin
-  documentar qué funcionó y qué no — el equipo repite, ciclo tras ciclo,
-  los mismos problemas de estimación o de cobertura.
-- **Tratar al Monitoreo y control como un paso más** en la secuencia, en
-  vez de una actividad continua — para cuando alguien nota que el plan se
-  desvió, puede ser demasiado tarde para corregir el rumbo.
-- **Pasar a Ejecución con el entorno o los datos a medio preparar**, "para
-  no perder tiempo" — el tiempo que se cree ahorrar se pierde después
-  investigando fallos que en realidad eran del entorno, no del sistema.
-- **Repetir el mismo proceso con el mismo nivel de detalle sin importar el
-  tamaño del esfuerzo** — una exploración de 10 minutos no necesita la
-  misma Planificación formal que una regresión completa antes de un
-  release; forzar el mismo trámite en los dos casos desperdicia tiempo.
+- **Diseñar casos sin haber hecho el análisis**.
+- **Saltear la finalización** y pasar al próximo ciclo sin registrar qué
+  se aprendió.
+- **Tratar el monitoreo y control como un paso único**, en lugar de una
+  actividad continua.
+- **Ejecutar con el entorno o los datos a medio preparar**.
+- **Aplicar el mismo nivel de detalle sin importar el contexto**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <ProcessOrderActivity />
 
 <PracticeActivity />
 
 <ClosingQuizActivity />
+
+<TraceActivity />

@@ -7,13 +7,13 @@ import Activity from '@site/src/components/Activity';
 import Classify from '@site/src/components/Classify';
 import FindInCode from '@site/src/components/FindInCode';
 import Order from '@site/src/components/Order';
-import Quiz from '@site/src/components/Quiz';
+import DecisionPath from '@site/src/components/DecisionPath';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
   TRANSITION_LINES, TRANSITION_RULE_LABELS,
   BUILD_ORDER_ITEMS, BUILD_ORDER_CORRECT, BUILD_ORDER_RULES,
   PRACTICE_LINES, PRACTICE_RULE_LABELS,
-  CLOSING_QUIZ,
+  TICKET_TABLE, TICKET_START, TICKET_NODES, TICKET_EXPLANATION,
 } from '@site/src/content/lessons/13-state-transition-testing';
 
 export const LESSON_SLUG = 'foundations-state-transition-testing';
@@ -74,17 +74,33 @@ export function PracticeActivity() {
   );
 }
 
-export function ClosingQuizActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+export function TicketActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['ticket']);
   return (
     <Activity
-      title="Ramas, rechazos y estados finales"
-      kind="Elegí la opción"
-      goal="aplicar state transition testing a situaciones nuevas."
-      done={isDone('quiz')}
-      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+      title="Seguí el ticket evento por evento"
+      kind="Escenario encadenado"
+      goal="aplicar una tabla de estados a una secuencia de eventos, incluidas transiciones inválidas y un estado final."
+      done={isDone('ticket')}
+      consigna="Un ticket de soporte sigue la tabla de abajo; cualquier combinación de estado y evento que no esté en la tabla es inválida y se rechaza. Van a llegar cuatro eventos, uno después del otro: en cada uno decidí en qué estado queda el ticket, mirando solo la tabla. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al resolver los cuatro."
     >
-      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+      <table>
+        <thead>
+          <tr><th>Estado actual</th><th>Evento</th><th>Estado siguiente</th></tr>
+        </thead>
+        <tbody>
+          {TICKET_TABLE.map(([from, event, to]) => (
+            <tr key={from + event}><td>{from}</td><td>{event}</td><td>{to}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <DecisionPath
+        startId={TICKET_START}
+        nodes={TICKET_NODES}
+        explanation={TICKET_EXPLANATION}
+        alreadyDone={isDone('ticket')}
+        onSolved={() => markDone('ticket')}
+      />
     </Activity>
   );
 }
@@ -96,69 +112,137 @@ está el sistema** — y ahí esas técnicas no alcanzan.
 
 ## Conceptos
 
-**State transition testing** modela el sistema como un conjunto de
-**estados** y las **transiciones** válidas entre ellos, disparadas por
-eventos. Se usa cuando la misma acción puede ser válida en un estado e
-inválida en otro — el comportamiento depende de la historia del sistema,
-no solo de la entrada actual.
+Las técnicas anteriores asumen que, ante los mismos datos, el sistema
+responde siempre igual. Muchos sistemas no funcionan así: la misma acción
+es válida o inválida según lo que pasó antes. Una tarjeta permite comprar
+si está activa y lo rechaza si está bloqueada, aunque el monto y el
+comercio sean idénticos. Cuando el comportamiento depende de la historia
+del sistema, la técnica que corresponde es **state transition testing**.
 
-Un pedido de compra, por ejemplo, pasa por estos estados:
+### El modelo: estados, eventos y transiciones
 
-| Estado actual | Evento | Estado siguiente válido |
-|---|---|---|
-| Creado | Pagar | Pagado |
-| Creado | Cancelar | Cancelado |
-| Pagado | Enviar | Enviado |
-| Pagado | Cancelar | Cancelado |
-| Enviado | Entregar | Entregado |
+La técnica parte de un modelo del sistema con tres elementos. Los
+**estados** son las situaciones en las que puede estar. Los **eventos**
+son lo que ocurre y puede provocar un cambio. Las **transiciones** son los
+cambios de un estado a otro que un evento provoca. Una transición puede
+tener además una **condición** que debe cumplirse para que ocurra y una
+**acción** que el sistema realiza al pasar. La notación habitual de una
+transición es `evento [condición] / acción`.
 
-La acción "cancelar" es válida en dos estados (Creado, Pagado) e inválida
-en los otros dos (Enviado, Entregado): un pedido ya enviado no se puede
-cancelar. Esa diferencia de comportamiento según el estado es exactamente
-lo que esta técnica diseña para probar.
+Una tarjeta de débito, con estas reglas de negocio:
+
+> La tarjeta se emite inactiva y se activa con el PIN correcto. Tres PIN
+> incorrectos seguidos la bloquean, y se envía un SMS al titular. Desde el
+> bloqueo, se desbloquea validando la identidad en el home banking. Activa
+> o bloqueada, se puede dar de baja; una tarjeta dada de baja ya no puede
+> volver a usarse.
+
+produce este modelo, con una transición por línea:
+
+```text
+Emitida    ── ingresar PIN [PIN correcto] ─────────────▶  Activa
+Activa     ── ingresar PIN [3.er PIN incorrecto] / enviar SMS ──▶  Bloqueada
+Bloqueada  ── validar identidad ───────────────────────▶  Activa
+Activa     ── dar de baja ─────────────────────────────▶  Dada de baja
+Bloqueada  ── dar de baja ─────────────────────────────▶  Dada de baja
+```
+
+Y la misma información en una **tabla de estados**, que tiene una ventaja
+sobre el diagrama: muestra explícitamente las transiciones inválidas, que
+son las celdas vacías.
+
+| Estado \ Evento | PIN correcto | 3.er PIN incorrecto | Validar identidad | Dar de baja |
+|---|---|---|---|---|
+| Emitida | Activa | | | |
+| Activa | | Bloqueada / SMS | | Dada de baja |
+| Bloqueada | | | Activa | Dada de baja |
+| Dada de baja | | | | |
+
+Cada celda vacía es una combinación de estado y evento que el sistema
+tiene que rechazar: validar identidad sobre una tarjeta activa, activar
+una tarjeta bloqueada con el PIN o hacer cualquier cosa con una tarjeta
+dada de baja. Dada de baja es un **estado final**: no tiene transiciones
+de salida.
+
+### Casos de prueba como secuencias de eventos
+
+Un caso de prueba en esta técnica es una secuencia de eventos que lleva al
+sistema por una serie de estados. Un solo caso suele cubrir varias
+transiciones:
+
+```text
+CT-01  Emitida → [PIN correcto] → Activa → [3.er PIN incorrecto] → Bloqueada
+       → [validar identidad] → Activa → [dar de baja] → Dada de baja
+       Verificar en cada paso: el estado que muestra el home banking y,
+       al bloquear, que llegue el SMS.
+```
+
+### Criterios de cobertura
+
+Cuánto probar se define con un criterio de cobertura. Hay tres
+habituales, de menor a mayor exigencia.
+
+La cobertura de **todos los estados** pide que cada estado se visite al
+menos una vez. CT-01 la logra sola: pasa por los cuatro estados. Es el
+criterio más débil, porque se puede cumplir sin probar todas las
+transiciones; CT-01 nunca prueba dar de baja una tarjeta bloqueada.
+
+La cobertura de **transiciones válidas** pide que cada transición válida
+se ejecute al menos una vez. La tarjeta tiene cinco: activar, bloquear,
+desbloquear, dar de baja desde activa y dar de baja desde bloqueada. CT-01
+cubre cuatro; hace falta un segundo caso que llegue a Bloqueada y dé de
+baja desde ahí. Es el criterio más usado, y cumplirlo garantiza también
+la cobertura de todos los estados.
+
+La cobertura de **todas las transiciones** suma, a las válidas, el intento
+de cada transición inválida de la tabla: las celdas vacías. La tabla tiene
+16 celdas, 5 válidas y 11 inválidas, así que este criterio pide intentar
+las 11 inválidas y comprobar que cada una se rechaza. Es el criterio
+mínimo recomendado para sistemas críticos.
+
+Al probar transiciones inválidas conviene **intentar una sola por caso**.
+Si un caso intenta dos y la primera no se rechaza como debía, el sistema
+queda en un estado inesperado y el resultado de la segunda deja de
+significar algo: un defecto oculta al otro, lo que se conoce como
+enmascaramiento de defectos.
+
+### Definir qué significa "rechazar"
+
+Para cada transición inválida, el caso tiene que decir qué se espera
+exactamente. Un sistema puede impedir una transición de dos maneras: no
+ofreciendo la opción (el botón «Activar» no aparece en una tarjeta dada
+de baja) o rechazándola con un mensaje (el servicio responde «La tarjeta
+fue dada de baja»). Son dos comportamientos distintos, y si el caso no
+especifica cuál se espera, dos personas pueden dar por buena la misma
+pantalla con interpretaciones opuestas.
 
 ## Cuándo usarlo
 
-Aplica a cualquier sistema con un ciclo de vida claro: pedidos, cuentas de
-usuario (sin verificar / verificada / bloqueada), flujos de aprobación. Si
-una acción se comporta igual sin importar el estado previo, esta técnica
-no agrega nada — alcanza con equivalence partitioning sobre los datos de
-entrada.
+State transition testing conviene cuando el comportamiento depende del
+estado en que se encuentra algo: cuentas, pedidos, suscripciones, flujos
+de aprobación, sesiones de usuario, cualquier entidad con un ciclo de
+vida. Una señal clara de que hace falta es encontrar en el requisito
+frases como "solo si está…", "una vez que…" o "ya no puede…".
 
 ## Buenas prácticas
 
-- **Probar al menos un caso por cada transición válida del diagrama.** Una
-  transición que nunca se probó es, en la práctica, código sin ninguna
-  cobertura, por más que "parezca simple".
-- **Probar explícitamente que las transiciones no permitidas queden
-  rechazadas**, no solo las permitidas. Un sistema que acepta una
-  transición inválida por error silencioso es un bug que las pruebas del
-  camino feliz nunca van a encontrar.
-- **Incluir las ramas alternativas** (como la cancelación), no solo el
-  camino principal — son casos reales que un usuario puede ejecutar, no
-  casos "extra" opcionales.
-- **Marcar los estados finales explícitamente** (sin transiciones de
-  salida). Así queda claro que no hace falta diseñar más casos desde ahí,
-  en vez de dejar la duda de si falta algo.
-- **Revisar el diagrama completo cuando se agregue un estado nuevo.** Un
-  estado nuevo puede sumar transiciones desde o hacia estados que ya
-  existían y que antes no se contemplaban.
+- Armar el modelo a partir del requisito y confirmarlo con quien lo
+  definió antes de diseñar casos.
+- Usar la tabla de estados para no pasar por alto las transiciones
+  inválidas.
+- Cubrir como mínimo todas las transiciones válidas.
+- Intentar una sola transición inválida por caso.
+- Especificar, para cada transición inválida, cómo se manifiesta el
+  rechazo.
 
 ## Anti-patrones
 
-- **Probar solo el camino feliz** (Creado → Pagado → Enviado → Entregado)
-  sin probar ninguna rama alternativa ni ninguna transición inválida.
-- **Asumir que todas las transiciones son simétricas** — que si A puede
-  pasar a B, B puede volver a A. Muchos sistemas no permiten retroceder.
-- **Probar una transición que el sistema ni siquiera ofrece como
-  opción** (un botón que no existe en esa pantalla) — no aporta cobertura
-  real; lo que importa es confirmar que las transiciones que el usuario
-  SÍ puede intentar, pero que deberían fallar, efectivamente fallen.
-- **No distinguir entre "la acción se rechaza con un mensaje" y "la
-  acción directamente no está disponible"** — son dos formas válidas de
-  prevenir una transición inválida, pero si el caso no dice cuál se
-  espera, dos personas pueden ejecutar el mismo caso e interpretar
-  resultados distintos como "correcto".
+- **Probar solo el camino principal**, sin ramas alternativas ni
+  transiciones inválidas.
+- **Suponer transiciones que el modelo no tiene** porque "parecen
+  lógicas".
+- **Dejar ambiguo qué se espera ante una transición inválida**.
+- **Juntar varias transiciones inválidas en un mismo caso**.
 
 ## Práctica
 
@@ -170,4 +254,4 @@ Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es ind
 
 <PracticeActivity />
 
-<ClosingQuizActivity />
+<TicketActivity />

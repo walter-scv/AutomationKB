@@ -1,5 +1,7 @@
+import type {DecisionNode} from '@site/src/components/DecisionPath';
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {SpotTokenRound} from '@site/src/components/SpotToken';
 
 export const QUALITY_RULE_LABELS = ['No es Claro', 'No es Independiente', 'No es Verificable', 'No es Repetible'];
 
@@ -48,50 +50,31 @@ export const QUALITY_LINES: CodeLine[] = [
   },
 ];
 
-export const TROUBLESHOOT_RULE_LABELS = ['No es Verificable: el resultado no es objetivo', 'No es Claro: los pasos son ambiguos', 'No es Independiente: falta una precondición'];
-
-export const TROUBLESHOOT_LINES: CodeLine[] = [
+export const WORD_PROMPT = '¿Qué palabra de esta línea hace que el caso no se ejecute, o no se verifique, igual cada vez?';
+export const WORD_ROUNDS: SpotTokenRound[] = [
   {
-    code: 'Una persona corre el caso en una base recién sembrada y ve "Cuenta creada"; otra lo corre después de otro caso y ve "El email ya está registrado". El caso no menciona cuentas existentes.',
-    rule: 3,
-    why: 'Las dos ejecuciones parten de estados distintos. El caso nunca declaró si la cuenta tenía que existir, así que el resultado cambia por el punto de partida.',
-    hint: '¿Desde qué estado arranca el sistema en cada una de las dos corridas?',
+    line: 'Paso 2: ingresar un monto razonable en el campo "Monto".',
+    targetIndex: 5,
+    why: 'No es Claro: "razonable" deja el valor a criterio de quien ejecuta. Una persona pone 500 y otra 50.000, y solo una recibe el error de límite.',
+    hint: 'Si dos personas leen este paso, ¿escriben el mismo número en el campo?',
   },
   {
-    code: 'Dos personas completan el campo "monto" con valores distintos porque el paso dice "ingresar un monto razonable"; una recibe un error de límite y la otra no.',
-    rule: 2,
-    why: '"Razonable" no fija un valor. Cada persona elige un número y el sistema responde distinto, sin que nadie haya cambiado el caso.',
-    hint: '¿Las dos personas hicieron exactamente la misma acción?',
+    line: 'Resultado esperado: el panel de ventas queda prolijo.',
+    targetIndex: 7,
+    why: 'No es Verificable: "prolijo" es una opinión. Para confirmarlo hace falta un hecho concreto, como un texto o un valor exacto.',
+    hint: '¿Dos personas mirando el mismo panel se pondrían de acuerdo en si pasó?',
   },
   {
-    code: 'Una persona corre el caso por la mañana y otra por la tarde; las dos ven el mismo texto "Pedido confirmado" y el mismo número de orden.',
-    rule: 0,
-    why: 'El caso no depende de la hora ni de datos externos: mismo paso, mismo hecho verificable, mismo resultado.',
-    hint: '¿El resultado cambió entre las dos corridas?',
+    line: 'Pasos: iniciar sesión con la cuenta del caso anterior y abrir el carrito.',
+    targetIndex: 8,
+    why: 'No es Independiente: depende de que otro caso haya corrido antes y dejado la cuenta creada. Si se ejecuta solo, o en otro orden, falla sin que nada esté roto.',
+    hint: '¿Este caso funciona si es el primero (o el único) que se ejecuta?',
   },
   {
-    code: 'El resultado dice "el panel se ve actualizado" y una persona lo da por bueno mientras la otra espera a que aparezca el número nuevo.',
-    rule: 1,
-    why: '"Se ve actualizado" no dice qué mirar. Una persona confirma con el color y otra con el dato, y las dos creen haber verificado lo mismo.',
-    hint: '¿Qué hecho concreto confirma que el panel se actualizó?',
-  },
-  {
-    code: 'El paso dice "esperar a que cargue" sin indicar cuánto ni qué elemento esperar; una persona espera dos segundos y otra diez.',
-    rule: 2,
-    why: 'La espera queda a criterio de cada persona. Una puede seguir antes de que el sistema termine y la otra después: no es el mismo caso.',
-    hint: '¿Dos personas esperan lo mismo con esa instrucción?',
-  },
-  {
-    code: 'El caso usa la cuenta "qa_08@mail.com", que la precondición crea si no existe; dos personas obtienen el mismo resultado.',
-    rule: 0,
-    why: 'Los datos están fijados y el caso los prepara antes de empezar. No hay nada externo que haga variar el resultado entre personas.',
-    hint: '¿Hay algo externo o ambiguo que pueda hacer variar el resultado acá?',
-  },
-  {
-    code: 'El caso espera el texto exacto "Suscripción confirmada" y la URL "/cuenta"; se ejecuta con la cuenta "qa_10@mail.com" que crea la precondición.',
-    rule: 0,
-    why: 'El resultado es un hecho concreto y la cuenta la prepara el propio caso, así que dos personas llegan al mismo veredicto.',
-    hint: '¿El resultado es un hecho concreto, y los datos los prepara el propio caso?',
+    line: 'Resultado esperado: el reporte muestra los pedidos de hoy.',
+    targetIndex: 8,
+    why: 'No es Repetible: "hoy" cambia según el día en que se ejecuta. Mañana el mismo caso espera otros pedidos. Una fecha fija lo vuelve repetible.',
+    hint: 'Si el caso se ejecuta mañana con los mismos pasos, ¿espera exactamente lo mismo?',
   },
 ];
 
@@ -139,3 +122,45 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
     ],
   },
 ];
+
+export const DIAG_START = 'datos';
+export const DIAG_NODES: Record<string, DecisionNode> = {
+  datos: {
+    id: 'datos',
+    situation: 'Dos testers ejecutan CT-31, «Reservar una clase con cupo disponible». A Ana le pasa; a Bruno le falla. Al comparar, Ana reservó Yoga del lunes y Bruno, Spinning del martes, que ya tenía el cupo lleno. ¿Qué hay que corregir en el caso?',
+    options: [
+      {text: 'Que sea repetible: hay que volver a correrlo hasta que dé lo mismo.', correct: false, why: 'Repetirlo no cambia nada: cada uno volvería a elegir su clase. El problema apareció porque usaron datos distintos.'},
+      {text: 'Que sea claro: tiene que indicar qué clase, qué día y con qué cupo.', correct: true, why: 'Si cada persona elige sus datos, cada una prueba algo distinto. Es la señal de un caso que no es claro.', next: 'mensaje'},
+      {text: 'Que sea verificable: el resultado esperado no es preciso.', correct: false, why: 'Los dos vieron resultados distintos porque hicieron cosas distintas, no porque interpretaran distinto lo mismo.'},
+    ],
+  },
+  mensaje: {
+    id: 'mensaje',
+    situation: 'Con el caso corregido, los dos reservan Yoga del lunes y ven el mismo cartel: «Reserva registrada, pendiente de pago». Ana lo marca como pasado y Bruno como fallado. El resultado esperado dice «la reserva se completa». ¿Qué falta?',
+    options: [
+      {text: 'Que sea independiente: alguna reserva anterior influyó.', correct: false, why: 'Los dos vieron exactamente lo mismo; ninguna ejecución anterior cambió el resultado.'},
+      {text: 'Que sea claro: los pasos no dicen qué clase elegir.', correct: false, why: 'Eso ya se corrigió: los dos hicieron lo mismo con los mismos datos.'},
+      {text: 'Que sea verificable: el resultado esperado tiene que decir el texto exacto y el estado de la reserva.', correct: true, why: 'Vieron lo mismo y lo interpretaron distinto: «se completa» no permite decidir si «pendiente de pago» cumple o no.', next: 'orden'},
+    ],
+  },
+  orden: {
+    id: 'orden',
+    situation: 'CT-32, «Cancelar una reserva», pasa siempre que corre después de CT-31, y falla cuando alguien lo ejecuta solo: no encuentra ninguna reserva para cancelar. ¿Qué característica rompe?',
+    options: [
+      {text: 'Independencia: depende de la reserva que crea otro caso; tiene que crear la suya en la precondición.', correct: true, why: 'Lo que cambia el resultado es qué se ejecutó antes: el caso no es independiente.', next: 'tiempo'},
+      {text: 'Repetibilidad: da resultados distintos en distintas ejecuciones.', correct: false, why: 'Da resultados distintos, pero según qué corrió antes, no por el paso del tiempo. Eso señala la independencia.'},
+      {text: 'Claridad: el paso «cancelar» es ambiguo.', correct: false, why: 'El paso se ejecuta igual en las dos situaciones; lo que falta es la reserva que lo hace posible.'},
+    ],
+  },
+  tiempo: {
+    id: 'tiempo',
+    situation: 'CT-33, «Ver las clases de esta semana», espera que aparezca «Pilates · miércoles 6/11». Pasó el lunes y falló el jueves de la semana siguiente, sin ningún cambio de versión. ¿Qué característica rompe?',
+    options: [
+      {text: 'Verificabilidad: «aparece» no es preciso.', correct: false, why: 'El resultado esperado es exacto; lo que lo vuelve falso es que la semana cambió.'},
+      {text: 'Independencia: otro caso borró la clase.', correct: false, why: 'Nada indica que otro caso haya intervenido; el resultado cambió con la fecha.'},
+      {text: 'Repetibilidad: depende de la fecha en que se ejecuta; tiene que fijar la fecha o crear la clase en la semana actual.', correct: true, why: 'El mismo caso, sin cambios en el sistema, cambió de resultado con el tiempo: no es repetible.'},
+    ],
+  },
+};
+export const DIAG_EXPLANATION =
+  'La diferencia entre dos resultados dice qué revisar: datos distintos → claridad; lo mismo interpretado distinto → verificabilidad; depende de lo que corrió antes → independencia; cambia con el tiempo → repetibilidad.';

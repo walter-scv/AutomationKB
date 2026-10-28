@@ -4,49 +4,68 @@ sidebar_position: 12
 ---
 
 import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
 import FindInCode from '@site/src/components/FindInCode';
-import Quiz from '@site/src/components/Quiz';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import Match from '@site/src/components/Match';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  COMBINATION_LINES, COMBINATION_RULE_LABELS,
-  WHEN_QUIZ,
-  PRACTICE_LINES, PRACTICE_RULE_LABELS,
-  CLOSING_QUIZ,
+  ROWS_ACCEPTED,
+  ROWS_HINTS,
+  ROWS_EXPLANATION,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
+  TECHNIQUE_MATCH_LEFT,
+  TECHNIQUE_MATCH_RIGHT,
+  TECHNIQUE_MATCH_WHY,
+  RENTAL_START,
+  RENTAL_NODES,
+  RENTAL_EXPLANATION,
 } from '@site/src/content/lessons/12-decision-table-testing';
 
 export const LESSON_SLUG = 'foundations-decision-table-testing';
 
-export function CombinationActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['combination']);
+export function RowsActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['rows']);
   return (
     <Activity
-      title="¿Esta fila suma cobertura nueva?"
-      kind="Clasificar"
-      goal="reconocer qué combinaciones ya están cubiertas, cuáles faltan y cuándo una condición no aporta a la lógica."
-      done={isDone('combination')}
-      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+      title="¿Cuántas filas tiene la tabla?"
+      kind="Respuesta escrita"
+      goal="calcular cuántas combinaciones tiene que cubrir una decision table según la cantidad de condiciones que interactúan."
+      done={isDone('rows')}
+      consigna="Un descuento depende de cuatro condiciones de sí/no que interactúan entre sí: el cliente es nuevo, el monto supera $10.000, paga por transferencia y la compra es en día hábil. Escribí cuántas filas tiene la decision table completa (solo el número). Si te equivocás, recibís una pista y podés volver a intentar. La actividad se completa al acertar."
     >
-      <FindInCode
-        lines={COMBINATION_LINES}
-        ruleLabels={COMBINATION_RULE_LABELS}
-        alreadyDone={isDone('combination')}
-        onSolved={() => markDone('combination')}
+      <TypeAnswer
+        accepted={ROWS_ACCEPTED}
+        hints={ROWS_HINTS}
+        explanation={ROWS_EXPLANATION}
+        placeholder="Cantidad de filas"
+        alreadyDone={isDone('rows')}
+        onSolved={() => markDone('rows')}
       />
     </Activity>
   );
 }
 
-export function WhenActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['when']);
+export function TechniqueMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['techniquematch']);
   return (
     <Activity
-      title="¿Hace falta una decision table acá?"
-      kind="Elegí la opción"
-      goal="distinguir cuándo dos condiciones interactúan (y hace falta combinarlas) de cuándo son independientes."
-      done={isDone('when')}
-      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+      title="¿Qué técnica para cada caso?"
+      kind="Emparejar"
+      goal="decidir cuándo hace falta una decision table, cuándo alcanza con probar cada campo por separado y qué condiciones dejar afuera."
+      done={isDone('techniquematch')}
+      consigna="Son 4 pares: cada situación corresponde a exactamente un enfoque. Elegí una situación y después el enfoque que mejor la cubre (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 4."
     >
-      <Quiz questions={WHEN_QUIZ} onSolved={() => markDone('when')} />
+      <Match
+        left={TECHNIQUE_MATCH_LEFT}
+        right={TECHNIQUE_MATCH_RIGHT}
+        leftLabel="Situación"
+        rightLabel="Enfoque"
+        why={TECHNIQUE_MATCH_WHY}
+        alreadyDone={isDone('techniquematch')}
+        onSolved={() => markDone('techniquematch')}
+      />
     </Activity>
   );
 }
@@ -66,103 +85,170 @@ export function PracticeActivity() {
   );
 }
 
-export function ClosingQuizActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+export function RentalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['rental']);
   return (
     <Activity
-      title="Cuándo armar la tabla"
-      kind="Elegí la opción"
-      goal="aplicar decision table testing a situaciones nuevas."
-      done={isDone('quiz')}
-      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+      title="De la regla a los casos"
+      kind="Escenario encadenado"
+      goal="aplicar decision table testing de punta a punta: detectar un hueco en el requisito, simplificar, decidir según el riesgo y bajar una regla a un caso."
+      done={isDone('rental')}
+      consigna="Vas a armar la tabla de una regla de alquiler de autos en cuatro decisiones. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al final."
     >
-      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+      <DecisionPath
+        startId={RENTAL_START}
+        nodes={RENTAL_NODES}
+        explanation={RENTAL_EXPLANATION}
+        alreadyDone={isDone('rental')}
+        onSolved={() => markDone('rental')}
+      />
     </Activity>
   );
 }
 
 ## Conceptos
 
-Ya sabés elegir buenos valores para un campo (equivalence partitioning y
-boundary value analysis). Pero un formulario no tiene un campo solo —
-tiene varios, y a veces el resultado depende de cómo se **combinan** entre
-sí, no de cada uno por separado. Equivalence partitioning no cubre esto:
-trata cada campo de forma aislada.
+Equivalence partitioning y boundary value analysis tratan cada dato por
+separado. Hay reglas de negocio, sin embargo, en las que el resultado no
+depende de un dato sino de **cómo se combinan varias condiciones**. Probar
+cada condición por separado no garantiza haber probado las combinaciones,
+y es en una combinación olvidada donde suele estar el defecto. **Decision
+table testing** es la técnica que enumera esas combinaciones de forma
+sistemática.
 
-**Decision table testing** enumera las combinaciones relevantes entre dos
-o más condiciones, y el resultado esperado para cada una. Para el
-formulario de registro, combinando la validez de la contraseña con el
-estado del checkbox de términos:
+### Armar la tabla
 
-| Contraseña válida | Checkbox tildado | Resultado |
-|---|---|---|
-| Sí | Sí | Crea la cuenta |
-| Sí | No | No crea la cuenta |
-| No | Sí | No crea la cuenta |
-| No | No | No crea la cuenta |
+Una entidad financiera define así la aprobación automática de un préstamo
+personal:
 
-Si solo se probara cada campo por separado, se podría dejar sin cubrir la
-combinación "contraseña válida + checkbox destildado" — una combinación
-real que un usuario puede encontrar, y que equivalence partitioning, al
-mirar cada campo de forma aislada, no obliga a probar.
+> Se aprueba si el solicitante tiene ingresos verificados y no tiene
+> deudas en mora. Si además es cliente hace más de un año, se aprueba con
+> una tasa preferencial. Con deudas en mora, siempre se rechaza. Sin
+> ingresos verificados y sin deudas, la solicitud pasa a revisión manual.
+
+La tabla se construye en dos pasos. Primero se identifican las
+**condiciones** (lo que se evalúa) y las **acciones** (lo que el sistema
+hace como resultado). Aquí hay tres condiciones: ingresos verificados,
+deudas en mora y antigüedad mayor a un año; y cuatro resultados posibles:
+aprobado con tasa preferencial, aprobado con tasa estándar, rechazado y
+revisión manual. Después se escribe una **regla** por cada combinación de
+condiciones, con su resultado. Con tres condiciones de sí o no hay
+2 × 2 × 2 = 8 combinaciones:
+
+| Regla | Ingresos verificados | Deudas en mora | Cliente > 1 año | Resultado |
+|---|---|---|---|---|
+| R1 | Sí | No | Sí | Aprobado, tasa preferencial |
+| R2 | Sí | No | No | Aprobado, tasa estándar |
+| R3 | Sí | Sí | Sí | Rechazado |
+| R4 | Sí | Sí | No | Rechazado |
+| R5 | No | No | Sí | Revisión manual |
+| R6 | No | No | No | Revisión manual |
+| R7 | No | Sí | Sí | Rechazado |
+| R8 | No | Sí | No | Rechazado |
+
+(En el syllabus de ISTQB y en muchas herramientas, la misma tabla se
+dibuja transpuesta: las condiciones como filas y cada regla como columna.
+El contenido es el mismo.)
+
+Cada condición que se suma duplica la cantidad de combinaciones: cada
+regla existente aparece una vez con la nueva condición en "sí" y otra en
+"no". Con dos condiciones hay 4 reglas, con tres hay 8, con cuatro, 16.
+Por eso una tabla incluye solo las condiciones que de verdad cambian el
+resultado. Si el formulario también pide la provincia, pero la provincia
+no influye en la aprobación, agregarla como condición duplicaría la tabla
+sin agregar ninguna prueba útil.
+
+### Simplificar la tabla
+
+Las reglas R3, R4, R7 y R8 tienen el mismo resultado por una sola razón:
+hay deudas en mora. Los ingresos y la antigüedad no cambian nada en esos
+casos. Cuando una condición es irrelevante para el resultado, se marca con
+un guion y las reglas se unen:
+
+| Regla | Ingresos verificados | Deudas en mora | Cliente > 1 año | Resultado |
+|---|---|---|---|---|
+| R1 | Sí | No | Sí | Aprobado, tasa preferencial |
+| R2 | Sí | No | No | Aprobado, tasa estándar |
+| R3 | – | Sí | – | Rechazado |
+| R4 | No | No | – | Revisión manual |
+
+De ocho reglas quedan cuatro. La simplificación reduce casos, pero tiene
+un costo: al unir R3, R4, R7 y R8 se asume que el sistema realmente
+ignora las otras condiciones cuando hay mora. Si el riesgo de equivocarse
+en esa suposición es alto, conviene probar igual las combinaciones
+unidas, o al menos dos de ellas.
+
+Algunas combinaciones, además, pueden ser **imposibles**. Si la regla
+tuviera una condición "es menor de edad" y otra "tiene ingresos
+verificados por un empleador", y la entidad no admitiera empleados menores,
+esa combinación no se prueba: se marca como no aplicable y se elimina.
+
+### De la tabla a los casos
+
+En decision table testing, lo que hay que cubrir son las reglas factibles:
+cada una se convierte en al menos un caso de prueba con datos concretos.
+La cobertura es la cantidad de reglas probadas sobre el total de reglas
+factibles. Para la tabla simplificada:
+
+```text
+CT-01 (R1)  Ingresos verificados, sin mora, cliente desde 2021  → Aprobado, tasa preferencial
+CT-02 (R2)  Ingresos verificados, sin mora, cliente desde 2026  → Aprobado, tasa estándar
+CT-03 (R3)  Ingresos verificados, con una cuota en mora         → Rechazado
+CT-04 (R4)  Sin ingresos verificados, sin mora                  → Revisión manual
+```
+
+### La tabla también encuentra defectos en el requisito
+
+Armar la tabla obliga a escribir un resultado para cada combinación, y a
+veces el requisito no lo dice. En el ejemplo, el texto no aclara qué pasa
+con un cliente de más de un año sin ingresos verificados: ¿revisión
+manual, como cualquiera sin ingresos, o la antigüedad le da algún
+beneficio? R5 quedó en "revisión manual" por deducción, y esa deducción
+hay que confirmarla con el responsable del producto antes de diseñar los
+casos. Encontrar combinaciones sin resultado definido, o con dos
+resultados que se contradicen, es uno de los aportes más valiosos de la
+técnica, y ocurre antes de ejecutar nada.
+
+### Cuándo no hace falta
+
+Una tabla solo tiene sentido cuando las condiciones **interactúan**: cuando
+el resultado de una depende del valor de otra. Si el país y la moneda de
+un formulario se validan cada uno con sus propias reglas, sin afectarse,
+alcanza con probar cada campo con equivalence partitioning. Combinarlos
+multiplicaría los casos sin cubrir ningún comportamiento nuevo.
 
 ## Cuándo usarlo
 
-Decision table testing aplica cuando dos o más condiciones **interactúan**
-en la lógica de negocio: el resultado cambia según cómo se combinen, no
-solo según el valor de una sola. Si dos campos son independientes entre sí
-(ninguno afecta el resultado del otro), combinar sus valores en una tabla
-no agrega cobertura real — ahí alcanza con equivalence partitioning sobre
-cada uno por separado.
+Decision table testing conviene cuando un requisito describe reglas de
+negocio con varias condiciones que se combinan: aprobaciones, descuentos,
+permisos, cálculos de tarifas. Si la cantidad de condiciones hace que la
+tabla completa sea inmanejable, se trabaja con la tabla simplificada o se
+priorizan las reglas por riesgo.
 
 ## Buenas prácticas
 
-- **Identificar primero qué condiciones realmente interactúan** en la
-  lógica de negocio, antes de armar la tabla. Si no está claro, conviene
-  preguntarse: "¿cambiar el valor de esta condición cambia el resultado
-  cuando la otra ya está fija?" — si la respuesta es no, no interactúan.
-- **Incluir solo esas condiciones.** Combinar campos que no interactúan
-  infla la tabla sin agregar cobertura real: con 2 condiciones hay 4
-  combinaciones posibles, pero con 4 condiciones independientes ya son
-  16 — la mayoría, ruido.
-- **Reducir combinaciones imposibles o sin sentido en el dominio**, pero
-  marcándolas explícitamente en vez de omitirlas en silencio — así quien
-  lea la tabla después sabe que se excluyeron a propósito, no que se
-  olvidaron.
-- **Revisar la tabla cuando se agregue una condición nueva al
-  formulario.** Cada condición nueva puede duplicar el tamaño de la
-  tabla — vale la pena confirmar si sigue siendo manejable o si conviene
-  dividirla en tablas más chicas.
-- **Nombrar cada fila con la combinación que representa**, no solo con un
-  número — "contraseña inválida + checkbox tildado" se entiende sin mirar
-  el resto de la tabla; "fila 3" no.
+- Incluir solo las condiciones que cambian el resultado.
+- Escribir un resultado para cada regla, y consultar las que el
+  requisito no define.
+- Simplificar unificando reglas donde una condición es irrelevante, y
+  evaluar el riesgo de esa simplificación.
+- Eliminar las combinaciones imposibles, dejando registrado por qué.
 
 ## Anti-patrones
 
-- **Armar una decision table para campos independientes** que no
-  interactúan entre sí — es trabajo de más; equivalence partitioning
-  alcanza.
-- **Dejar afuera una combinación relevante** por apurarse a completar la
-  tabla, dejando sin cubrir justo el caso que un usuario real puede
-  encontrar.
-- **Repetir una combinación ya cubierta** con datos distintos pero el
-  mismo patrón de condiciones — no agrega una fila nueva a la tabla.
-- **Armar una tabla gigante combinando todas las condiciones del
-  formulario**, sin filtrar primero cuáles interactúan de verdad — el
-  número de filas crece exponencialmente, y la mayoría termina siendo
-  ruido que nadie revisa en serio.
-- **Dejar implícito qué pasa con una combinación inválida en el dominio**
-  (como "edad negativa + cuenta premium"), en vez de decidir y documentar
-  explícitamente el resultado esperado ahí.
+- **Omitir combinaciones** porque "no parecen relevantes".
+- **Agregar condiciones que no influyen** en el resultado.
+- **Repetir una combinación ya cubierta** con otros valores.
+- **Usar una tabla para campos independientes**.
 
 ## Práctica
 
 Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
-<CombinationActivity />
-
-<WhenActivity />
+<RowsActivity />
 
 <PracticeActivity />
 
-<ClosingQuizActivity />
+<RentalActivity />
+
+<TechniqueMatchActivity />

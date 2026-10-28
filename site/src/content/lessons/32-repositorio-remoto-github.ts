@@ -1,55 +1,25 @@
+import type {MultiSelectQuestion} from '@site/src/components/MultiSelect';
 import type {CodeLine} from '@site/src/components/FindInCode';
+import type {MatchItem} from '@site/src/components/Match';
 
-export const COMMAND_RULE_LABELS = [
-  'Usa `git fetch` cuando la situación pedía compartir commits (`push`)',
-  'Usa `git fetch` cuando la situación pedía traer y mezclar (`pull`)',
-  'Usa `git pull` cuando la situación pedía `git fetch`',
+export const REMOTE_MATCH_LEFT: MatchItem[] = [
+  {id: 'push', text: 'Hiciste tres commits hoy y querés que el equipo los vea en GitHub.'},
+  {id: 'fetch', text: 'Querés saber si hay commits nuevos en el remoto, sin que se mezclen todavía con tu rama.'},
+  {id: 'log', text: 'Ya descargaste lo nuevo del remoto y querés ver qué commits llegaron que tu `main` todavía no tiene.'},
+  {id: 'pull', text: 'Arrancás el día y querés dejar tu `main` igual al remoto, trayendo y mezclando en un solo paso.'},
 ];
-
-export const COMMAND_LINES: CodeLine[] = [
-  {
-    code: 'Para revisar qué trae el remoto antes de mezclarlo con su rama, alguien corre `git pull origin main`.',
-    rule: 3,
-    why: '`git pull` no solo descarga: también mezcla lo que trajo con la rama local. Si el objetivo era revisar primero, la rama ya cambió antes de que la persona pudiera mirar nada.',
-    hint: '¿La rama local sigue igual después de este comando, o ya incorporó lo que había en el remoto?',
-  },
-  {
-    code: 'Para partir del último estado del remoto antes de empezar a trabajar, se corre `git pull` sobre main.',
-    rule: 0,
-    why: 'Antes de arrancar, traer y mezclar los cambios del remoto es lo esperado: se parte de la versión más reciente. `git pull` hace exactamente eso en un paso.',
-    hint: '¿Hacía falta solo revisar, o también mezclar los cambios del remoto?',
-  },
-  {
-    code: 'Para compartir tres commits locales con el resto del equipo, alguien corre `git fetch origin`.',
-    rule: 1,
-    why: '`git fetch` solo baja información del remoto; no sube nada. Los tres commits siguen en la máquina y el equipo no los ve. Para compartirlos hace falta `git push`.',
-    hint: '¿Qué dirección tomó el cambio con este comando: de tu máquina al remoto, o al revés?',
-  },
-  {
-    code: 'Después de un `git fetch`, alguien revisa con `git log main..origin/main` qué commits nuevos llegaron y recién ahí decide mergear.',
-    rule: 0,
-    why: '`git fetch` deja los cambios nuevos en las referencias remotas sin tocar la rama local; después se pueden mirar con `git log main..origin/main` (los commits que están en el remoto y no en tu rama) y decidir. Es el uso seguro de fetch.',
-    hint: '¿Este uso de fetch mezcla algo automáticamente, o deja la decisión para después?',
-  },
-  {
-    code: 'Para bajar los commits nuevos del remoto y dejarlos integrados en la rama local en un solo paso, se corre `git fetch`.',
-    rule: 2,
-    why: '`git fetch` solo descarga: la rama local sigue sin los cambios y no quedaron mezclados. El escenario pedía el paso completo, que es `git pull` (fetch más merge).',
-    hint: '¿Después de este comando, la rama local ya tiene los commits nuevos aplicados?',
-  },
-  {
-    code: 'Un push es rechazado porque el remoto avanzó; la persona corre `git pull`, resuelve el conflicto y vuelve a pushear.',
-    rule: 0,
-    why: 'Cuando el remoto avanzó, el push se rechaza porque quedarían commits afuera. Traerlos con `pull`, resolver lo que choque y volver a pushear es el camino correcto.',
-    hint: '¿Este camino integra los cambios del remoto antes de reintentar el push?',
-  },
-  {
-    code: 'Para ver si hay commits nuevos sin tocar el working directory, alguien corre `git pull --rebase`.',
-    rule: 3,
-    why: '`git pull --rebase` descarga, reescribe los commits locales sobre lo nuevo y puede abrir conflictos: no es una operación de solo lectura. Para mirar sin tocar nada, `git fetch` alcanza.',
-    hint: '¿Esta variante deja los commits locales exactamente como estaban?',
-  },
+export const REMOTE_MATCH_RIGHT: MatchItem[] = [
+  {id: 'log', text: '`git log main..origin/main`'},
+  {id: 'pull', text: '`git pull`'},
+  {id: 'push', text: '`git push`'},
+  {id: 'fetch', text: '`git fetch`'},
 ];
+export const REMOTE_MATCH_WHY: Record<string, string> = {
+  push: '`push` sube tus commits locales al remoto: hasta entonces, solo existen en tu máquina.',
+  fetch: '`fetch` descarga lo nuevo del remoto pero no toca tu rama: es el paso seguro para revisar antes de decidir.',
+  log: 'Después de un `fetch`, `origin/main` tiene lo que trajo el remoto; `main..origin/main` lista los commits que están ahí y todavía no en tu `main`.',
+  pull: '`pull` es `fetch` + `merge` en un paso: trae y mezcla directo, sin pausa para revisar.',
+};
 
 export const PRACTICE_RULE_LABELS = [
   'Pasó días sin traer los cambios del remoto',
@@ -109,3 +79,29 @@ export const PRACTICE_LINES: CodeLine[] = [
   },
 ];
 
+export const STATUS_OUTPUT = `$ git status
+On branch main
+Your branch is behind 'origin/main' by 2 commits, and can be fast-forwarded.
+
+nothing to commit, working tree clean`;
+export const STATUS_ACCEPTED = ['git pull', 'git pull origin main'];
+export const STATUS_HINTS = [
+  '"behind" quiere decir que el remoto tiene commits que tu `main` todavía no. ¿Hacia dónde tienen que viajar esos commits?',
+  'Tienen que venir del remoto a tu rama y quedar mezclados, en un solo paso.',
+];
+export const STATUS_EXPLANATION =
+  'Tu `main` está 2 commits atrás del remoto y no tenés cambios propios: `git pull` los trae y los mezcla en un paso. `git push` sería al revés (subir lo tuyo), y `git fetch` los traería sin dejarlos en tu rama.';
+
+export const AUTH_QUESTIONS: MultiSelectQuestion[] = [
+  {
+    prompt: 'Vas a subir tu primera rama a un repositorio privado de GitHub desde una computadora nueva. ¿Qué formas de autenticarte funcionan y son seguras? Marcá todas las que correspondan.',
+    options: [
+      {text: 'Escribir la contraseña de tu cuenta de GitHub cuando Git la pide.', correct: false, why: 'GitHub dejó de aceptar la contraseña para operaciones de Git en 2021: el push falla con «Support for password authentication was removed».'},
+      {text: 'Generar un token de acceso personal con vencimiento y permiso solo sobre ese repositorio, y pegarlo cuando Git pide la contraseña.', correct: true, why: 'Es la credencial para direcciones HTTPS, con el alcance mínimo necesario.'},
+      {text: 'Iniciar sesión desde el navegador con Git Credential Manager, que guarda la credencial en el sistema.', correct: true, why: 'Es la misma autenticación por HTTPS, sin pegar el token en cada operación.'},
+      {text: 'Generar un par de claves con `ssh-keygen`, cargar la pública en GitHub y usar la dirección `git@github.com:...` del repositorio.', correct: true, why: 'Es la autenticación por SSH: la clave privada queda en tu computadora y GitHub verifica con la pública.'},
+      {text: 'Pedirle a un compañero el token que a él ya le funciona.', correct: false, why: 'Un token es una credencial personal: compartirlo la expone y los cambios quedarían subidos a nombre de otra persona.'},
+      {text: 'Guardar el token en un archivo `credenciales.txt` del repositorio, para no perderlo.', correct: false, why: 'Todo lo que entra al historial queda visible para cualquiera con acceso al repositorio; un token expuesto hay que revocarlo.'},
+    ],
+  },
+];

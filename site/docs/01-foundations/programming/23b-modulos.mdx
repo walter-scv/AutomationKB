@@ -1,0 +1,299 @@
+---
+title: "Módulos: import y export"
+sidebar_position: 23.7
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import Order from '@site/src/components/Order';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  IMPORT_ITEMS,
+  IMPORT_COLUMNS,
+  TURNOS_CODE,
+  PATH_PREFIX,
+  PATH_STEPS,
+  PATH_EXPLANATION,
+  PATH_TREE,
+  EXTRACT_ITEMS,
+  EXTRACT_CORRECT,
+  EXTRACT_RULES,
+} from '@site/src/content/lessons/23b-modulos';
+
+export const LESSON_SLUG = 'foundations-modulos';
+
+export function ImportClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['importclassify']);
+  return (
+    <Activity
+      title="¿Compila este import?"
+      kind="Clasificar"
+      goal="decidir si un import es válido según cómo exporta el archivo de origen: con nombre, por defecto, o sin exportar."
+      done={isDone('importclassify')}
+      consigna="El código muestra qué exporta turnos.ts. Son 8 imports escritos en otro archivo de la misma carpeta, src/agenda/, y 2 cajas: Compila y Da error. Arrastrá cada import a su caja. Para decidir, fijate si lo importado está exportado, si es con nombre o por defecto, y si la ruta lleva al archivo. La actividad se completa cuando ubicaste los 8."
+    >
+      <CodeBlock language="ts">{TURNOS_CODE}</CodeBlock>
+      <Classify
+        items={IMPORT_ITEMS}
+        columns={IMPORT_COLUMNS}
+        itemLabel="Import"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('importclassify')}
+        onSolved={() => markDone('importclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function PathBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['pathbuilder']);
+  return (
+    <Activity
+      title="Armá el import"
+      kind="Armar el comando"
+      goal="escribir un import con el formato y la ruta relativa correctos según la estructura de carpetas."
+      done={isDone('pathbuilder')}
+      consigna="El árbol muestra dónde está cada archivo; moneda.ts declara `export function formatearMoneda(...)`. Armá, fragmento por fragmento, la línea que importa formatearMoneda en mensual.ts. Si elegís mal, recibís una pista y podés elegir otro. La actividad se completa cuando la línea está entera."
+    >
+      <CodeBlock language="text">{PATH_TREE}</CodeBlock>
+      <CommandBuilder
+        prefix={PATH_PREFIX}
+        steps={PATH_STEPS}
+        explanation={PATH_EXPLANATION}
+        alreadyDone={isDone('pathbuilder')}
+        onSolved={() => markDone('pathbuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function ExtractOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['extract']);
+  return (
+    <Activity
+      title="Mové una función a su propio archivo"
+      kind="Ordenar"
+      goal="ordenar los pasos para separar una función en un módulo nuevo sin romper el archivo que la usa."
+      done={isDone('extract')}
+      consigna="pedidos.ts creció demasiado y la función calcularEnvio va a pasar a un archivo propio, envios.ts. Son 5 pasos desordenados: ordenalos del primero al último con las flechas (o arrastrándolos) y usá «Comprobar orden» para verificar. La actividad se completa cuando el orden es correcto."
+    >
+      <Order
+        items={EXTRACT_ITEMS}
+        correctOrder={EXTRACT_CORRECT}
+        rules={EXTRACT_RULES}
+        onSolved={() => markDone('extract')}
+      />
+    </Activity>
+  );
+}
+
+Con clases e interfaces, el código de un proyecto real crece rápido y se reparte en muchos archivos. Esta lección explica cómo un archivo ofrece lo que tiene con `export`, cómo otro lo usa con `import`, cómo se escriben las rutas y cómo leer los errores cuando algo no coincide.
+
+## Conceptos
+
+Un programa real no vive en un solo archivo. Una aplicación chica ya tiene
+decenas: uno con las funciones de precios, otro con las de fechas, otro con
+las interfaces de los datos. Para que un archivo use lo que está escrito en
+otro, TypeScript (igual que JavaScript) usa **módulos**: cada archivo es un
+módulo, decide qué ofrece hacia afuera con `export` y toma lo que necesita
+de otros con `import`.
+
+Para quien prueba, esto tiene un efecto práctico inmediato: leer código de
+un proyecto real empieza casi siempre por las líneas de `import` del
+principio del archivo, que dicen de dónde sale cada cosa que se usa.
+
+### Cada archivo tiene su propio alcance
+
+Lo que se declara en un archivo existe solo dentro de ese archivo. Dos
+archivos pueden tener cada uno una función `redondear` sin que choquen. Y
+lo que un archivo no exporta, ningún otro lo puede usar: es un detalle
+interno.
+
+### `export` e `import` con nombre
+
+Se exporta escribiendo `export` delante de la declaración. Se puede
+exportar cualquier cosa con nombre: funciones, constantes, clases,
+interfaces y type aliases.
+
+```ts
+// src/utils/precios.ts
+export const ALICUOTA_IVA = 0.21;
+
+export interface Precio {
+  neto: number;
+  iva: number;
+}
+
+export function calcularIva(neto: number): number {
+  return redondear(neto * ALICUOTA_IVA);
+}
+
+function redondear(valor: number): number {   // sin export: solo para este archivo
+  return Math.round(valor * 100) / 100;
+}
+```
+
+Otro archivo lo importa nombrando, entre llaves, lo que necesita, y la ruta
+del archivo:
+
+```ts
+// src/pagos/checkout.ts
+import { calcularIva, ALICUOTA_IVA } from '../utils/precios';
+
+const iva = calcularIva(10000);   // 2100
+```
+
+Los nombres entre llaves tienen que coincidir exactamente con los
+exportados, incluidas mayúsculas y minúsculas. Lo que no se exporta no se
+puede importar: `redondear` es interna de `precios.ts`.
+
+### Las rutas
+
+La ruta de un `import` se escribe **relativa al archivo que importa**, y
+sin la extensión `.ts`. `./` es la carpeta del archivo actual; `../`, la
+carpeta de arriba. Con esta estructura:
+
+```text
+src/
+├── pagos/
+│   ├── checkout.ts
+│   └── cuotas.ts
+└── utils/
+    └── precios.ts
+```
+
+desde `src/pagos/checkout.ts`, el archivo `cuotas.ts` está en la misma
+carpeta: `'./cuotas'`. Para llegar a `precios.ts` hay que subir a `src`
+(`../`) y entrar a `utils`: `'../utils/precios'`. Se puede leer la ruta
+como instrucciones: "subí una carpeta, entrá a `utils`, abrí `precios`".
+Cada `../` adicional sube un nivel más.
+
+Una ruta que **no empieza con `.`** no es un archivo del proyecto: es un
+paquete instalado con npm, que se busca en `node_modules`:
+
+```ts
+import { format } from 'date-fns';   // paquete instalado, no un archivo propio
+```
+
+### Renombrar e importar todo
+
+Si el nombre importado choca con uno del archivo, o no es claro en ese
+contexto, se lo renombra con `as`:
+
+```ts
+import { calcularIva as ivaArgentina } from '../utils/precios';
+```
+
+También se puede importar todo lo exportado como un único objeto, y usar
+cada cosa con un punto:
+
+```ts
+import * as precios from '../utils/precios';
+
+precios.calcularIva(10000);
+precios.ALICUOTA_IVA;
+```
+
+### `export default`
+
+Además de los exports con nombre, un archivo puede tener **un** export por
+defecto. Se importa **sin llaves**, y quien importa elige el nombre:
+
+```ts
+// src/pagos/carrito.ts
+export default class Carrito {
+  // ...
+}
+```
+
+```ts
+import Carrito from './carrito';
+import MiCarrito from './carrito';   // también vale: es el mismo export
+```
+
+Un archivo puede combinar los dos: `import Carrito, { type Linea } from
+'./carrito'`. Muchos equipos prefieren evitar `export default` y usar solo
+exports con nombre, porque así el nombre es el mismo en todos los archivos
+que lo usan y el editor puede encontrarlos y renombrarlos.
+
+### Importar solo tipos
+
+Cuando lo que se importa es solo un tipo (una interface o un type alias),
+se puede indicar con `import type`. No cambia nada al ejecutar: deja
+explícito que es solo un tipo, y el compilador lo elimina por completo.
+
+```ts
+import type { Precio } from '../utils/precios';
+```
+
+### Los errores de import
+
+TypeScript revisa cada `import`, y los mensajes indican cuál de las partes
+está mal. Si la ruta no lleva a ningún archivo:
+
+```ts
+import { calcularIva } from './utils/precios';   // desde src/pagos/
+```
+
+```text
+error TS2307: Cannot find module './utils/precios' or its corresponding type declarations.
+```
+
+Desde `src/pagos/`, `./utils` buscaría una carpeta `src/pagos/utils`, que
+no existe. Si la ruta está bien pero el nombre no coincide:
+
+```text
+error TS2724: '"../utils/precios"' has no exported member named 'calcularIVA'. Did you mean 'calcularIva'?
+```
+
+Si el nombre existe pero no se exporta:
+
+```text
+error TS2459: Module '"../utils/precios"' declares 'redondear' locally, but it is not exported.
+```
+
+Y si se importa con llaves algo que es el export por defecto:
+
+```ts
+import { Carrito } from './carrito';
+```
+
+```text
+error TS2614: Module '"./carrito"' has no exported member 'Carrito'. Did you mean to use 'import Carrito from "./carrito"' instead?
+```
+
+En los cuatro casos el mensaje sugiere la corrección. Leerlo completo
+ahorra revisar la estructura de carpetas a mano.
+
+## Cuándo usarlo
+
+Se exporta lo que otros archivos necesitan usar, y nada más; lo interno
+queda sin `export`. Se importa al principio de cada archivo todo lo que
+viene de otro, con la ruta relativa desde ese archivo.
+
+## Buenas prácticas
+
+- Exportar solo lo que se usa desde afuera.
+- Preferir exports con nombre, para que el nombre sea el mismo en todo el
+  proyecto.
+- Usar `import type` para lo que solo es un tipo.
+- Leer los `import` de un archivo antes que el resto del código.
+
+## Anti-patrones
+
+- **Exportar todo "por si acaso"**, incluidos los detalles internos.
+- **Rutas que asumen la carpeta equivocada** (`./` cuando hacía falta `../`).
+- **Renombrar sin motivo** lo importado, de modo que la misma función tenga
+  nombres distintos en cada archivo.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ImportClassifyActivity />
+
+<PathBuilderActivity />
+
+<ExtractOrderActivity />

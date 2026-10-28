@@ -1,0 +1,366 @@
+---
+title: "Strings: trabajar con texto"
+sidebar_position: 17.5
+---
+
+import Activity from '@site/src/components/Activity';
+import MultiSelect from '@site/src/components/MultiSelect';
+import SpotToken from '@site/src/components/SpotToken';
+import Terminal from '@site/src/components/Terminal';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  COUPON_STEPS,
+  COUPON_EXPLANATION,
+  SLICE_ACCEPTED,
+  SLICE_HINTS,
+  SLICE_EXPLANATION,
+  SLICE_CODE,
+  EMAIL_PREFIX,
+  EMAIL_STEPS,
+  EMAIL_EXPLANATION,
+  STRING_BUG_ROUNDS,
+  STRING_BUG_PROMPT,
+  TEXT_CASES_QUESTIONS,
+} from '@site/src/content/lessons/17a-strings';
+
+export const LESSON_SLUG = 'foundations-strings';
+
+export function CouponActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['coupon']);
+  return (
+    <Activity
+      title="Normalizá el cupón"
+      kind="Terminal"
+      goal="encadenar métodos de string en la consola para normalizar un dato y extraer una parte."
+      done={isDone('coupon')}
+      consigna="Son 4 pasos en una consola de JavaScript simulada. La instrucción de cada uno aparece como comentario arriba del prompt: escribí la expresión y confirmá con Enter. Si no es la esperada, la consola te avisa y podés corregirla. La actividad se completa al terminar los 4 pasos."
+    >
+      <Terminal
+        steps={COUPON_STEPS}
+        explanation={COUPON_EXPLANATION}
+        promptSymbol=">"
+        commentPrefix="//"
+        alreadyDone={isDone('coupon')}
+        onSolved={() => markDone('coupon')}
+      />
+    </Activity>
+  );
+}
+
+export function SliceActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['slice']);
+  return (
+    <Activity
+      title="¿Qué imprime?"
+      kind="Respuesta escrita"
+      goal="predecir el resultado de una cadena de métodos, contando posiciones desde 0."
+      done={isDone('slice')}
+      consigna="Leé el código y escribí exactamente lo que imprime. Si te equivocás, recibís una pista, cada vez más concreta, y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="ts">{SLICE_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={SLICE_ACCEPTED}
+        hints={SLICE_HINTS}
+        explanation={SLICE_EXPLANATION}
+        placeholder="Lo que imprime"
+        alreadyDone={isDone('slice')}
+        onSolved={() => markDone('slice')}
+      />
+    </Activity>
+  );
+}
+
+export function EmailBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['email']);
+  return (
+    <Activity
+      title="Validá el dominio del email"
+      kind="Armar el comando"
+      goal="armar una validación de texto que normalice el dato antes de compararlo."
+      done={isDone('email')}
+      consigna="Un formulario interno solo acepta emails del dominio @empresa.com, y la persona puede escribirlo con mayúsculas o con espacios de más. Armá, fragmento por fragmento, la expresión que da true solo para esos emails. Si elegís mal, recibís una pista y podés elegir otro. La actividad se completa cuando la expresión está entera."
+    >
+      <CommandBuilder
+        prefix={EMAIL_PREFIX}
+        steps={EMAIL_STEPS}
+        explanation={EMAIL_EXPLANATION}
+        alreadyDone={isDone('email')}
+        onSolved={() => markDone('email')}
+      />
+    </Activity>
+  );
+}
+
+export function StringBugActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['stringbug']);
+  return (
+    <Activity
+      title="El detalle que lo rompe"
+      kind="Señalar en la línea"
+      goal="detectar, dentro de una línea que trabaja con texto, el detalle exacto que hace que no cumpla su intención: comillas, escape, normalización, `slice` o `replace`."
+      done={isDone('stringbug')}
+      consigna="Son 5 líneas; cada una tiene un comentario que dice qué se quería hacer y un único detalle que lo impide. Hacé click en la parte que lo causa. Si tocás otra, se marca en rojo, recibís una pista y podés probar de nuevo. La actividad se completa cuando resolviste las 5."
+    >
+      <SpotToken
+        rounds={STRING_BUG_ROUNDS}
+        prompt={STRING_BUG_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('stringbug')}
+        onSolved={() => markDone('stringbug')}
+      />
+    </Activity>
+  );
+}
+
+export function TextCasesActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['textcases']);
+  return (
+    <Activity
+      title="¿Qué probar en el buscador?"
+      kind="Marcar todas"
+      goal="elegir los casos de prueba de un campo de texto que ejercitan cada decisión del código, sin variantes redundantes."
+      done={isDone('textcases')}
+      consigna="Es 1 pregunta con 6 entradas posibles para un buscador. Marcá todas las que aportan un caso de prueba distinto. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={TEXT_CASES_QUESTIONS}
+        alreadyDone={isDone('textcases')}
+        onSolved={() => markDone('textcases')}
+      />
+    </Activity>
+  );
+}
+
+Los operadores permiten calcular y comparar valores. El texto tiene además sus propias operaciones: normalizarlo, buscar en él, extraer una parte, dividirlo. Esta lección las recorre, junto con los casos de prueba que se desprenden de cada una.
+
+## Conceptos
+
+Buena parte de lo que un sistema recibe y muestra es texto: nombres, emails,
+códigos, mensajes de error, direcciones. Y buena parte de los defectos que
+encuentra quien prueba también: un email que no se reconoce porque tiene
+una mayúscula, un código que falla porque se pegó con un espacio al final,
+un apellido con tilde que se corta. Para leer el código que procesa texto,
+y para entender por qué falla, hay que conocer cómo funcionan los
+**strings** y sus métodos.
+
+### Comillas y caracteres especiales
+
+Un string se escribe entre comillas simples, dobles o invertidas. Las
+simples y las dobles son equivalentes; esta guía usa simples. Si el texto
+contiene el mismo tipo de comilla que lo delimita, se la **escapa** con una
+barra invertida, o se usan las otras comillas:
+
+```ts
+const aviso1 = 'No se encontró el archivo \'reporte.pdf\'';
+const aviso2 = "No se encontró el archivo 'reporte.pdf'";   // mismo texto
+```
+
+La barra invertida también introduce caracteres que no se pueden escribir
+directamente. Los más usados son `\n`, un salto de línea, y `\\`, una barra
+invertida literal:
+
+```ts
+console.log('Línea 1\nLínea 2');
+// Línea 1
+// Línea 2
+```
+
+### Template strings
+
+Las comillas invertidas arman un **template string**, que puede insertar
+valores con `${...}` y ocupar varias líneas. Dentro de `${...}` va
+cualquier expresión, no solo una variable:
+
+```ts
+const producto = 'Auriculares';
+const unidades = 3;
+const precioUnitario = 18500;
+console.log(`${unidades} x ${producto}: $${unidades * precioUnitario}`);
+// 3 x Auriculares: $55500
+```
+
+El primer `$` de `$${...}` es un carácter común del texto; el segundo abre
+la expresión. Hacer lo mismo con `+` exige cuidar cada espacio y cada
+conversión (`unidades + ' x ' + producto + ...`); por eso el template
+string es la forma habitual de armar un texto con valores.
+
+### Longitud y posiciones
+
+`.length` es la cantidad de caracteres, incluidos los espacios. Cada
+carácter tiene una posición (índice) que empieza en 0, igual que en un
+array:
+
+```ts
+const patente = 'AB 123 CD';
+patente.length;                    // 9 (los dos espacios cuentan)
+patente[0];                        // 'A'
+patente[patente.length - 1];       // 'D', el último
+patente[20];                       // undefined: no existe esa posición
+```
+
+### Los strings no se modifican
+
+Un string no se puede cambiar una vez creado: es **inmutable**. Ningún
+método modifica el string original; todos devuelven uno nuevo. Para
+conservar el resultado, hay que guardarlo:
+
+```ts
+let etiqueta = 'pendiente';
+etiqueta.toUpperCase();              // devuelve 'PENDIENTE', pero nadie lo guarda
+console.log(etiqueta);               // pendiente
+etiqueta = etiqueta.toUpperCase();   // ahora sí
+console.log(etiqueta);               // PENDIENTE
+```
+
+Llamar a un método sin guardar el resultado es uno de los errores más
+comunes al procesar texto: el código parece hacer algo y no tiene ningún
+efecto.
+
+### Mayúsculas, minúsculas y espacios
+
+`toUpperCase()` y `toLowerCase()` convierten todo el texto. `trim()` quita
+los espacios (y saltos de línea) del principio y del final, nunca los del
+medio; `trimStart()` y `trimEnd()` quitan solo los de un lado.
+
+Estos tres métodos se usan juntos para **normalizar** un dato que escribe
+una persona, antes de compararlo o guardarlo. El caso típico es un nombre
+de usuario, que no debería distinguir mayúsculas ni fallar por un espacio
+copiado de más:
+
+```ts
+const ingresado = '  MGarcia ';
+const guardado = 'mgarcia';
+
+ingresado === guardado;                         // false
+ingresado.trim().toLowerCase() === guardado;    // true
+```
+
+Los métodos se pueden **encadenar**: cada uno se aplica sobre el resultado
+del anterior, de izquierda a derecha. `ingresado.trim()` da `'MGarcia'`, y
+`.toLowerCase()` sobre eso da `'mgarcia'`.
+
+### Buscar dentro de un texto
+
+`includes`, `startsWith` y `endsWith` responden `true` o `false`:
+
+```ts
+const archivo = 'factura-0042-2026.pdf';
+archivo.includes('0042');       // true: aparece en alguna parte
+archivo.startsWith('factura');  // true: empieza así
+archivo.endsWith('.PDF');       // false: distingue mayúsculas
+```
+
+`indexOf` devuelve la posición donde aparece por primera vez, o `-1` si no
+aparece. Ese `-1` es un valor legítimo, no un error, y hay que compararlo
+explícitamente:
+
+```ts
+archivo.indexOf('-');        // 7
+archivo.indexOf('recibo');   // -1
+```
+
+Todas estas búsquedas distinguen mayúsculas y minúsculas. Para buscar sin
+distinguirlas, se normalizan los dos textos antes: `archivo.toLowerCase().endsWith('.pdf')`.
+
+### Extraer una parte: `slice`
+
+`slice(inicio, fin)` devuelve el fragmento que va desde la posición
+`inicio` hasta **antes** de `fin`. Si se omite `fin`, llega hasta el final.
+Un índice negativo cuenta desde el final:
+
+```ts
+const cuit = '20-31456789-3';
+cuit.slice(0, 2);     // '20'         posiciones 0 y 1
+cuit.slice(3, 11);    // '31456789'   de la 3 a la 10
+cuit.slice(-1);       // '3'          el último carácter
+cuit.slice(3);        // '31456789-3' desde la 3 hasta el final
+```
+
+Que `fin` no se incluya es la fuente más común de errores con `slice`: para
+obtener los caracteres de la posición 3 a la 10, el fin es 11.
+
+### Dividir, unir y reemplazar
+
+`split(separador)` divide el texto en un array de partes; `join(separador)`
+hace lo contrario con un array:
+
+```ts
+const fecha = '28/10/2026';
+const partes = fecha.split('/');   // ['28', '10', '2026']
+partes[2];                         // '2026'
+partes.reverse().join('-');        // '2026-10-28'
+```
+
+Las partes siguen siendo strings: `partes[2]` es `'2026'`, no `2026`. Para
+operar con ellas como números se convierten con `Number(...)`, como se vio
+en operadores.
+
+`replace(buscado, nuevo)` reemplaza **solo la primera** aparición;
+`replaceAll` las reemplaza todas:
+
+```ts
+const telefono = '341-555-0199';
+telefono.replace('-', '');      // '341555-0199': quedó un guion
+telefono.replaceAll('-', '');   // '3415550199'
+```
+
+### Comparar strings
+
+`===` compara carácter por carácter, así que `'Córdoba' === 'Cordoba'` es
+`false` (la tilde es otro carácter) y `'Rosario' === 'rosario'` también. Los
+operadores `<` y `>` ordenan por el código de cada carácter, no
+alfabéticamente: todas las mayúsculas van antes que las minúsculas, por lo
+que `'Zárate' < 'avellaneda'` es `true`. Para ordenar como lo haría una
+persona se usa `localeCompare`, que se ve con los arrays ordenados.
+
+### Qué probar en un campo de texto
+
+Todo lo anterior se traduce en casos de prueba. Para un campo "nombre de
+usuario" que el sistema normaliza con `trim().toLowerCase()`, un set
+exhaustivo de textos posibles no tiene fin. Los casos que vale la pena
+probar son los que ejercitan cada decisión del código: el valor tal cual
+está guardado (`mgarcia`), el mismo en mayúsculas (`MGARCIA`), con
+espacios a los costados (`  mgarcia `), con un espacio en el medio (`m
+garcia`, que no tiene que coincidir, porque `trim` no lo quita), vacío
+(`''`), solo espacios (`'   '`, que después de `trim` queda vacío), y con
+caracteres que el código podría no contemplar, como una tilde o una ñ
+(`mgarcía`, `muñoz`). Cada uno responde una pregunta distinta sobre el
+código; agregar más variantes del mismo tipo no aporta información nueva.
+
+## Cuándo usarlo
+
+Cada vez que el código recibe texto de una persona o de otro sistema: para
+normalizarlo antes de comparar, buscar algo en él, extraer una parte o
+armar un mensaje con valores.
+
+## Buenas prácticas
+
+- Guardar el resultado de cada método: el original no cambia.
+- Normalizar con `trim()` y `toLowerCase()` antes de comparar lo que
+  escribe una persona.
+- Armar textos con valores usando template strings.
+- Comparar `indexOf` explícitamente con `-1`.
+
+## Anti-patrones
+
+- **Llamar a un método sin guardar el resultado**.
+- **Comparar texto ingresado sin normalizar**.
+- **Usar `replace` esperando que reemplace todas las apariciones**.
+- **Calcular con las partes de un `split`** sin convertirlas a número.
+
+## Práctica
+
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<CouponActivity />
+
+<StringBugActivity />
+
+<SliceActivity />
+
+<EmailBuilderActivity />
+
+<TextCasesActivity />

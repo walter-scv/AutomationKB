@@ -4,10 +4,40 @@ sidebar_position: 25.5
 ---
 
 import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import Terminal from '@site/src/components/Terminal';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import FillBlank from '@site/src/components/FillBlank';
+import SpotToken from '@site/src/components/SpotToken';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
+import DecisionPath from '@site/src/components/DecisionPath';
+import CodeBlock from '@theme/CodeBlock';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
-import {COMBINED_LINES, COMBINED_RULE_LABELS, INTEGRATIVE_QUIZ} from '@site/src/content/lessons/25b-repaso-integrador-programming';
+import {
+  COMBINED_LINES,
+  COMBINED_RULE_LABELS,
+  INTEGRATIVE_QUIZ,
+  TOKEN_PROMPT,
+  TOKEN_ROUNDS,
+  CART_CODE,
+  CART_CONSOLE_STEPS,
+  CART_CONSOLE_EXPLANATION,
+  SHIPPING_TRACE_CODE,
+  SHIPPING_TRACE_ACCEPTED,
+  SHIPPING_TRACE_HINTS,
+  SHIPPING_TRACE_EXPLANATION,
+  LOAD_CART_TEMPLATE,
+  LOAD_CART_SLOTS,
+  LOAD_CART_BANK,
+  LOAD_CART_EXPLANATION,
+  CART_PATH_START,
+  CART_PATH_NODES,
+  CART_PATH_EXPLANATION,
+  SYMPTOM_LEFT,
+  SYMPTOM_RIGHT,
+  SYMPTOM_WHY,
+} from '@site/src/content/lessons/25b-repaso-integrador-programming';
 
 export const LESSON_SLUG = 'foundations-repaso-integrador-programming';
 
@@ -17,7 +47,7 @@ export function CombinedActivity() {
     <Activity
       title="Un programa real combina todo esto a la vez"
       kind="Buscar en el código"
-      goal="reconocer problemas que combinan conceptos de varias entradas del bloque en un mismo fragmento de código."
+      goal="reconocer problemas que combinan conceptos de varias entradas del bloque en un mismo fragmento de código (entradas 17, 19, 20, 24 y 25)."
       done={isDone('combined')}
       need={
         <div>
@@ -59,7 +89,7 @@ export function IntegrativeQuizActivity() {
     <Activity
       title="Decisiones que combinan varias herramientas"
       kind="Elegí la opción"
-      goal="decidir qué combinación de herramientas (async/await, try/catch, interfaces, arrays) usar frente a un problema nuevo."
+      goal="decidir qué combinación de herramientas (async/await, try/catch, interfaces, arrays) usar frente a un problema nuevo (entradas 20, 23, 24 y 25)."
       done={isDone('quiz')}
       consigna="Son 4 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 4 están bien."
     >
@@ -68,19 +98,174 @@ export function IntegrativeQuizActivity() {
   );
 }
 
-Ya viste, una por una, las 10 entradas de programación: variables y tipos,
-operadores, condicionales, funciones, arrays, loops, objetos, interfaces,
+export function TokenActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['token']);
+  return (
+    <Activity
+      title="Una palabra rompe la línea"
+      kind="Señalar en la línea"
+      goal="encontrar, dentro de una línea que combina varios conceptos del bloque, la palabra exacta que hace que no funcione como se pretende (entradas 16, 20 y 23)."
+      done={isDone('token')}
+      consigna="Son 3 líneas, cada una con un solo problema que se arregla cambiando una palabra. Hacé click en esa palabra (no en la línea entera). Si tocás otra, se marca en rojo, recibís una pista y podés probar de nuevo. La actividad se completa cuando resolviste las 3."
+    >
+      <SpotToken
+        rounds={TOKEN_ROUNDS}
+        prompt={TOKEN_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('token')}
+        onSolved={() => markDone('token')}
+      />
+    </Activity>
+  );
+}
+
+export function CartConsoleActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['cartconsole']);
+  return (
+    <Activity
+      title="Explorá el carrito en la consola"
+      kind="Terminal"
+      goal="leer datos de un objeto con arrays adentro y comparar valores con precisión (entradas 17, 20 y 22)."
+      done={isDone('cartconsole')}
+      consigna="Es una consola de JavaScript simulada donde ya existe el `carrito` de arriba: escribís una expresión, apretás Enter y te muestra su valor. Son 4 pasos; la instrucción de cada uno aparece como comentario arriba del prompt. Si la expresión no es la esperada, te avisa y podés corregirla. La actividad se completa al terminar los 4 pasos."
+    >
+      <Terminal
+        steps={CART_CONSOLE_STEPS}
+        explanation={CART_CONSOLE_EXPLANATION}
+        promptSymbol=">"
+        commentPrefix="//"
+        alreadyDone={isDone('cartconsole')}
+        onSolved={() => markDone('cartconsole')}
+      />
+    </Activity>
+  );
+}
+
+export function ShippingTraceActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['shippingtrace']);
+  return (
+    <Activity
+      title="¿Cuánto cuesta el envío?"
+      kind="Respuesta escrita"
+      goal="seguir a mano una función que combina un loop y una cadena de condiciones (entradas 18, 19 y 21)."
+      done={isDone('shippingtrace')}
+      consigna="Leé la función sin ejecutarla y escribí qué valor queda en `envio` cuando se llama con los items del `carrito` de arriba (solo el número). Si te equivocás, recibís una pista y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="ts">{SHIPPING_TRACE_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={SHIPPING_TRACE_ACCEPTED}
+        hints={SHIPPING_TRACE_HINTS}
+        explanation={SHIPPING_TRACE_EXPLANATION}
+        placeholder="Valor de envio"
+        alreadyDone={isDone('shippingtrace')}
+        onSolved={() => markDone('shippingtrace')}
+      />
+    </Activity>
+  );
+}
+
+export function LoadCartActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['loadcart']);
+  return (
+    <Activity
+      title="Completá la carga del carrito"
+      kind="Completar huecos"
+      goal="completar una función asíncrona con su tipo de parámetro, su tipo de retorno, la espera y el manejo del error (entradas 16, 19, 23, 24 y 25)."
+      done={isDone('loadcart')}
+      consigna="`obtenerCarrito(id)` pide el carrito al servidor y devuelve una `Promise<Carrito>`; puede fallar si el servidor no responde, y quien llama a `cargarCarrito` necesita enterarse. Completá los cuatro huecos con las fichas (cada ficha se usa una vez y sobran algunas); clickeá un hueco para vaciarlo. La actividad se completa cuando los cuatro quedan bien."
+    >
+      <FillBlank
+        template={LOAD_CART_TEMPLATE}
+        slots={LOAD_CART_SLOTS}
+        bank={LOAD_CART_BANK}
+        explanation={LOAD_CART_EXPLANATION}
+        alreadyDone={isDone('loadcart')}
+        onSolved={() => markDone('loadcart')}
+      />
+    </Activity>
+  );
+}
+
+export function CartPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['cartpath']);
+  return (
+    <Activity
+      title="El carrito llega de la API"
+      kind="Escenario encadenado"
+      goal="resolver los problemas que aparecen cuando el carrito pasa a venir de una API y a vivir en una clase (entradas 16a, 17a, 23, 23a, 23b y 23c)."
+      done={isDone('cartpath')}
+      consigna="Vas a seguir el carrito de la tienda en seis decisiones, desde que llega de la API hasta que se revisan los tipos. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al final."
+    >
+      <DecisionPath
+        startId={CART_PATH_START}
+        nodes={CART_PATH_NODES}
+        explanation={CART_PATH_EXPLANATION}
+        alreadyDone={isDone('cartpath')}
+        onSolved={() => markDone('cartpath')}
+      />
+    </Activity>
+  );
+}
+
+export function SymptomActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['symptom']);
+  return (
+    <Activity
+      title="Del síntoma a la causa"
+      kind="Emparejar"
+      goal="relacionar lo que se observa en el carrito con el concepto de programación que lo explica (entradas 17, 17a, 18, 20, 22 y 24)."
+      done={isDone('symptom')}
+      consigna="Son 6 síntomas observados al probar el carrito y 6 causas: cada causa explica exactamente un síntoma. Elegí un síntoma y después su causa (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={SYMPTOM_LEFT}
+        right={SYMPTOM_RIGHT}
+        why={SYMPTOM_WHY}
+        leftLabel="Síntoma"
+        rightLabel="Causa"
+        alreadyDone={isDone('symptom')}
+        onSolved={() => markDone('symptom')}
+      />
+    </Activity>
+  );
+}
+
+Ya viste, una por una, las 15 entradas de programación: cómo se ejecuta el
+código, variables y tipos, operadores, strings, condicionales, funciones,
+arrays, loops, objetos, interfaces y union types, clases, módulos, JSON,
 funciones asíncronas y manejo de errores. Un programa real casi nunca usa
 una sola de estas cosas a la vez — las combina. Un bug real, también: casi
 siempre es la intersección de dos conceptos, no uno solo.
 
+## El carrito de la tienda
+
+Cinco de los ejercicios de abajo usan el mismo dato: el carrito de compras
+de una tienda, con un cliente, una lista de items y un cupón que todavía no
+se cargó.
+
+<CodeBlock language="ts">{CART_CODE}</CodeBlock>
+
 ## Práctica
 
-Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Son 8 ejercicios y entre todos cubren las 15 entradas del bloque: cada uno
+dice en su objetivo qué entradas repasa. Son independientes entre sí y cada
+bloque avisa cuándo está resuelto.
 
 <CombinedActivity />
 
+<CartConsoleActivity />
+
 <IntegrativeQuizActivity />
+
+<ShippingTraceActivity />
+
+<TokenActivity />
+
+<LoadCartActivity />
+
+<CartPathActivity />
+
+<SymptomActivity />
 
 Con esto cerrás el bloque de Programming. Lo que sigue es Git y GitHub:
 cómo guardar y compartir este código con el resto del equipo.

@@ -1,62 +1,56 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {MatchItem} from '@site/src/components/Match';
+import type {MultiSelectQuestion} from '@site/src/components/MultiSelect';
 
-export const TECHNIQUE_QUIZ: QuizQuestion[] = [
-  {
-    question:
-      'Quien testea entra a una pantalla de pago sin ningún caso escrito, y a medida que prueba una cosa decide qué probar a continuación según lo que va encontrando. ¿Qué técnica es esta?',
-    options: [
-      {text: 'Testing exploratorio: el diseño y la ejecución pasan al mismo tiempo, y lo que aparece guía el siguiente paso.', correct: true, why: 'Lo que se aprende mientras se prueba define la próxima acción, sin un script fijo definido antes de empezar.'},
-      {text: 'Testing basado en checklists: hay una lista de condiciones generales que guía la sesión.', correct: false, why: 'Una checklist fija de antemano qué revisar. Acá no hay una lista previa: el rumbo se decide sobre la marcha con lo que aparece.'},
-      {text: 'Error guessing: se anticipan defectos típicos de pantallas de pago antes de empezar.', correct: false, why: 'Error guessing parte de sospechas puntuales definidas antes de la sesión. Acá el siguiente paso depende de lo que se va encontrando.'},
-    ],
-  },
-  {
-    question:
-      'Antes de probar el carrito, quien testea recuerda que en proyectos parecidos la cantidad 0 y los números negativos rompían el total, y arma casos para esos valores aunque la especificación no los mencione. ¿Qué técnica es esta?',
-    options: [
-      {text: 'Equivalence partitioning: se define una clase por cada valor posible de cantidad.', correct: false, why: 'No se están derivando clases de una regla: se anticipan valores puntuales a partir de defectos vistos en otros sistemas.'},
-      {text: 'State transition: la cantidad cambia de estado a medida que se agregan productos.', correct: false, why: 'No hay un diagrama de estados detrás de esta decisión. Lo que guía es el historial de defectos, no una transición del sistema.'},
-      {text: 'Error guessing: se parte de defectos ya vistos en sistemas parecidos, no de la especificación.', correct: true, why: 'La experiencia previa sugiere dónde mirar. Es una sospecha basada en patrones conocidos, no una técnica que derive casos de la regla.'},
-    ],
-  },
-  {
-    question:
-      'Quien testea recorre una lista de 10 condiciones generales de accesibilidad sobre cada pantalla nueva, sin un caso detallado por condición. ¿Qué técnica es esta?',
-    options: [
-      {text: 'Testing basado en checklists: la lista marca qué cubrir, sin pasos detallados para cada ítem.', correct: true, why: 'La checklist define el alcance en alto nivel, pero no con qué datos ni qué resultado exacto esperar. Eso la distingue de un caso formal.'},
-      {text: 'Testing exploratorio: no hay un caso detallado escrito de antemano.', correct: false, why: 'Acá las 10 condiciones ya están definidas antes de empezar. Lo exploratorio descubre el alcance mientras prueba, no lo recibe en una lista.'},
-      {text: 'Decision table: cada condición de accesibilidad es una columna de la tabla.', correct: false, why: 'No se están combinando condiciones que interactúan. Se revisan una por una contra cada pantalla, sin cruzar resultados.'},
-    ],
-  },
+export const TECHNIQUE_MATCH_LEFT: MatchItem[] = [
+  {id: 'guess', text: 'Antes de probar el nuevo carrito, la tester anota que en los dos sistemas anteriores la cantidad falló con 0 y con negativos, y arma casos solo para eso.'},
+  {id: 'explore', text: 'Con 40 minutos y el objetivo de revisar el pago con cupones, el tester decide cada paso según lo que va apareciendo y anota los hallazgos.'},
+  {id: 'checklist', text: 'Para cada pantalla nueva, el equipo revisa una lista de 10 condiciones de accesibilidad (contraste, foco visible, textos alternativos), sin casos detallados por ítem.'},
+  {id: 'formal', text: 'La especificación dice "envío gratis desde 3 productos": el equipo prueba 2 y 3 productos, derivados de esa regla.'},
 ];
+export const TECHNIQUE_MATCH_RIGHT: MatchItem[] = [
+  {id: 'checklist', text: 'Testing basado en checklists'},
+  {id: 'formal', text: 'Técnica formal (black-box), no basada en experiencia'},
+  {id: 'explore', text: 'Testing exploratorio'},
+  {id: 'guess', text: 'Error guessing'},
+];
+export const TECHNIQUE_MATCH_WHY: Record<string, string> = {
+  guess: 'Los casos salen de defectos vistos antes en sistemas parecidos, no de la especificación: es anticipar dónde suele fallar.',
+  explore: 'Hay objetivo y timebox, pero no pasos fijos: el diseño y la ejecución pasan al mismo tiempo y lo que aparece guía el próximo paso.',
+  checklist: 'La lista marca qué condiciones revisar en alto nivel, sin datos ni resultados exactos por ítem.',
+  formal: 'Los valores (2 y 3) se derivan de una regla escrita: es boundary value analysis, una técnica formal. No depende de la experiencia de nadie.',
+};
 
-export const USAGE_QUIZ: QuizQuestion[] = [
+export const USAGE_QUESTIONS: MultiSelectQuestion[] = [
   {
-    question:
-      'Para un formulario chico, sin tiempo para documentar casos formales, quien testea usa su experiencia y prueba primero los valores que más seguido causan problemas en formularios parecidos. ¿Tiene sentido esta decisión?',
+    prompt: '¿En cuáles de estas situaciones tiene sentido apoyarse en técnicas basadas en experiencia? Marcá todas las que correspondan.',
     options: [
-      {text: 'No: primero hay que completar equivalence partitioning y boundary value analysis aunque no haya tiempo.', correct: false, why: 'Las técnicas formales no son obligatorias en todo escenario. Justamente la falta de tiempo es cuando las basadas en experiencia aportan más.'},
-      {text: 'Sí: error guessing rinde cuando no hay tiempo para diseñar casos formales completos.', correct: true, why: 'Es el escenario donde la experiencia aporta más por menos esfuerzo. No reemplaza a las técnicas formales, pero sí sirve para empezar.'},
-      {text: 'No: error guessing solo se usa cuando ya existe una checklist formal del sistema.', correct: false, why: 'Error guessing no depende de una checklist. Se apoya en el historial de defectos y en la experiencia de quien testea.'},
-    ],
-  },
-  {
-    question:
-      'Un sistema de control de tráfico aéreo se testea únicamente con testing exploratorio, sin ningún caso formal. ¿Tiene sentido?',
-    options: [
-      {text: 'Sí: con suficiente experiencia en el dominio se cubren todos los casos importantes.', correct: false, why: 'La experiencia individual no garantiza cobertura completa. Siempre queda algo que esa persona no pensó en explorar.'},
-      {text: 'Sí, siempre que la sesión tenga un timebox definido.', correct: false, why: 'El timebox ordena la sesión, pero no reemplaza la cobertura sistemática. Un límite de tiempo no hace aparecer los casos que nadie buscó.'},
-      {text: 'No: en un sistema crítico conviene combinarlo con técnicas formales para no depender de una sola persona.', correct: true, why: 'Por más experiencia que tenga alguien, depender solo de su criterio deja puntos ciegos. En sistemas críticos las técnicas formales son el respaldo.'},
-    ],
-  },
-  {
-    question:
-      'Una checklist de testing dice «verificar campos obligatorios», sin especificar cuáles ni con qué datos. ¿Qué tipo de técnica es?',
-    options: [
-      {text: 'Un caso formal de equivalence partitioning, solo que resumido.', correct: false, why: 'Un caso formal de EP definiría particiones y valores concretos. Una condición general sin datos no es un caso resumido: es otra cosa.'},
-      {text: 'Testing basado en checklists: marca qué revisar, sin detallar datos ni resultados.', correct: true, why: 'La lista da el alcance general y deja los detalles a criterio de quien ejecuta. No confirma un resultado esperado por sí sola.'},
-      {text: 'Testing exploratorio, porque no dice exactamente qué probar.', correct: false, why: 'Lo exploratorio no parte de una lista previa: va descubriendo el alcance. Acá hay un ítem ya definido, aunque sea general.'},
+      {
+        text: 'Quedan dos horas para el release y no hay tiempo de diseñar casos formales para un cambio chico en el buscador.',
+        correct: true,
+        why: 'Falta de tiempo es justo cuando la experiencia rinde más por menos esfuerzo.',
+      },
+      {
+        text: 'El sistema que calcula dosis de medicación se cubre solo con sesiones exploratorias de la tester más experimentada.',
+        correct: false,
+        why: 'En un sistema crítico, la experiencia de una sola persona tiene puntos ciegos: tiene que haber cobertura formal como respaldo.',
+      },
+      {
+        text: 'Después de correr los casos formales de la especificación, el equipo suma una sesión exploratoria para buscar lo que no anticipó.',
+        correct: true,
+        why: 'Como complemento de la cobertura formal, encuentra lo que las técnicas sistemáticas no anticiparon.',
+      },
+      {
+        text: 'La regla del descuento está especificada completa y sobra tiempo, pero el equipo descarta la especificación y prueba solo con error guessing.',
+        correct: false,
+        why: 'Con una especificación completa y tiempo, lo formal va primero: la experiencia complementa esa cobertura, no la reemplaza.',
+      },
+      {
+        text: 'Una pantalla heredada no tiene documentación, y el tester conoce bien el dominio porque probó sistemas similares durante años.',
+        correct: true,
+        why: 'Sin documentación de la cual derivar casos, la experiencia en el dominio es la mejor guía disponible.',
+      },
     ],
   },
 ];

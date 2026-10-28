@@ -1,0 +1,334 @@
+---
+title: "Cómo se ejecuta el código"
+sidebar_position: 15.9
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import Terminal from '@site/src/components/Terminal';
+import MultiSelect from '@site/src/components/MultiSelect';
+import Order from '@site/src/components/Order';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  RUN_STEPS,
+  RUN_EXPLANATION,
+  CHECK_QUESTIONS,
+  COMPILE_ITEMS,
+  COMPILE_CORRECT,
+  COMPILE_RULES,
+  WHO_ITEMS,
+  WHO_COLUMNS,
+} from '@site/src/content/lessons/16a-como-se-ejecuta-el-codigo';
+
+export const LESSON_SLUG = 'foundations-como-se-ejecuta-el-codigo';
+
+export function RunActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['run']);
+  return (
+    <Activity
+      title="Revisá y ejecutá un archivo"
+      kind="Terminal"
+      goal="recorrer el ciclo completo de un archivo TypeScript en un proyecto: comprobar Node, instalar dependencias, revisar los tipos, corregir y ejecutar."
+      done={isDone('run')}
+      consigna="Son 5 pasos en una terminal simulada. La instrucción de cada uno aparece como comentario arriba del prompt: escribí el comando y confirmá con Enter. Si el comando no es el esperado, la terminal te avisa y podés corregirlo. La actividad se completa al terminar los 5 pasos."
+    >
+      <Terminal
+        steps={RUN_STEPS}
+        explanation={RUN_EXPLANATION}
+        alreadyDone={isDone('run')}
+        onSolved={() => markDone('run')}
+      />
+    </Activity>
+  );
+}
+
+export function CheckActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['check']);
+  return (
+    <Activity
+      title="¿Quién detecta el error de tipos?"
+      kind="Marcar todas"
+      goal="distinguir qué herramientas revisan los tipos y cuáles solo ejecutan el código."
+      done={isDone('check')}
+      consigna="Es 1 pregunta con 6 formas de trabajar con un archivo. Marcá todas las que muestran el error de tipos antes de ejecutar el programa. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={CHECK_QUESTIONS}
+        alreadyDone={isDone('check')}
+        onSolved={() => markDone('check')}
+      />
+    </Activity>
+  );
+}
+
+export function CompileOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['compileorder']);
+  return (
+    <Activity
+      title="Compilar, corregir y ejecutar"
+      kind="Ordenar"
+      goal="ordenar el ciclo de trabajo con el compilador cuando la primera compilación informa un error."
+      done={isDone('compileorder')}
+      consigna="Vas a ejecutar stock.ts compilándolo con tsc, y la primera compilación informa un error. Son 6 pasos desordenados: ordenalos del primero al último con las flechas (o arrastrándolos) y usá «Comprobar orden» para verificar. La actividad se completa cuando el orden es correcto."
+    >
+      <Order
+        items={COMPILE_ITEMS}
+        correctOrder={COMPILE_CORRECT}
+        rules={COMPILE_RULES}
+        onSolved={() => markDone('compileorder')}
+      />
+    </Activity>
+  );
+}
+
+export function WhoReportsActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['whoreports']);
+  return (
+    <Activity
+      title="¿Quién informa este error?"
+      kind="Clasificar"
+      goal="distinguir un error de tipos, que informa tsc antes de ejecutar, de un error de ejecución, que informa Node cuando el programa se detiene."
+      done={isDone('whoreports')}
+      consigna="Son 6 mensajes de error y 2 cajas: Lo informa tsc, antes de ejecutar, y Lo informa Node, al ejecutar. Arrastrá cada mensaje a su caja. Para decidir, fijate en el formato: tsc muestra archivo:línea:columna seguido de un código TS; Node muestra el nombre del error (TypeError, ReferenceError, SyntaxError) y debajo una línea «at» con la ubicación. La actividad se completa cuando ubicaste los 6."
+    >
+      <Classify
+        items={WHO_ITEMS}
+        columns={WHO_COLUMNS}
+        itemLabel="Mensaje"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('whoreports')}
+        onSolved={() => markDone('whoreports')}
+      />
+    </Activity>
+  );
+}
+
+Esto abre un bloque nuevo de la guía: programación. Todo lo que viene después de Foundations, sin importar qué track elijas (UI, API, Mobile o Performance), va a pedirte leer y escribir código. Antes del primer concepto, esta lección prepara el entorno: qué ejecuta el código, dónde se escribe y cómo se leen sus resultados y sus errores.
+
+## Conceptos
+
+Antes de escribir la primera variable hace falta saber dónde se escribe el
+código, qué lo ejecuta y cómo se ve el resultado. Las lecciones de este
+bloque muestran fragmentos de TypeScript junto con lo que imprimen; esta
+lección explica cómo reproducir eso en la computadora propia, y cómo leer
+lo que responde.
+
+### JavaScript, TypeScript y quién ejecuta el código
+
+El código de este bloque es **TypeScript**, que es JavaScript con una
+capa de tipos encima: cada variable declara qué clase de dato guarda, y una
+herramienta revisa que el código respete esos tipos. Lo que realmente se
+ejecuta es JavaScript. Lo ejecuta un **motor de JavaScript**, que está
+dentro de cada navegador y también en **Node.js**, un programa que permite
+ejecutar JavaScript fuera del navegador, desde la terminal.
+
+TypeScript no se ejecuta tal como está escrito. Pasa primero por el
+**compilador**, `tsc`, que hace dos cosas: revisa los tipos y genera un
+archivo JavaScript equivalente, sin las anotaciones de tipo. El mismo
+código, antes y después:
+
+```ts
+// saludo.ts — lo que se escribe
+const nombre: string = 'Laura';
+const intentos: number = 3;
+console.log(`${nombre} tiene ${intentos} intentos`);
+```
+
+```js
+// saludo.js — lo que genera tsc
+const nombre = 'Laura';
+const intentos = 3;
+console.log(`${nombre} tiene ${intentos} intentos`);
+```
+
+Las anotaciones `: string` y `: number` desaparecen. Los tipos sirven
+para detectar errores **antes** de ejecutar; una vez revisados, no forman
+parte del programa. (La sintaxis `${...}` entre comillas invertidas inserta
+un valor dentro de un texto; se ve en detalle en la lección de strings.)
+
+### Instalar y comprobar Node.js
+
+Node.js se descarga desde nodejs.org; conviene la versión marcada como LTS
+(soporte extendido). La instalación incluye **npm**, el administrador de
+paquetes con el que se instalan herramientas como TypeScript. Para
+comprobar que quedó instalado, en una terminal:
+
+```bash
+$ node -v
+v22.11.0
+$ npm -v
+10.9.0
+```
+
+Si la terminal responde `command not found: node`, la instalación no
+terminó o la terminal se abrió antes de instalar; se cierra y se abre una
+nueva.
+
+### La consola interactiva
+
+El comando `node` sin argumentos abre una **consola interactiva** (REPL):
+se escribe una línea, Node la ejecuta y muestra el resultado. Es la forma
+más rápida de probar algo chico. El prompt cambia de `$` a `>`:
+
+```text
+$ node
+> 7 * 6
+42
+> const ciudad = 'Rosario'
+undefined
+> ciudad.length
+7
+> .exit
+```
+
+Cada línea tiene algo que leer. `7 * 6` es una expresión, y la consola
+muestra su valor. La declaración de `ciudad` muestra `undefined`: no
+significa que la variable esté vacía, sino que una declaración no produce
+ningún valor para mostrar; la línea siguiente confirma que `ciudad`
+existe. `.exit` cierra la consola (también funciona Ctrl+C dos veces).
+
+La consola de Node ejecuta JavaScript, así que no acepta anotaciones de
+tipo: `const ciudad: string = 'Rosario'` da un error de sintaxis. Para
+probar TypeScript se usa un archivo. Los navegadores tienen una consola
+equivalente en sus herramientas de desarrollo (F12, pestaña *Console*),
+que también ejecuta JavaScript.
+
+### Ejecutar un archivo
+
+Para algo más largo que una línea, el código se escribe en un archivo con
+el editor (en esta guía, Visual Studio Code). Un archivo JavaScript se
+ejecuta pasándole su nombre a `node`, desde la carpeta donde está:
+
+```bash
+$ node saludo.js
+Laura tiene 3 intentos
+```
+
+Un archivo TypeScript tiene dos caminos. El primero es compilarlo y
+ejecutar el resultado:
+
+```bash
+$ npx tsc saludo.ts        # revisa los tipos y genera saludo.js
+$ node saludo.js
+Laura tiene 3 intentos
+```
+
+`npx` ejecuta una herramienta instalada en el proyecto, o la descarga si
+no está. El segundo camino es ejecutar el `.ts` directamente con **tsx**,
+que hace la conversión en memoria, sin generar archivos:
+
+```bash
+$ npx tsx saludo.ts
+Laura tiene 3 intentos
+```
+
+La diferencia importante es que **tsx no revisa los tipos**: quita las
+anotaciones y ejecuta. Un archivo con un error de tipos corre igual. Las
+versiones recientes de Node.js también pueden ejecutar un `.ts`
+directamente (`node saludo.ts`), con la misma limitación: quitan los tipos
+sin revisarlos.
+
+### Revisar los tipos
+
+La revisión de tipos la hace `tsc`. La opción `--noEmit` le pide que revise
+sin generar ningún archivo, que es lo habitual cuando el código se va a
+ejecutar con tsx:
+
+```ts
+// envio.ts
+const costoEnvio: number = 1200;
+const gratis: boolean = 'no';
+```
+
+```bash
+$ npx tsc --noEmit envio.ts
+envio.ts:3:7 - error TS2322: Type 'string' is not assignable to type 'boolean'.
+
+3 const gratis: boolean = 'no';
+        ~~~~~~
+
+Found 1 error in envio.ts:3
+```
+
+La salida se lee en orden. `envio.ts:3:7` indica archivo, línea y columna
+donde empieza el problema. `TS2322` es el código del error, útil para
+buscarlo. El mensaje dice qué tipo se recibió (`string`) y cuál se
+esperaba (`boolean`). Debajo, `tsc` repite la línea y subraya con `~` la
+parte señalada. Si no hay errores, `tsc --noEmit` no imprime nada.
+
+`tsc` sin `--noEmit` informa el mismo error, pero por defecto genera el
+`.js` de todos modos: un error de tipos no le impide producir el archivo.
+Por eso la salida de `tsc` se lee siempre, aunque haya aparecido el `.js`.
+
+El editor hace esta misma revisión mientras se escribe: subraya en rojo el
+código con errores y muestra el mensaje al posar el mouse encima. En la
+práctica, la mayoría de los errores de tipos se ven y se corrigen en el
+editor, antes de ejecutar nada.
+
+### Errores al ejecutar
+
+Que los tipos estén bien no garantiza que el programa funcione. Hay
+errores que solo aparecen al ejecutar, y Node los informa al detenerse:
+
+```text
+$ npx tsx total.ts
+TypeError: Cannot read properties of undefined (reading 'precio')
+    at <anonymous> (/Users/laura/practica/total.ts:4:22)
+```
+
+La primera línea dice qué falló: se intentó leer la propiedad `precio` de
+algo que no tenía valor (`undefined`). La segunda, dónde: archivo `total.ts`,
+línea 4, columna 22. Un error de tipos se informa antes de ejecutar y lo
+detecta `tsc`; un error de ejecución aparece al correr el programa, y lo
+informa Node. La lección de manejo de errores muestra cómo leer esta
+salida completa y cómo evitar que el programa se detenga.
+
+### Un proyecto
+
+Cuando el código está dentro de un proyecto (como cualquier repositorio
+real), las herramientas se instalan en él y no de forma global:
+
+```bash
+$ npm init -y                            # crea package.json
+$ npm install --save-dev typescript tsx  # instala las herramientas
+$ npx tsc --init                         # crea tsconfig.json
+```
+
+`package.json` registra qué paquetes usa el proyecto; `npm install` los
+descarga en la carpeta `node_modules` (que no se versiona: va en
+`.gitignore`); y `tsconfig.json` guarda la configuración del compilador,
+para no repetir opciones en cada comando. En un proyecto así, `npx tsc
+--noEmit`, sin nombre de archivo, revisa todos los archivos del proyecto.
+Al clonar un repositorio que ya tiene `package.json`, alcanza con `npm
+install` para tener todo listo.
+
+## Cuándo usarlo
+
+La consola interactiva sirve para probar una expresión suelta. Para todo
+lo demás se usa un archivo: se revisa con `tsc --noEmit` (o con el editor)
+y se ejecuta con tsx, o se compila con `tsc` y se ejecuta con `node`.
+
+## Buenas prácticas
+
+- Leer la salida de `tsc` completa: archivo, línea, código y mensaje.
+- Revisar los tipos antes de ejecutar con tsx, que no los revisa.
+- Instalar las herramientas en el proyecto y usarlas con `npx`.
+
+## Anti-patrones
+
+- **Dar por bueno un archivo porque tsx lo ejecutó**, sin revisar los tipos.
+- **Ignorar la salida de `tsc` porque se generó el `.js`**.
+- **Escribir anotaciones de tipo en la consola de Node**, que ejecuta
+  JavaScript.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<RunActivity />
+
+<CheckActivity />
+
+<WhoReportsActivity />
+
+<CompileOrderActivity />

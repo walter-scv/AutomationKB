@@ -4,28 +4,42 @@ sidebar_position: 35
 ---
 
 import Activity from '@site/src/components/Activity';
+import Order from '@site/src/components/Order';
+import CommandBuilder from '@site/src/components/CommandBuilder';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  PR_LINES, PR_RULE_LABELS,
-  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  PRACTICE_LINES,
+  PRACTICE_RULE_LABELS,
   CLOSING_QUIZ,
+  PR_BUILD_PREFIX,
+  PR_BUILD_STEPS,
+  PR_BUILD_EXPLANATION,
+  PR_LIFE_ITEMS,
+  PR_LIFE_CORRECT,
+  PR_LIFE_RULES,
 } from '@site/src/content/lessons/35-pull-requests';
 
 export const LESSON_SLUG = 'foundations-pull-requests';
 
-export function PrActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['pr']);
+export function PrBuildActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['prbuild']);
   return (
     <Activity
-      title="¿Este Pull Request está bien armado?"
-      kind="Clasificar"
-      goal="reconocer si un Pull Request está enfocado, explicado y listo para revisión, o si le falta alguna de esas tres cosas."
-      done={isDone('pr')}
-      consigna="Son 7 Pull Requests. Si mezcla varios cambios sin relación entre sí, elegí «Mezcla varios cambios sin relación entre sí»; si abre para revisión un PR que todavía no está listo, elegí «Abre para revisión un PR que todavía no está listo (debía ser draft)»; si le falta descripción, elegí «Abre el PR sin descripción». Si está bien, elegí «PR bien armado». La actividad se completa cuando encontraste los 4 con problema."
+      title="Armá el Pull Request"
+      kind="Armar"
+      goal="armar un Pull Request revisable: un solo cambio con un título claro, una descripción útil y el estado correcto."
+      done={isDone('prbuild')}
+      consigna="Vas a armar el PR de tu rama fix/redondeo-cupon en 3 pasos: título, descripción y estado. En cada paso elegí la opción que hace que el PR sea fácil de revisar; el siguiente aparece recién al acertar. La actividad se completa cuando el PR queda armado."
     >
-      <FindInCode lines={PR_LINES} ruleLabels={PR_RULE_LABELS} okLabel="PR bien armado" prompt="¿Este Pull Request está bien armado?" itemLabel="Pull Request" counterLabel="PR con problemas" alreadyDone={isDone('pr')} onSolved={() => markDone('pr')} />
+      <CommandBuilder
+        prefix={PR_BUILD_PREFIX}
+        steps={PR_BUILD_STEPS}
+        explanation={PR_BUILD_EXPLANATION}
+        alreadyDone={isDone('prbuild')}
+        onSolved={() => markDone('prbuild')}
+      />
     </Activity>
   );
 }
@@ -62,58 +76,186 @@ export function ClosingQuizActivity() {
   );
 }
 
+export function PrLifeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['prlife']);
+  return (
+    <Activity
+      title="La vida de un Pull Request"
+      kind="Ordenar"
+      goal="ordenar el recorrido completo de un PR: borrador, revisión, correcciones, actualización con main, integración y limpieza."
+      done={isDone('prlife')}
+      consigna="Son 8 momentos del Pull Request de la rama fix/recargo-cuotas, desordenados. Ordenalos del primero al último con las flechas (o arrastrándolos) y usá «Comprobar orden» para verificar. La actividad se completa cuando el orden es correcto."
+    >
+      <Order
+        items={PR_LIFE_ITEMS}
+        correctOrder={PR_LIFE_CORRECT}
+        rules={PR_LIFE_RULES}
+        onSolved={() => markDone('prlife')}
+      />
+    </Activity>
+  );
+}
+
 ## Conceptos
 
-Un **Pull Request (PR)** es el pedido, dentro de GitHub, de que el equipo
-revise los commits de tu rama antes de sumarlos a `main`. Al abrir un PR,
-GitHub muestra el diff completo de los cambios: el equipo puede dejar
-comentarios línea por línea, pedir cambios, o aprobarlo.
+Hasta acá, integrar una rama a `main` era un `git merge` que hacía la
+misma persona que escribió el cambio. En un equipo, antes de que un cambio
+llegue a `main`, otra persona lo revisa. El mecanismo para eso en GitHub
+es el **Pull Request** (PR): un pedido de que el equipo revise los commits
+de una rama antes de integrarlos.
 
-Cuando se aprueba, se **mergea**: los commits se suman a `main`. GitHub
-ofrece tres formas de hacerlo — un merge normal (conserva todos los
-commits de la rama tal cual), "squash" (junta todos los commits de la
-rama en uno solo) o "rebase" (los aplica de forma lineal, sin un commit de
-merge).
+### Abrir un Pull Request
+
+Un PR se abre sobre una rama que ya está en el remoto. Al subirla por
+primera vez, la propia salida del push incluye el enlace para crearlo:
+
+```bash
+$ git push -u origin fix/email-con-mas
+remote: Create a pull request for 'fix/email-con-mas' on GitHub by visiting:
+remote:      https://github.com/empresa/tienda/pull/new/fix/email-con-mas
+```
+
+También aparece un aviso *Compare & pull request* en la página del
+repositorio. En el formulario se eligen dos ramas: **base**, hacia donde
+va el cambio (normalmente `main`), y **compare**, la rama con el cambio.
+GitHub muestra debajo los commits que se van a integrar y el diff completo.
+
+### Título y descripción
+
+El título sigue la misma regla que un mensaje de commit: dice qué cambia,
+empezando con un verbo. "Aceptar emails con + en el registro" informa;
+"ajustes" no. Si el título necesita un "y" para describir el PR, contiene
+dos cambios, y conviene separarlos: un PR enfocado se revisa más rápido y
+con más atención, y se puede revertir sin arrastrar nada más.
+
+La descripción le ahorra a quien revisa reconstruir el cambio archivo por
+archivo. Una estructura habitual, escrita en Markdown, cubre qué cambia,
+por qué y cómo comprobarlo:
+
+```markdown
+## Qué cambia
+El registro acepta emails con `+`, como `ana+tienda@mail.com`.
+
+## Por qué
+Soporte reportó clientes que no podían registrarse con ese tipo de
+dirección: la validación rechazaba cualquier `+` antes de la arroba.
+
+## Cómo probarlo
+1. Ir al registro.
+2. Completar el email con `ana+tienda@mail.com` y el resto de los datos.
+3. La cuenta se crea y aparece «Cuenta creada».
+
+Se agregó un test que cubre el caso.
+```
+
+La sección "Cómo probarlo" es especialmente útil para quien testea: indica
+con qué datos se verifica el cambio.
+
+### Draft
+
+Si se quiere mostrar el avance pero el cambio todavía no está listo (faltan
+pruebas o una parte del desarrollo), el PR se crea como **draft**,
+eligiendo *Create draft pull request*. GitHub lo marca como borrador y no
+lo presenta como listo para revisar. Cuando está terminado, se indica
+*Ready for review* y recién entonces se pide la revisión.
+
+### La revisión
+
+Quien revisa trabaja en la pestaña *Files changed*, donde ve el diff y
+puede comentar cualquier línea. Al terminar, deja una de tres respuestas:
+**Comment**, para observaciones o preguntas que no aprueban ni bloquean;
+**Approve**, si el cambio está en condiciones de integrarse; o **Request
+changes**, si hay algo que corregir antes.
+
+Quien abrió el PR responde cada comentario, aplicando el cambio pedido o
+explicando por qué no corresponde. Para aplicar correcciones no hace falta
+otro PR: se hacen nuevos commits en la misma rama y se suben, y el PR se
+actualiza solo.
+
+```bash
+$ git commit -m "Renombrar la función de validación según la revisión"
+$ git push
+```
+
+Cada conversación resuelta se marca con *Resolve conversation*. Integrar un
+PR con comentarios sin responder equivale a no haber pedido la revisión.
+
+### Verificaciones automáticas
+
+Muchos repositorios ejecutan automáticamente las pruebas cada vez que se
+sube un commit a un PR, y GitHub muestra el resultado en el propio PR: una
+marca verde si pasaron, roja si algo falló. Además, la rama `main` suele
+estar protegida con reglas como "no se puede integrar sin al menos una
+aprobación y con todas las verificaciones en verde", de modo que nadie
+pueda saltearse la revisión.
+
+### Mantener el PR actualizado
+
+Si mientras el PR espera revisión `main` recibe cambios en los mismos
+archivos, GitHub avisa que la rama está desactualizada o que tiene
+conflictos. Se resuelve trayendo `main` a la rama, como en cualquier
+merge:
+
+```bash
+$ git switch fix/email-con-mas
+$ git fetch
+$ git merge origin/main
+# resolver conflictos si los hay, probar
+$ git push
+```
+
+### Integrar y limpiar
+
+Con la aprobación y las verificaciones en verde, el PR se integra desde
+GitHub. Hay tres opciones, que dejan historiales distintos en `main`.
+**Create a merge commit** suma los commits de la rama junto con un commit
+de merge (`Merge pull request #42 from empresa/fix/email-con-mas`): el
+historial conserva cada commit original. **Squash and merge** junta todos
+los commits de la rama en uno solo, con el título del PR (`Aceptar emails
+con + en el registro (#42)`): el historial de `main` queda con un commit
+por PR. **Rebase and merge** reaplica los commits de la rama a
+continuación de `main`, sin commit de merge: el historial queda lineal.
+Cada equipo elige una opción y la usa siempre, para que el historial sea
+consistente.
+
+Una vez integrado el PR, la rama ya no hace falta. GitHub ofrece borrarla
+con *Delete branch*, y en la computadora se actualiza `main` y se borra la
+rama local:
+
+```bash
+$ git switch main
+$ git pull
+$ git branch -d fix/email-con-mas
+```
 
 ## Cuándo usarlo
 
-Un Pull Request se abre cada vez que una rama está lista para sumarse a
-`main` y necesita pasar por revisión del equipo antes — prácticamente
-siempre que se trabaja en equipo sobre un mismo repositorio.
+Se abre un PR cada vez que una rama está lista para integrarse y el
+cambio necesita revisión, que en un equipo es prácticamente siempre.
 
 ## Buenas prácticas
 
-- **Mantener el Pull Request chico y enfocado en un solo cambio**: es más
-  rápido y más fácil de revisar a fondo, y más fácil de revertir si algo
-  sale mal.
-- **Escribir una descripción que explique qué cambia y por qué**, para que
-  quien revise no tenga que adivinarlo abriendo cada archivo del diff.
-- **Responder o resolver cada comentario de revisión**, no ignorarlos ni
-  dejarlos "flotando" — un comentario sin cerrar es una duda sin resolver
-  sobre el cambio.
-- **Actualizar el PR con los últimos cambios de `main` antes de mergear**,
-  para evitar integrar sobre una base que ya quedó vieja.
-- **Abrir como "draft" un PR que todavía no está listo para revisión**,
-  para distinguirlo de uno que sí espera comentarios y aprobación.
+- Un PR por cambio, con un título que lo describa.
+- Una descripción con qué cambia, por qué y cómo probarlo.
+- Abrir como draft lo que todavía no está listo.
+- Responder cada comentario antes de integrar.
+- Actualizar el PR con `main` antes de integrarlo.
 
 ## Anti-patrones
 
-- **Un Pull Request enorme que mezcla varios cambios sin relación** —
-  quien lo revisa tarda mucho más, y es más probable que algo se le
-  escape.
-- **Mergear sin que nadie haya revisado ni aprobado** — anula por completo
-  el propósito de abrir un Pull Request.
-- **Dejar comentarios de revisión sin responder ni resolver**, y mergear
-  igual — es como si nunca se hubiera pedido la revisión.
-- **Abrir un PR sin descripción**, dejando que quien lo revise reconstruya
-  solo, archivo por archivo, qué cambió y por qué.
+- **Un PR que mezcla varios cambios sin relación**.
+- **Integrar sin revisión ni aprobación**.
+- **Dejar comentarios sin responder e integrar igual**.
+- **Abrir un PR sin descripción**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
-<PrActivity />
+<PrBuildActivity />
 
 <PracticeActivity />
+
+<PrLifeActivity />
 
 <ClosingQuizActivity />

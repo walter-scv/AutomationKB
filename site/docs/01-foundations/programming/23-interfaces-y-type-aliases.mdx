@@ -4,16 +4,25 @@ sidebar_position: 23
 ---
 
 import Activity from '@site/src/components/Activity';
+import SpotToken from '@site/src/components/SpotToken';
+import FillBlank from '@site/src/components/FillBlank';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
-import {
-  useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import Match from '@site/src/components/Match';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
   DECLARED_LINES,
   DECLARED_RULE_LABELS,
-  PRACTICE_LINES,
-  PRACTICE_RULE_LABELS,
   CLOSING_QUIZ,
+  SHIPMENT_TEMPLATE,
+  SHIPMENT_SLOTS,
+  SHIPMENT_BANK,
+  SHIPMENT_EXPLANATION,
+  DECL_TOKEN_PROMPT,
+  DECL_TOKEN_ROUNDS,
+  NARROW_LEFT,
+  NARROW_RIGHT,
+  NARROW_WHY,
 } from '@site/src/content/lessons/23-interfaces-y-type-aliases';
 
 export const LESSON_SLUG = 'foundations-interfaces-type-aliases';
@@ -33,17 +42,23 @@ export function DeclaredActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function DeclTokenActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['decltoken']);
   return (
     <Activity
-      title="¿Este tipo está bien declarado?"
-      kind="Buscar en el código"
-      goal="reconocer un nombre de tipo genérico, propiedades opcionales sin necesidad, y el uso de `any` para evitar declarar un tipo."
-      done={isDone('practice')}
-      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+      title="La palabra que le quita valor al tipo"
+      kind="Señalar en la línea"
+      goal="encontrar, dentro de una declaración, la palabra exacta que hace que el tipo no comunique o no chequee."
+      done={isDone('decltoken')}
+      consigna="Son 3 líneas, cada una con un solo problema que se arregla cambiando una palabra: un nombre de tipo genérico o un `any`. Hacé click en esa palabra. Si tocás otra, se marca en rojo, recibís una pista y podés probar de nuevo. La actividad se completa cuando resolviste las 3."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <SpotToken
+        rounds={DECL_TOKEN_ROUNDS}
+        prompt={DECL_TOKEN_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('decltoken')}
+        onSolved={() => markDone('decltoken')}
+      />
     </Activity>
   );
 }
@@ -59,6 +74,51 @@ export function ClosingQuizActivity() {
       consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
     >
       <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+export function ShipmentActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['shipment']);
+  return (
+    <Activity
+      title="Completá la interface"
+      kind="Completar huecos"
+      goal="declarar la forma de un objeto eligiendo, para cada propiedad, si es obligatoria u opcional y qué tipo la describe mejor."
+      done={isDone('shipment')}
+      consigna="Todo envío tiene siempre un código, un estado (uno de los tres de `EstadoDeEnvio`) y un peso en kilos; las observaciones solo se cargan a veces. Un envío internacional tiene todo lo de un envío, más el país de destino. Completá los cuatro huecos con las fichas (cada ficha se usa una vez y sobran algunas); clickeá un hueco para vaciarlo. La actividad se completa cuando los cuatro quedan bien."
+    >
+      <FillBlank
+        template={SHIPMENT_TEMPLATE}
+        slots={SHIPMENT_SLOTS}
+        bank={SHIPMENT_BANK}
+        explanation={SHIPMENT_EXPLANATION}
+        alreadyDone={isDone('shipment')}
+        onSolved={() => markDone('shipment')}
+      />
+    </Activity>
+  );
+}
+
+export function NarrowActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['narrow']);
+  return (
+    <Activity
+      title="La comprobación para cada unión"
+      kind="Emparejar"
+      goal="elegir la comprobación que acota cada union type al tipo que se necesita usar."
+      done={isDone('narrow')}
+      consigna="Son 4 situaciones con un union type y 4 comprobaciones: cada comprobación corresponde a exactamente una situación. Elegí una situación y después su comprobación (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste las 4."
+    >
+      <Match
+        left={NARROW_LEFT}
+        right={NARROW_RIGHT}
+        leftLabel="Situación"
+        rightLabel="Comprobación"
+        why={NARROW_WHY}
+        alreadyDone={isDone('narrow')}
+        onSolved={() => markDone('narrow')}
+      />
     </Activity>
   );
 }
@@ -167,6 +227,225 @@ forma más común cuando la intención es describir una entidad; `type` es más
 flexible para uniones y otros tipos que no son objetos. Lo importante es
 elegir uno y usarlo de forma consistente.
 
+### Lo que TypeScript informa cuando un objeto no cumple su tipo
+
+Declarar una interface es útil por los errores que permite detectar. Con
+esta interface:
+
+```ts
+interface Producto {
+  codigo: string;
+  precio: number;
+  stock: number;
+}
+```
+
+TypeScript marca tres situaciones distintas. Si falta una propiedad
+obligatoria:
+
+```ts
+const teclado: Producto = {codigo: 'TEC-01', precio: 15000};
+```
+
+```text
+error TS2741: Property 'stock' is missing in type '{ codigo: string; precio: number; }'
+but required in type 'Producto'.
+```
+
+Si una propiedad tiene el tipo equivocado:
+
+```ts
+const teclado: Producto = {codigo: 'TEC-01', precio: '15000', stock: 4};
+```
+
+```text
+error TS2322: Type 'string' is not assignable to type 'number'.
+```
+
+Y si se agrega una propiedad que la interface no declara, muchas veces por
+un error de tipeo:
+
+```ts
+const teclado: Producto = {codigo: 'TEC-01', precio: 15000, stok: 4};
+```
+
+```text
+error TS2353: Object literal may only specify known properties,
+and 'stok' does not exist in type 'Producto'.
+```
+
+En los tres casos el mensaje nombra la propiedad y el tipo involucrados.
+Sin la interface, los tres errores pasarían sin aviso y aparecerían al
+ejecutar, probablemente lejos de donde se cometieron.
+
+### Usar una propiedad opcional
+
+Una propiedad opcional puede valer `undefined`, y TypeScript obliga a
+contemplarlo antes de usarla como si siempre existiera:
+
+```ts
+interface Contacto {
+  email: string;
+  telefono?: string;
+}
+
+function formatearTelefono(contacto: Contacto): string {
+  return contacto.telefono.replace('-', '');
+}
+```
+
+```text
+error TS18048: 'contacto.telefono' is possibly 'undefined'.
+```
+
+La solución es comprobarlo primero. Después de la comprobación, TypeScript
+sabe que en esa rama el valor existe:
+
+```ts
+function formatearTelefono(contacto: Contacto): string {
+  if (contacto.telefono === undefined) {
+    return 'Sin teléfono';
+  }
+  return contacto.telefono.replace('-', '');
+}
+```
+
+Este chequeo es la razón por la que no conviene marcar propiedades como
+opcionales "por las dudas": cada propiedad opcional obliga a tratar su
+ausencia en cada lugar donde se usa.
+
+### Union types: un valor que puede ser de más de un tipo
+
+El `|` del type alias `EstadoDeCuenta` no es exclusivo de los textos fijos.
+Un **union type** declara que un valor puede ser de cualquiera de varios
+tipos. Es lo que pasa con un dato que llega de distintas fuentes, o con un
+valor que puede faltar:
+
+```ts
+let codigoDeBarras: string | number;   // a veces llega como texto, a veces como número
+let fechaDeBaja: Date | null;          // null mientras la cuenta está activa
+```
+
+Sobre un valor así, TypeScript solo permite lo que es válido para **todos**
+los tipos de la unión:
+
+```ts
+function normalizarCodigo(codigo: string | number): string {
+  return codigo.toUpperCase();
+}
+```
+
+```text
+error TS2339: Property 'toUpperCase' does not exist on type 'string | number'.
+  Property 'toUpperCase' does not exist on type 'number'.
+```
+
+La segunda línea del mensaje dice cuál de los tipos es el problema: un
+`number` no tiene `toUpperCase`. Para usar el método hay que averiguar
+primero cuál de los dos tipos es.
+
+### Narrowing: averiguar cuál de los tipos es
+
+Comprobar el tipo dentro de un `if` hace que TypeScript **acote**
+(*narrowing*) el tipo en esa rama, igual que pasó con la propiedad opcional
+y `undefined`. La comprobación depende de qué se quiere distinguir.
+
+Para tipos básicos se usa `typeof`, que devuelve el nombre del tipo como
+texto (`'string'`, `'number'`, `'boolean'`):
+
+```ts
+function normalizarCodigo(codigo: string | number): string {
+  if (typeof codigo === 'number') {
+    return String(codigo);        // acá codigo es number
+  }
+  return codigo.toUpperCase();    // acá solo puede ser string
+}
+```
+
+Para un valor que puede ser `null` o `undefined`, se compara directamente.
+Sin esa comprobación, usar `fechaDeBaja.toLocaleDateString()` da
+`error TS18047: 'fechaDeBaja' is possibly 'null'`, el equivalente para
+`null` del error que se vio con la propiedad opcional:
+
+```ts
+function textoDeBaja(fechaDeBaja: Date | null): string {
+  if (fechaDeBaja === null) {
+    return 'Cuenta activa';
+  }
+  return `Baja: ${fechaDeBaja.toLocaleDateString()}`;
+}
+```
+
+Para distinguir un array de un valor suelto, `typeof` no sirve (un array
+da `'object'`); se usa `Array.isArray`:
+
+```ts
+function cantidadDeDestinatarios(para: string | string[]): number {
+  if (Array.isArray(para)) {
+    return para.length;           // acá es string[]
+  }
+  return 1;                       // un solo email
+}
+```
+
+### Uniones de objetos con una propiedad que las distingue
+
+El caso más útil es una unión de objetos que comparten una propiedad con
+un valor fijo distinto en cada uno. Esa propiedad (el *discriminante*)
+indica cuál de las formas es, y con ella TypeScript sabe qué otras
+propiedades existen:
+
+```ts
+type ResultadoDePago =
+  | { estado: 'aprobado'; comprobante: string }
+  | { estado: 'rechazado'; motivo: string };
+
+function mensajeDePago(resultado: ResultadoDePago): string {
+  if (resultado.estado === 'aprobado') {
+    return `Pago aprobado. Comprobante ${resultado.comprobante}`;
+  }
+  return `Pago rechazado: ${resultado.motivo}`;
+}
+```
+
+Sin comprobar `estado`, `resultado.motivo` da error, porque un pago
+aprobado no tiene motivo:
+
+```text
+error TS2339: Property 'motivo' does not exist on type 'ResultadoDePago'.
+  Property 'motivo' does not exist on type '{ estado: "aprobado"; comprobante: string; }'.
+```
+
+Así se modelan respuestas que tienen formas distintas según el resultado,
+y el compilador impide leer un dato que en ese caso no existe.
+
+Para quien prueba, un union type es una lista explícita de casos: cada
+tipo de la unión es un camino distinto del código. `normalizarCodigo` se
+prueba con un string y con un número; `textoDeBaja`, con una fecha y con
+`null`; `mensajeDePago`, con un pago aprobado y con uno rechazado.
+
+### Reutilizar una forma con `extends`
+
+Cuando una entidad tiene todas las propiedades de otra y algunas más, una
+interface puede **extender** a otra en lugar de repetirlas:
+
+```ts
+interface Persona {
+  nombre: string;
+  email: string;
+}
+
+interface Empleado extends Persona {
+  legajo: number;
+  area: string;
+}
+
+const empleada: Empleado = {nombre: 'Ana', email: 'ana@empresa.com', legajo: 1042, area: 'QA'};
+```
+
+`Empleado` tiene las cuatro propiedades. Si mañana `Persona` suma un
+teléfono, `Empleado` lo hereda sin cambios.
+
 ### Nombres de tipos
 
 El nombre del tipo también comunica: `DatosDeRegistro`, `EstadoDeCuenta`,
@@ -197,51 +476,32 @@ no hace falta nombrar nada extra.
 
 ## Buenas prácticas
 
-- **Declarar una interface en cuanto la misma forma de objeto se usa en
-  más de un lugar.** Si tres funciones reciben el mismo objeto y una de
-  ellas cambia su forma, declararla una sola vez asegura que las otras dos
-  avisen el error de tipos en vez de fallar recién en producción.
-- **Usar un type alias para limitar un valor a un conjunto cerrado de
-  opciones válidas** (como los estados posibles de una cuenta). Un
-  `string` suelto acepta cualquier texto; la unión de valores exactos hace
-  que un typo o un valor inventado se marque como error al escribir el
-  código.
-- **Elegir un nombre que diga qué entidad representa** (`DatosDeRegistro`,
-  no `Data`). Con varias interfaces en un proyecto, un nombre genérico
-  obliga a abrir cada una para saber de qué se trata.
-- **Marcar `?` (opcional) solo en propiedades que de verdad pueden
-  faltar.** Si una propiedad siempre está presente y se marca opcional
-  igual, TypeScript deja de avisar cuando falta por error — el chequeo
-  pierde el sentido.
-- **Nunca usar `any` para "resolver" un error de tipos.** `any` no arregla
-  el problema: apaga el chequeo para ese valor, y el error que TypeScript
-  hubiera marcado ahora aparece recién cuando el programa ya está
-  corriendo.
+- Declarar una interface en cuanto la misma forma de objeto se usa en más de un lugar.
+- Usar un type alias para limitar un valor a un conjunto cerrado de opciones válidas.
+- Elegir un nombre que diga qué entidad representa.
+- Marcar `?` (opcional) solo en propiedades que de verdad pueden faltar.
+- Acotar un union type con `typeof`, una comparación, `Array.isArray` o su discriminante antes de usarlo.
+- Nunca usar `any` para "resolver" un error de tipos.
 
 ## Anti-patrones
 
-- **Parámetro sin tipo declarado**: queda como `any` implícito y
-  TypeScript no puede avisar si falta una propiedad o si un nombre está
-  mal escrito, aunque el código "compile" igual.
-- **Repetir la misma forma de objeto** como anotación inline en cada
-  función, en vez de declararla una sola vez — si hay que agregar una
-  propiedad, hay que acordarse de cambiarla en cada lugar donde se
-  repitió.
-- **Nombre de tipo genérico** (`Data`, `Props`, `Info`) que no dice qué
-  representa — obliga a adivinar o a abrir la declaración para saber de
-  qué se trata.
-- **Todas las propiedades marcadas opcionales "por las dudas"**, aunque la
-  función siempre las necesite — le quita a TypeScript la posibilidad real
-  de avisar cuando falta una.
-- **Usar `any` para que TypeScript "deje de molestar"** en vez de arreglar
-  el tipo real — desactiva el chequeo exactamente donde más falta hace.
+- **Parámetro sin tipo declarado**.
+- **Repetir la misma forma de objeto**.
+- **Nombre de tipo genérico**.
+- **Todas las propiedades marcadas opcionales "por las dudas"**.
+- **Usar `any` para que TypeScript "deje de molestar"**.
+- **Probar un solo tipo de un union type** y dar por cubiertos los demás.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <DeclaredActivity />
 
-<PracticeActivity />
+<ShipmentActivity />
+
+<DeclTokenActivity />
+
+<NarrowActivity />
 
 <ClosingQuizActivity />

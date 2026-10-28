@@ -4,15 +4,19 @@ sidebar_position: 3
 ---
 
 import Activity from '@site/src/components/Activity';
-import Quiz from '@site/src/components/Quiz';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import Match from '@site/src/components/Match';
 import FindInCode from '@site/src/components/FindInCode';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  useLessonProgress} from '@site/src/hooks/useLessonProgress';
-import {
-  PRINCIPLES_QUIZ,
   PRACTICE_LINES,
   PRACTICE_RULE_LABELS,
-  CLOSING_QUIZ,
+  PRINCIPLE_MATCH_LEFT,
+  PRINCIPLE_MATCH_RIGHT,
+  PRINCIPLE_MATCH_WHY,
+  REPORT_PREFIX,
+  REPORT_STEPS,
+  REPORT_EXPLANATION,
 } from '@site/src/content/lessons/03-principios-testing';
 
 export const LESSON_SLUG = 'foundations-principios-testing';
@@ -32,17 +36,46 @@ export function PracticeActivity() {
   );
 }
 
-export function ClosingQuizActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+export function PrincipleMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['principlematch']);
   return (
     <Activity
-      title="Principios en casos nuevos"
-      kind="Elegí la opción"
-      goal="aplicar los 7 principios del testing a situaciones nuevas."
-      done={isDone('quiz')}
-      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+      title="Cada principio en una situación"
+      kind="Emparejar"
+      goal="reconocer los siete principios del testing en situaciones concretas, incluidos los dos que el ejercicio de clasificar no usa."
+      done={isDone('principlematch')}
+      consigna="Son 7 pares: cada principio corresponde a exactamente una situación. Elegí un principio y después la situación que lo ilustra (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 7."
     >
-      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+      <Match
+        left={PRINCIPLE_MATCH_LEFT}
+        right={PRINCIPLE_MATCH_RIGHT}
+        leftLabel="Principio"
+        rightLabel="Situación"
+        why={PRINCIPLE_MATCH_WHY}
+        alreadyDone={isDone('principlematch')}
+        onSolved={() => markDone('principlematch')}
+      />
+    </Activity>
+  );
+}
+
+export function ReportActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['report']);
+  return (
+    <Activity
+      title="Redactá el informe de cierre"
+      kind="Armar"
+      goal="escribir las conclusiones de un ciclo de testing sin contradecir los principios: qué se puede afirmar, cómo sigue la suite y dónde va el esfuerzo."
+      done={isDone('report')}
+      consigna="El ciclo de testing del módulo de pagos terminó sin defectos encontrados. Armá el informe de cierre en 3 frases, eligiendo una por paso; la siguiente aparece recién al acertar la anterior. La actividad se completa cuando el informe queda armado."
+    >
+      <CommandBuilder
+        prefix={REPORT_PREFIX}
+        steps={REPORT_STEPS}
+        explanation={REPORT_EXPLANATION}
+        alreadyDone={isDone('report')}
+        onSolved={() => markDone('report')}
+      />
     </Activity>
   );
 }
@@ -54,78 +87,198 @@ vayas a aplicar más adelante en esta guía.
 
 ## Conceptos
 
-1. **Testing muestra la presencia de defectos, no su ausencia.** Nunca se
-   puede probar que un sistema está libre de defectos — solo que los que
-   se buscaron no aparecieron.
-2. **Testing exhaustivo es imposible.** Salvo casos triviales, no se
-   pueden probar todas las combinaciones posibles de entradas y
-   condiciones.
-3. **Testing temprano ahorra tiempo y dinero.** Cuanto antes se encuentra
-   un defecto en el ciclo de desarrollo, más barato es corregirlo.
-4. **Los defectos se agrupan (defect clustering).** Un número pequeño de
-   módulos suele concentrar la mayoría de los defectos de un sistema.
-5. **Cuidado con la paradoja del pesticida.** Repetir exactamente los
-   mismos casos de test, sin cambios, deja de encontrar defectos nuevos
-   con el tiempo.
-6. **Testing depende del contexto.** Un sistema de seguridad crítica no
-   se testea igual que un sitio de e-commerce.
-7. **La falacia de "ausencia de errores".** Un sistema sin defectos
-   encontrados igual puede ser inútil, si no satisface las necesidades
-   reales del usuario.
+Siete principios describen qué puede y qué no puede lograr el testing.
+No son pasos de un procedimiento: son criterios que se aplican al
+planificar, al decidir qué probar y al interpretar resultados. Cada uno
+se presenta con un ejemplo de cómo se aplica.
+
+### 1. Testing muestra la presencia de defectos, no su ausencia
+
+Cuando una prueba encuentra un defecto, demuestra que el defecto existe.
+Cuando no encuentra nada, no demuestra lo contrario: solo indica que esas
+pruebas, con esos datos, no lo encontraron. El testing reduce la
+probabilidad de que queden defectos sin descubrir, pero no puede
+garantizar que el objeto de prueba sea correcto.
+
+La consecuencia práctica está en cómo se escriben las conclusiones.
+Supongamos que el buscador del catálogo de una librería online se probó
+con 40 búsquedas por título, autor e ISBN, y ninguna falló. Afirmar que
+"el buscador no tiene defectos" o que "funciona correctamente" es ir más
+allá de lo que las pruebas permiten decir. Lo que sí se puede afirmar es
+que las 40 búsquedas probadas devolvieron los resultados esperados, y
+corresponde agregar qué quedó sin cubrir: búsquedas con tildes, con más
+de 100 caracteres o con caracteres especiales. Una conclusión con esas
+dos partes, lo verificado y lo pendiente, le permite a quien decide saber
+qué riesgo está asumiendo.
+
+### 2. El testing exhaustivo es imposible
+
+Probar todas las combinaciones de datos y condiciones solo es posible en
+casos triviales. Incluso un campo simple tiene más valores posibles de
+los que se pueden ejecutar.
+
+Un formulario pide el DNI, con esta regla: 7 u 8 dígitos, sin puntos, y
+no puede estar ya registrado. Un set exhaustivo tendría que probar los 9
+millones de números de 7 dígitos y los 90 millones de 8 dígitos, además
+de todos los largos inválidos y todas las combinaciones con letras,
+espacios y signos, que son infinitas. Solo los valores válidos, a un caso
+cada diez segundos, demandarían más de 31 años.
+
+El set razonable sale de una observación: el sistema trata igual a todos
+los valores de un mismo grupo. Si acepta `1234567`, no hay motivo para
+esperar que rechace `3456789`, porque los dos son DNI válidos de 7
+dígitos. Alcanza entonces con un representante de cada grupo y con los
+valores en los bordes de cada regla, que es donde suelen estar los
+errores:
+
+| Valor | Qué representa | Resultado esperado |
+|---|---|---|
+| `123456` | 6 dígitos, justo debajo del mínimo | Rechazado por largo |
+| `1234567` | 7 dígitos, el mínimo válido | Aceptado |
+| `12345678` | 8 dígitos, el máximo válido | Aceptado |
+| `123456789` | 9 dígitos, justo arriba del máximo | Rechazado por largo |
+| `12.345.678` | Formato con puntos | Rechazado, o normalizado si el requisito lo define |
+| `1234567A` | Caracteres no numéricos | Rechazado |
+| (vacío) | Campo obligatorio sin dato | Rechazado por obligatorio |
+| Un DNI ya registrado | Regla de unicidad | Rechazado por existente |
+
+Ocho casos en lugar de cien millones, y cada uno con una razón para estar.
+Las técnicas que formalizan esta selección, equivalence partitioning y
+boundary value analysis, se ven más adelante; junto con la priorización
+y el análisis de riesgo, son la respuesta a este principio. El caso de los
+puntos muestra un beneficio adicional: al armar el set aparece una
+pregunta que el requisito no responde, y eso ya es un hallazgo.
+
+### 3. Testing temprano ahorra tiempo y dinero
+
+Un defecto que se elimina temprano no genera defectos en lo que se
+construye a partir de él. Un requisito mal escrito que nadie detecta se
+convierte en un diseño equivocado, después en código, en casos de prueba
+basados en ese código y, finalmente, en fallos en producción. Por eso el
+testing estático y el dinámico tienen que empezar lo antes posible.
+
+Una historia dice: "como cliente nuevo, quiero un 10% de descuento en mi
+primera compra". Revisada antes de programarse, aparecen tres preguntas
+sin respuesta. No define qué es un cliente nuevo: ¿alguien sin compras
+previas, o alguien registrado hace menos de 30 días? No dice si el
+descuento se suma a otros cupones. Y no dice qué pasa si esa primera
+compra se cancela. En la revisión, cada pregunta se resuelve hablando con
+el responsable del producto. Si se descubren en producción, la primera
+implica rehacer código y casos de prueba y revisar los descuentos ya
+otorgados; la segunda, clientes con descuentos acumulados que nadie
+autorizó; la tercera, reclamos de quienes cancelaron y perdieron el
+beneficio.
+
+### 4. Los defectos se agrupan
+
+Una porción chica de los componentes de un sistema suele concentrar la
+mayor parte de los defectos, o de los fallos en operación. Es una
+manifestación del principio de Pareto, y no una ley exacta, pero se
+observa lo suficiente como para usarla al distribuir el esfuerzo.
+
+En una app de un gimnasio, el historial del último año muestra 80
+defectos: 38 en reservas de clases, 27 en pagos de cuota y apenas 15
+repartidos entre rutinas, perfil y notificaciones. Con 40 horas para el
+próximo ciclo, tiene sentido dedicar unas 28 a reservas y pagos, que
+concentran el 81% de los defectos. Los demás módulos no quedan sin
+probar, porque haber tenido pocos defectos no garantiza que no los tengan
+ahora, y la distribución se revisa en cada ciclo: un módulo que se
+reescribió recién puede pasar a concentrar los problemas. Los
+agrupamientos que se observan, y los que se anticipan, son una entrada
+directa para el testing basado en riesgo.
+
+### 5. Las pruebas se desgastan (paradoja del pesticida)
+
+Si las mismas pruebas se repiten muchas veces, cada vez son menos
+efectivas para encontrar defectos nuevos, como un pesticida al que los
+insectos se vuelven resistentes. La suite sigue pasando, pero eso solo
+dice que lo que esa suite mira no cambió.
+
+La suite de login de una aplicación tiene los mismos casos desde hace un
+año: todos usan la cuenta `test@mail.com`, y ninguno cubre el ingreso con
+Google ni el bloqueo tras cinco intentos fallidos, que se agregaron en ese
+tiempo. Revisarla implica tres cosas: modificar los datos de los casos
+existentes (alternar cuentas con distintos roles), agregar casos para las
+funcionalidades nuevas, y sumar los que surgen de incidentes reales, como
+el del mes pasado con emails escritos en mayúsculas.
+
+Repetir pruebas no deja de tener valor: es justamente lo que hace el
+regression testing, que comprueba que lo que funcionaba sigue
+funcionando. Lo que una suite que nunca cambia no puede hacer es
+encontrar defectos en lo que no mira.
+
+### 6. El testing depende del contexto
+
+No existe un enfoque de testing válido para todos los casos. Qué se
+prueba, con qué profundidad y con cuánta documentación depende de qué tan
+crítico es el sistema, de su tipo y de sus riesgos.
+
+El alta de usuarios es la misma funcionalidad en un sistema de
+liquidación de sueldos, en una app de lista de compras y en el formulario
+de inscripción a un webinar, pero se testea de forma muy distinta. En la
+liquidación de sueldos se prueba cada validación de datos personales y
+bancarios con datos límite, los permisos por rol y la auditoría de
+cambios, con casos documentados y trazables a cada requisito, y se suman
+pruebas de seguridad y de cumplimiento normativo. En la lista de compras
+alcanza con los casos principales, el ingreso con email y con Google en
+distintos dispositivos, y una sesión exploratoria de usabilidad. En el
+webinar, un recorrido por el flujo principal que confirme que llega el
+email de inscripción. Aplicar el enfoque del primero al último es gastar
+semanas sin beneficio; aplicar el del último al primero es un riesgo
+legal y económico.
+
+### 7. La falacia de la ausencia de defectos
+
+Es un error suponer que verificar un sistema asegura su éxito. Probar a
+fondo todos los requisitos especificados y corregir todos los defectos
+encontrados puede igual dar un sistema que no satisface lo que los
+usuarios necesitan, que no ayuda al negocio o que es peor que la
+competencia.
+
+Un sistema de inscripción a cursos cumple los 24 requisitos especificados
+y no tiene defectos abiertos. Sin embargo, de 1.200 inscripciones
+iniciadas solo terminan 540: inscribirse lleva doce pantallas y pide
+datos que la facultad ya tiene. Contra la especificación no hay nada que
+reportar; el problema es que la especificación no capturó lo que los
+alumnos necesitaban. Lo que falta no es otra verificación, sino
+**validación**: observar a alumnos reales inscribiéndose sin ayuda, medir
+cuántos terminan y dónde se traban, y comparar con el sistema anterior.
+La diferencia entre verificar y validar se desarrolla en su propia
+entrada.
 
 ## Cuándo usarlo
 
-Estos principios no son una técnica que se aplique paso a paso — son
-criterios para interpretar los resultados del testing. Se usan todo el
-tiempo: al decidir cuánto testing alcanza, al leer un reporte de "cero
-defectos encontrados", o al revisar si una suite de regresión sigue
-aportando valor.
+Los principios se aplican en decisiones concretas: al redactar la
+conclusión de un informe (1 y 7), al elegir los casos de una
+funcionalidad (2), al decidir cuándo empezar a testear (3), al distribuir
+el tiempo entre módulos (4 y 6), al revisar una suite que siempre pasa (5)
+y al definir el rigor y la documentación de un proyecto (6).
 
 ## Buenas prácticas
 
-- **Priorizar testing en los módulos donde históricamente se concentran
-  los defectos** (principio 4). Si el 80% de los bugs del último año
-  salió de 3 módulos, invertir ahí el esfuerzo rinde más que repartirlo
-  parejo entre todo el sistema.
-- **Revisar y actualizar la suite de regresión con el tiempo**, en vez de
-  correr siempre los mismos casos sin cambios (principio 5). Una suite
-  que nunca cambia deja de encontrar defectos nuevos, aunque siga en
-  verde — el verde deja de significar "está todo bien".
-- **Involucrar testing desde que se define un requisito**, no solo
-  después de implementarlo (principio 3). Un problema en un requisito mal
-  escrito sale mucho más barato de corregir en ese momento que después de
-  programado, testeado y a punto de salir a producción.
-- **Ajustar el rigor del testing según qué tan crítico es el sistema**
-  (principio 6). El mismo esfuerzo que se justifica en un sistema médico
-  sería desproporcionado en una landing page promocional — y viceversa,
-  menos esfuerzo del necesario en un sistema crítico es un riesgo real.
-- **Leer "cero defectos encontrados" como información parcial, no como
-  prueba de calidad** (principio 1). Esa frase solo dice que los casos
-  ejecutados no encontraron nada — no que no haya nada para encontrar.
+- Concluir siempre con lo verificado y lo que quedó sin cubrir.
+- Justificar cada caso por el grupo de valores o el borde que representa.
+- Revisar requisitos e historias antes de que se programen.
+- Recalcular en cada ciclo dónde se concentran los defectos.
+- Revisar la suite de regresión cada vez que el producto cambia.
 
 ## Anti-patrones
 
-- **Afirmar que un sistema "no tiene bugs"** porque los casos ejecutados
-  no encontraron ninguno (contradice el principio 1) — es una conclusión
-  que ningún testing puede respaldar, por más casos que se hayan corrido.
-- **Aplicar el mismo nivel de rigor a cualquier sistema**, sin considerar
-  qué tan crítico es (contradice el principio 6) — desperdicia esfuerzo en
-  lo que no lo necesita, y puede dejar corto lo que sí.
-- **Dar por buena una suite que pasa siempre**, sin preguntarse si
-  todavía cubre algo útil (principio 5) — una suite que nunca encuentra
-  nada puede estar simplemente dejando de mirar donde importa.
-- **Dejar todo el testing para el final**, después de que la feature ya
-  está implementada (contradice el principio 3) — cualquier defecto de
-  diseño que se encuentre ahí ya salió mucho más caro de lo que hubiera
-  costado antes.
-- **Repartir el esfuerzo de testing parejo entre todos los módulos**,
-  ignorando que algunos concentran muchos más defectos que otros
-  (contradice el principio 4).
+- **Afirmar que un sistema "no tiene defectos"** porque las pruebas no
+  encontraron ninguno (principio 1).
+- **Repartir el esfuerzo en partes iguales entre todos los módulos**
+  (principio 4).
+- **Dar por buena una suite que siempre pasa** sin revisar si sigue
+  mirando lo que cambió (principio 5).
+- **Aplicar el mismo rigor a cualquier sistema** (principio 6).
+- **Dejar todo el testing para el final** (principio 3).
 
 ## Práctica
 
-Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<PrincipleMatchActivity />
 
 <PracticeActivity />
 
-<ClosingQuizActivity />
+<ReportActivity />

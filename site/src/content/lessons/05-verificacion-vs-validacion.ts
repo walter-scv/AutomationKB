@@ -1,5 +1,6 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {DecisionNode} from '@site/src/components/DecisionPath';
 
 export const CLASSIFY_RULE_LABELS = [
   'No es ninguna: no compara contra la especificación ni contra usuarios reales',
@@ -57,63 +58,76 @@ export const CLASSIFY_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Valida solo con quien escribió la especificación',
-  'Deja la validación para el final',
-  'Asume que verificado implica validado',
-  'Saltea la verificación',
-];
-
-export const PRACTICE_LINES: CodeLine[] = [
-  {
-    code: 'El equipo nunca compara el panel contra el documento de requisitos; confía en que "si a los usuarios les sirve, ya está".',
-    rule: 4,
-    why: 'Que el producto le sirva a un usuario no reemplaza comprobar si cumple lo acordado con el negocio. Sin esa comparación, nadie sabe si faltó implementar algo que el documento pedía.',
-    hint: '¿En algún momento se comparó el panel contra el documento que define lo que debe hacer?',
+export const PLAN_START = 'encarar';
+export const PLAN_NODES: Record<string, DecisionNode> = {
+  encarar: {
+    id: 'encarar',
+    situation: 'El nuevo panel de reportes para analistas está listo para testear, con su documento de requisitos. ¿Cómo encara el equipo las dos preguntas?',
+    options: [
+      {
+        text: 'Revisarlo contra el documento; si pasa todos los casos derivados de ahí, también les va a servir a los analistas.',
+        correct: false,
+        why: 'Eso asume que verificado implica validado. Son preguntas independientes: el panel puede cumplir el documento y no servirle a nadie.',
+      },
+      {
+        text: 'Saltear la revisión contra el documento: si a los analistas les sirve, ya está.',
+        correct: false,
+        why: 'Saltea la verificación: nadie confirma que el panel cumple lo acordado con el negocio, aunque a alguien le resulte útil.',
+      },
+      {
+        text: 'Revisarlo contra el documento y, por separado, probarlo con analistas.',
+        correct: true,
+        why: 'Cada pregunta se responde por su lado: la verificación contra el documento y la validación con quienes lo van a usar.',
+        next: 'quien',
+      },
+    ],
   },
-  {
-    code: 'El equipo revisa el panel contra el documento de requisitos y, por separado, lo prueba con cinco analistas reales.',
-    rule: 0,
-    why: 'Responde las dos preguntas con la evidencia que corresponde a cada una: el documento para la verificación, los usuarios reales para la validación. Ninguna se usa como atajo de la otra.',
-    hint: '¿Se usó la misma evidencia para las dos preguntas, o cada una con la suya?',
+  quien: {
+    id: 'quien',
+    situation: 'Para la validación, ¿a quién le piden que use el panel?',
+    options: [
+      {
+        text: 'A la persona que escribió el documento de requisitos, que sabe exactamente qué se pidió.',
+        correct: false,
+        why: 'Esa persona solo puede confirmar que el panel coincide con lo que ella imaginó, no detectar que la idea estaba equivocada.',
+      },
+      {
+        text: 'A analistas reales que no participaron en la definición, con una tarea concreta, y registrando con quiénes se hizo.',
+        correct: true,
+        why: 'Usuarios reales, ajenos a la especificación, con una tarea concreta y registrada: así la validación no es una charla informal con alguien ya convencido.',
+        next: 'cuando',
+      },
+      {
+        text: 'Al equipo de QA, que conoce todos los casos de test del panel.',
+        correct: false,
+        why: 'QA conoce los casos derivados del documento: eso es verificación. Validar es confirmar la necesidad real de quien lo usa.',
+      },
+    ],
   },
-  {
-    code: 'Para validar el panel, el equipo se lo muestra solo a la persona que escribió el documento de requisitos, que confirma que coincide con lo que pidió.',
-    rule: 1,
-    why: 'Esa persona está confirmando que el sistema coincide con su propia idea, que es casi lo mismo que ya decía el documento. No representa al usuario que va a usar el panel todos los días.',
-    hint: '¿La persona que opina es quien va a usar el producto, o quien escribió la especificación?',
+  cuando: {
+    id: 'cuando',
+    situation: 'Quedan tres semanas de desarrollo. ¿Cuándo hacen la validación con los analistas?',
+    options: [
+      {
+        text: 'Una vez que el panel esté en producción, cuando lo usen de verdad.',
+        correct: false,
+        why: 'Validar al final obliga a rehacer trabajo que ya se dio por terminado si la especificación no capturaba la necesidad real.',
+      },
+      {
+        text: 'Desde ahora y a medida que el panel toma forma, en varias rondas cortas.',
+        correct: true,
+        why: 'Validar en paralelo con el desarrollo hace que un malentendido aparezca cuando todavía es barato corregirlo.',
+      },
+      {
+        text: 'Al terminar las tres semanas, en una única sesión larga con todos los analistas.',
+        correct: false,
+        why: 'Sigue siendo validar una sola vez y al final: lo que se descubra ahí llega cuando ya no queda tiempo para corregir sin rehacer.',
+      },
+    ],
   },
-  {
-    code: 'El equipo documenta con qué analistas validó y qué tarea concreta les pidió.',
-    rule: 0,
-    why: 'Deja registro de la evidencia de validación: quiénes son los usuarios y qué hicieron. Así se puede distinguir una prueba real de una conversación informal con alguien que ya estaba de acuerdo.',
-    hint: '¿Queda registro de quién validó y qué hizo?',
-  },
-  {
-    code: 'El equipo concluye que, como el panel pasó todos los casos derivados del documento, seguro les va a servir a los analistas.',
-    rule: 3,
-    why: 'Pasar los casos documentados solo confirma que se cumple la especificación. Si la especificación no capturó bien la necesidad, el panel puede estar verificado y aun así no servir para el trabajo real.',
-    hint: '¿Haber cumplido el documento dice algo sobre cómo lo va a usar un analista real?',
-  },
-  {
-    code: 'El equipo deja la primera sesión con usuarios reales para la semana posterior al lanzamiento, cuando ya esté en producción.',
-    rule: 2,
-    why: 'Si la especificación no capturó la necesidad real, descubrirlo después de lanzar obliga a rehacer trabajo que ya estaba en manos de los usuarios. La validación tiene que acompañar el desarrollo, no llegar al final.',
-    hint: '¿Qué margen queda para cambiar el producto si el problema se descubre después de lanzarlo?',
-  },
-  {
-    code: 'El equipo valida el panel con analistas que no participaron en la definición del requisito.',
-    rule: 0,
-    why: 'Esos analistas representan a quien va a usar el producto, no a quien lo imaginó. Su experiencia es la evidencia que la validación necesita.',
-    hint: '¿Estos analistas representan al usuario real, o a quien escribió el requisito?',
-  },
-  {
-    code: 'El tester compara el resultado de cada caso con el criterio de aceptación documentado, antes de mostrarlo a usuarios.',
-    rule: 0,
-    why: 'Primero responde la pregunta de la verificación contra el documento. Después vendrá la validación con usuarios, que es una pregunta distinta y no se deduce de esta.',
-    hint: '¿Esta comparación es contra el documento, o contra usuarios?',
-  },
-];
+};
+export const PLAN_EXPLANATION =
+  'Verificar y validar son dos preguntas distintas que se hacen en paralelo: contra el documento, por un lado, y con usuarios reales que no escribieron la especificación, por el otro, desde temprano y en varias rondas.';
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {
@@ -137,24 +151,5 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
       },
     ],
   },
-  {
-    question: '¿Con quién se valida un producto?',
-    options: [
-      {
-        text: 'Con usuarios reales o representantes del negocio que no escribieron la especificación.',
-        correct: true,
-        why: 'La validación mide si el producto sirve en la práctica. Para eso hace falta alguien que lo use para su tarea, no alguien que confirme su propia idea original.',
-      },
-      {
-        text: 'Con la persona que escribió el documento de requisitos, para confirmar que el sistema lo cumple.',
-        correct: false,
-        why: 'Esa persona solo puede confirmar que el sistema coincide con lo que ella imaginó. Esa comparación se parece más a la verificación que a la validación.',
-      },
-      {
-        text: 'Con el equipo de QA, que es quien conoce todos los casos de test del sistema.',
-        correct: false,
-        why: 'QA puede verificar contra el documento, pero no representa al usuario final. Conocer los casos de test no dice si el producto resuelve la necesidad de quien lo va a usar.',
-      },
-    ],
-  },
+
 ];

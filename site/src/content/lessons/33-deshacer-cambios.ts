@@ -1,56 +1,57 @@
+import type {TerminalStep} from '@site/src/components/Terminal';
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {DecisionNode} from '@site/src/components/DecisionPath';
+import type {SpotTokenRound} from '@site/src/components/SpotToken';
 
-export const TOOL_RULE_LABELS = [
-  'Había que descartar un cambio sin confirmar (`restore`), no deshacer un commit (`revert`)',
-  'Había que guardar el cambio (`stash`), no descartarlo (`restore`)',
-  'Había que deshacer un commit compartido (`revert`), no reescribir el historial',
-];
-
-export const TOOL_LINES: CodeLine[] = [
-  {
-    code: 'Con un cambio a medias que todavía sirve, alguien corre `git restore src/validar.ts` para cambiar de rama y atender un bug urgente.',
-    rule: 2,
-    why: '`restore` devuelve el archivo al último commit y borra lo que había sin confirmar: ese trabajo a medias se pierde. Para dejarlo guardado mientras se atiende otra cosa, `stash` es la herramienta.',
-    hint: '¿Ese trabajo a medias se va a necesitar cuando termine el bug urgente?',
+export const UNDO_START = 'sinconfirmar';
+export const UNDO_NODES: Record<string, DecisionNode> = {
+  sinconfirmar: {
+    id: 'sinconfirmar',
+    situation: 'Probaste un cambio en `precios.ts`, no te convence y no lo confirmaste. Querés que el archivo vuelva a estar como en el último commit. ¿Qué corrés?',
+    options: [
+      {
+        text: '`git revert HEAD`',
+        correct: false,
+        why: '`revert` deshace un commit ya confirmado creando otro commit. Tu cambio no está confirmado: `revert` desharía el último commit, que no tiene nada que ver.',
+      },
+      {
+        text: '`git stash`',
+        correct: false,
+        why: '`stash` guarda el cambio para recuperarlo después. Vos no lo querés recuperar: querés descartarlo, y un stash olvidado es justamente un anti-patrón.',
+      },
+      {
+        text: '`git restore precios.ts`',
+        correct: true,
+        why: 'El cambio no está confirmado y lo querés descartar: `restore` vuelve el archivo al último commit.',
+        next: 'compartido',
+      },
+    ],
   },
-  {
-    code: 'Con cambios sin confirmar, alguien corre `git stash`, atiende el bug en otra rama y después recupera todo con `git stash pop`.',
-    rule: 0,
-    why: 'Guarda el trabajo sin confirmarlo, cambia de contexto y lo recupera: es el uso para el que existe stash. No se pierde nada ni se ensucia el historial.',
-    hint: '¿El trabajo sin confirmar se pierde con este flujo, o se recupera después?',
+  compartido: {
+    id: 'compartido',
+    situation: 'Otro problema: ayer confirmaste y subiste a `main` un commit que rompió el cálculo de cuotas, y dos compañeros ya lo bajaron. ¿Cómo lo deshacés?',
+    options: [
+      {
+        text: '`git restore cuotas.ts` y volver a subir.',
+        correct: false,
+        why: '`restore` solo descarta cambios sin confirmar. El commit ya está en el historial: el archivo ya coincide con él, así que no cambia nada.',
+      },
+      {
+        text: '`git revert <id-del-commit>`, que crea un commit nuevo con el cambio contrario.',
+        correct: true,
+        why: 'Está confirmado y compartido: `revert` lo deshace sin reescribir el historial que tus compañeros ya tienen, y deja registro de que se deshizo.',
+      },
+      {
+        text: 'Borrar ese commit del historial de `main` y volver a subir la rama, como si nunca hubiera existido.',
+        correct: false,
+        why: 'Eso reescribe un historial que otros ya bajaron: sus copias quedan desincronizadas con `main`, y no queda registro de qué se deshizo.',
+      },
+    ],
   },
-  {
-    code: 'Alguien quiere descartar cambios sin confirmar en un archivo y corre `git revert HEAD` para "volver atrás".',
-    rule: 1,
-    why: '`revert` deshace el último commit creando otro, no toca los cambios sin confirmar del working directory. Acá se termina deshaciendo un commit entero (que puede ser de otra persona) y el archivo sigue como estaba.',
-    hint: '¿El cambio que quiere descartar ya está en un commit, o todavía no se confirmó?',
-  },
-  {
-    code: 'El último commit de main, que ya bajaron tres compañeros, se deshace con `git commit --amend` y `git push --force`.',
-    rule: 3,
-    why: 'Amend reescribe el último commit y el push forzado pisa el remoto: las copias de esos tres compañeros quedan desincronizadas. Para un commit compartido corresponde `revert`, que agrega uno nuevo sin tocar el historial existente.',
-    hint: '¿Las otras personas ya tienen ese commit en sus clones?',
-  },
-  {
-    code: 'Alguien prueba un cambio, no le convence y, antes de commitear, corre `git restore src/precios.ts` para volver al estado anterior.',
-    rule: 0,
-    why: 'El cambio no estaba confirmado y no servía: descartarlo con restore es exactamente el caso. No hay historial que reescribir ni trabajo que conservar.',
-    hint: '¿Ese cambio ya estaba confirmado, o todavía no?',
-  },
-  {
-    code: 'Antes de cambiar de rama, alguien guarda el trabajo a medias con `git stash` y lo recupera al volver.',
-    rule: 0,
-    why: 'El cambio no estaba confirmado y se conserva para después: es el uso correcto de stash, sin descartar ni reescribir ningún commit.',
-    hint: '¿Ese cambio se pierde, se guarda o se reescribe?',
-  },
-  {
-    code: 'Un commit compartido se deshace con `git revert`; el commit nuevo queda con un mensaje que explica qué se revirtió y por qué.',
-    rule: 0,
-    why: 'Revierte sin borrar el historial y deja el motivo escrito: cualquiera que vea ese commit entiende por qué el cambio anterior ya no aplica.',
-    hint: '¿Este commit ya estaba compartido con el equipo?',
-  },
-];
+};
+export const UNDO_EXPLANATION =
+  'La pregunta que decide es si el cambio ya está confirmado. Sin confirmar: `restore` para descartarlo (o `stash` si lo querés guardar). Confirmado y compartido: `revert`, que deshace con un commit nuevo en vez de borrar historia.';
 
 export const PRACTICE_RULE_LABELS = [
   'Revirtió sin confirmar antes cuál era el commit correcto',
@@ -114,3 +115,48 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
     ],
   },
 ];
+
+export const CMD_PROMPT = '¿Qué palabra del comando no hace lo que dice el comentario?';
+export const CMD_ROUNDS: SpotTokenRound[] = [
+  {
+    line: 'git stash drop   # recuperar el trabajo que guardé antes de cambiar de rama',
+    targetIndex: 2,
+    why: '`drop` descarta lo guardado sin aplicarlo: el trabajo se pierde. Para recuperarlo es `git stash pop`.',
+    hint: 'Este comando, ¿aplica lo guardado o lo tira?',
+  },
+  {
+    line: 'git revert carrito.ts   # descartar lo que cambié recién, todavía sin confirmar',
+    targetIndex: 1,
+    why: '`revert` deshace un commit ya confirmado. Para descartar un cambio sin confirmar es `git restore carrito.ts`.',
+    hint: 'El cambio todavía no está confirmado. ¿Esta herramienta trabaja sobre cambios sueltos o sobre commits?',
+  },
+  {
+    line: 'git restore carrito.ts   # deshacer el commit de ayer, que el equipo ya bajó',
+    targetIndex: 1,
+    why: '`restore` solo descarta cambios sin confirmar. Un commit compartido se deshace con `git revert <id>`, que deja registro sin reescribir el historial.',
+    hint: 'Lo que se quiere deshacer ya está confirmado y compartido. ¿Cuál de las tres herramientas es para eso?',
+  },
+];
+
+export const REFLOG_STEPS: TerminalStep[] = [
+  {
+    instruction: 'Hace un rato corriste git reset --hard HEAD~3 en tu rama fix/filtro-fechas y te diste cuenta de que esos tres commits sí servían. Mostrá el registro de movimientos de HEAD.',
+    accepted: ['git reflog'],
+    hint: 'Es el comando que lista las posiciones por las que pasó HEAD, no el historial de la rama.',
+    output: '1c2d3e4 (HEAD -> fix/filtro-fechas) HEAD@{0}: reset: moving to HEAD~3\n8f9e0d1 HEAD@{1}: commit: Aceptar fechas con formato día/mes/año\n6a7b8c9 HEAD@{2}: commit: Rechazar una fecha final anterior a la inicial\n5e4f3a2 HEAD@{3}: commit: Agregar el filtro por rango de fechas\n1c2d3e4 HEAD@{4}: commit: Listar los pedidos del mes',
+  },
+  {
+    instruction: 'Sin tocar la rama actual, creá una rama llamada filtro-recuperado que apunte a donde estaba la rama justo antes del reset.',
+    accepted: ['git branch filtro-recuperado 8f9e0d1', 'git branch filtro-recuperado HEAD@{1}'],
+    hint: 'Buscá en el reflog la línea inmediatamente anterior al reset, y usá `git branch <nombre> <commit>`.',
+    output: '',
+  },
+  {
+    instruction: 'Comprobá que la rama nueva tiene los tres commits: mostrá su historial en formato corto.',
+    accepted: ['git log --oneline filtro-recuperado'],
+    hint: '`git log` en formato de una línea, indicando el nombre de la rama nueva.',
+    output: '8f9e0d1 (filtro-recuperado) Aceptar fechas con formato día/mes/año\n6a7b8c9 Rechazar una fecha final anterior a la inicial\n5e4f3a2 Agregar el filtro por rango de fechas\n1c2d3e4 (HEAD -> fix/filtro-fechas) Listar los pedidos del mes',
+  },
+];
+export const REFLOG_EXPLANATION =
+  'El reflog guarda dónde estuvo HEAD: `HEAD@{1}` (el commit `8f9e0d1`) es la posición anterior al reset. Crear una rama ahí recupera los tres commits sin modificar la rama actual; después se puede decidir con calma si se vuelve la rama con `git reset --hard 8f9e0d1` o se mergea.';

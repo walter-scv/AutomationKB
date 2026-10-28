@@ -4,10 +4,28 @@ sidebar_position: 17
 ---
 
 import Activity from '@site/src/components/Activity';
+import Terminal from '@site/src/components/Terminal';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import MultiSelect from '@site/src/components/MultiSelect';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
+import FillBlank from '@site/src/components/FillBlank';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
-import {OPERATOR_LINES, OPERATOR_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/17-operadores';
+import {
+  OPERATOR_LINES,
+  OPERATOR_RULE_LABELS,
+  CLOSING_QUIZ,
+  APPROVAL_TEMPLATE,
+  APPROVAL_SLOTS,
+  APPROVAL_BANK,
+  APPROVAL_EXPLANATION,
+  TRUTH_QUESTIONS,
+  EDIT_PREFIX,
+  EDIT_STEPS,
+  EDIT_EXPLANATION,
+  ARITH_STEPS,
+  ARITH_EXPLANATION,
+} from '@site/src/content/lessons/17-operadores';
 
 export const LESSON_SLUG = 'foundations-operadores';
 
@@ -26,17 +44,23 @@ export function OperatorActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function EditConditionActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['editcondition']);
   return (
     <Activity
-      title="¿Esta combinación se lee sin ambigüedad?"
-      kind="Buscar en el código"
-      goal="reconocer cuándo mezclar `&&` y `||` sin paréntesis genera ambigüedad, cuándo una negación solo cubre parte de una condición compuesta, y cuándo `||` deja pasar un caso que pedía las dos condiciones."
-      done={isDone('practice')}
-      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+      title="Armá la condición de edición"
+      kind="Armar"
+      goal="combinar `&&`, `||`, `!` y paréntesis para que una condición compuesta diga exactamente lo que pide la regla."
+      done={isDone('editcondition')}
+      consigna="Regla: una persona puede editar un documento si es la autora y el documento no está bloqueado, o si es admin. Armá la condición en 3 pasos, eligiendo un fragmento por paso; el siguiente aparece recién al acertar el anterior. La actividad se completa cuando la condición queda armada."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <CommandBuilder
+        prefix={EDIT_PREFIX}
+        steps={EDIT_STEPS}
+        explanation={EDIT_EXPLANATION}
+        alreadyDone={isDone('editcondition')}
+        onSolved={() => markDone('editcondition')}
+      />
     </Activity>
   );
 }
@@ -52,6 +76,69 @@ export function ClosingQuizActivity() {
       consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
     >
       <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+export function ApprovalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['approval']);
+  return (
+    <Activity
+      title="Completá la condición de aprobación"
+      kind="Completar huecos"
+      goal="elegir el operador de comparación y el operador lógico correctos para una condición que exige dos requisitos a la vez."
+      done={isDone('approval')}
+      consigna="Una compra se aprueba cuando el saldo alcanza el monto total Y se aceptaron los términos. Completá los dos huecos con las fichas: primero la comparación, después el operador lógico. La actividad se completa cuando los dos huecos quedan bien."
+    >
+      <FillBlank
+        template={APPROVAL_TEMPLATE}
+        slots={APPROVAL_SLOTS}
+        bank={APPROVAL_BANK}
+        explanation={APPROVAL_EXPLANATION}
+        alreadyDone={isDone('approval')}
+        onSolved={() => markDone('approval')}
+      />
+    </Activity>
+  );
+}
+
+export function TruthActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['truth']);
+  return (
+    <Activity
+      title="¿Cuáles dan true?"
+      kind="Marcar todas"
+      goal="evaluar a mano comparaciones y combinaciones lógicas con valores concretos, incluidos los límites y los tipos."
+      done={isDone('truth')}
+      consigna="Es 1 pregunta con 6 expresiones. Marcá todas las que dan `true` con los valores indicados: el conjunto tiene que ser exacto, ni de más ni de menos. Si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={TRUTH_QUESTIONS}
+        alreadyDone={isDone('truth')}
+        onSolved={() => markDone('truth')}
+      />
+    </Activity>
+  );
+}
+
+export function ArithConsoleActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['arithconsole']);
+  return (
+    <Activity
+      title="Calculá en la consola"
+      kind="Terminal"
+      goal="usar conversión a número, resto, redondeo de decimales y valores falsy en expresiones reales."
+      done={isDone('arithconsole')}
+      consigna="Son 4 pasos en una consola de JavaScript simulada. La instrucción de cada uno aparece como comentario arriba del prompt: escribí la expresión y confirmá con Enter. Si no es la esperada, la consola te avisa y podés corregirla. La actividad se completa al terminar los 4 pasos."
+    >
+      <Terminal
+        steps={ARITH_STEPS}
+        explanation={ARITH_EXPLANATION}
+        promptSymbol=">"
+        commentPrefix="//"
+        alreadyDone={isDone('arithconsole')}
+        onSolved={() => markDone('arithconsole')}
+      />
     </Activity>
   );
 }
@@ -173,11 +260,11 @@ Usar `||` cuando se necesitan las dos condiciones deja pasar casos que no
 deberían:
 
 ```ts
-// Mal: alcanza con ser admin o estar activo
-const puedeEditar = esAdmin || estaActivo;
+// Mal: alcanza con ser supervisor o con que el monto esté dentro del límite
+const puedeAprobar = esSupervisor || montoDentroDelLimite;
 
 // Bien: tienen que cumplirse las dos
-const puedeEditar = esAdmin && estaActivo;
+const puedeAprobar = esSupervisor && montoDentroDelLimite;
 ```
 
 ### Precedencia y paréntesis
@@ -204,6 +291,55 @@ const noEsAdultoNiSocio = !esAdulto && !esSocio;
 En cambio, `!(esAdulto && esSocio)` significa "no se cumple que sea adulto y
 socio a la vez": puede ser adulto sin ser socio, o socio sin ser adulto.
 
+### Evaluar una expresión paso a paso
+
+Para saber qué devuelve una expresión compuesta, se reemplaza cada
+variable por su valor y se resuelve por partes, respetando los paréntesis
+y la precedencia. Con `esSocio = true`, `tieneCupo = false` y
+`esInvitado = true`:
+
+```text
+(esSocio && tieneCupo) || esInvitado
+(true    && false    ) || true
+        false          || true
+                     true
+```
+
+Este procedimiento es el mismo que se usa al diseñar casos de prueba para
+una condición: elegir valores que hagan verdadera y falsa cada parte, y
+comprobar el resultado de la expresión completa en cada combinación.
+
+### Decimales y dinero
+
+Los números decimales no siempre se representan de forma exacta en la
+computadora. El resultado puede sorprender:
+
+```ts
+console.log(0.1 + 0.2);            // 0.30000000000000004
+console.log(0.1 + 0.2 === 0.3);    // false
+```
+
+Para un precio o un total, una diferencia así puede hacer fallar una
+comparación con `===`. Por eso, al trabajar con dinero, lo habitual es
+operar en centavos (números enteros) o redondear el resultado a dos
+decimales antes de comparar:
+
+```ts
+const total = Math.round((0.1 + 0.2) * 100) / 100;   // 0.3
+console.log(total === 0.3);                          // true
+```
+
+### Valores que se comportan como `true` o `false`
+
+`!`, `&&` y `||` no solo trabajan con booleanos. Cualquier valor se
+evalúa como verdadero o falso en una condición. Se comportan como falso
+(se los llama *falsy*) `false`, `0`, el texto vacío `''`, `null`,
+`undefined` y `NaN`; todo lo demás se comporta como verdadero (*truthy*).
+Por eso `!cupon` es `true` tanto si `cupon` vale `null` como si vale
+`''`, y una condición como `if (cantidad)` no entra cuando la cantidad es
+`0`. Cuando lo que importa es un valor exacto, la comparación explícita
+(`cupon === null`, `cantidad === 0`) es más clara y evita sorpresas.
+
 ## Cuándo usarlo
 
 Los operadores de comparación aparecen en cualquier condición (`if`,
@@ -213,40 +349,31 @@ longitud correcta **y** que el checkbox de términos esté tildado.
 
 ## Buenas prácticas
 
-- **Usar siempre `===`/`!==`, nunca `==`/`!=`.** Elimina de raíz la
-  posibilidad de una conversión de tipo inesperada en la comparación.
-- **Agrupar condiciones largas con paréntesis cuando se mezclan `&&` y
-  `||`**, aunque técnicamente no haga falta — deja explícito qué se
-  evalúa primero, en vez de obligar a quien lea a recordar las reglas de
-  precedencia de memoria.
-- **Para negar una condición compuesta ("ninguna de las dos"), negar cada
-  parte por separado** (`!a && !b`), no solo una de las dos partes.
-- **Guardar una condición larga en una variable con nombre** antes de
-  usarla en un `if`, en vez de repetirla completa cada vez — además de
-  más legible, evita que una copia y otra terminen levemente distintas.
-- **Preferir una comparación directa y positiva** (`if (esValida)`) por
-  sobre una negada (`if (!esInvalida)`) cuando las dos están disponibles
-  — leer sin negación es más directo.
+- Usar siempre `===`/`!==`, nunca `==`/`!=`.
+- Agrupar condiciones largas con paréntesis cuando se mezclan `&&` y `||`.
+- Para negar una condición compuesta ("ninguna de las dos"), negar cada parte por separado.
+- Guardar una condición larga en una variable con nombre.
+- Preferir una comparación directa y positiva.
 
 ## Anti-patrones
 
-- **Usar `==`/`!=`** en vez de `===`/`!==` — abre la puerta a
-  comparaciones con conversión de tipo inesperada.
-- **Escribir `=` donde se quiso escribir `===`.** Un solo carácter de
-  diferencia cambia una comparación por una asignación.
-- **Mezclar `&&` y `||` sin paréntesis** en una condición con tres o más
-  partes — aunque el resultado sea técnicamente correcto, no es obvio de
-  un vistazo para quien lo lee después.
-- **Negar solo una parte de una condición compuesta** cuando la intención
-  era negar las dos (confundir `!a && b` con `!a && !b`) — un error fácil
-  de cometer y difícil de notar con solo mirar el código una vez.
+- **Usar `==`/`!=`**.
+- **Escribir `=` donde se quiso escribir `===`**.
+- **Mezclar `&&` y `||` sin paréntesis**.
+- **Negar solo una parte de una condición compuesta**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 6 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <OperatorActivity />
 
-<PracticeActivity />
+<TruthActivity />
+
+<EditConditionActivity />
+
+<ApprovalActivity />
 
 <ClosingQuizActivity />
+
+<ArithConsoleActivity />

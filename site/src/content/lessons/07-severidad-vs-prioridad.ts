@@ -1,5 +1,7 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {DecisionNode} from '@site/src/components/DecisionPath';
+import type {SpotTokenRound} from '@site/src/components/SpotToken';
 
 export const SEVERITY_RULE_LABELS = ['Severidad alta con prioridad baja', 'Severidad baja con prioridad alta'];
 
@@ -48,52 +50,76 @@ export const SEVERITY_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = ['Copia el número de severidad en la prioridad sin analizar', 'Prioriza solo por visibilidad, ignora la gravedad real', 'Ordena por gravedad e ignora la frecuencia con la que ocurre'];
-
-export const PRACTICE_LINES: CodeLine[] = [
-  {
-    code: 'El equipo ordena la lista de pendientes por severidad, de mayor a menor, y no consulta la columna de frecuencia semanal aunque está completa en cada ticket.',
-    rule: 3,
-    why: 'El criterio es la gravedad técnica, pero la urgencia depende también de cuánta gente lo sufre. Un defecto grave y raro puede quedar arriba de uno moderado que aparece todos los días.',
-    hint: '¿Qué dato del ticket queda sin usar al ordenar la lista?',
+export const TRIAGE_START = 'criterio';
+export const TRIAGE_NODES: Record<string, DecisionNode> = {
+  criterio: {
+    id: 'criterio',
+    situation: 'Arranca la reunión de priorización: hay 30 defectos abiertos y tiempo para corregir 5 esta semana. Cada ticket tiene severidad, frecuencia semanal y en qué pantalla ocurre. ¿Con qué criterio ordenan?',
+    options: [
+      {
+        text: 'Ponerle a cada uno la misma prioridad que su severidad, así nadie discute.',
+        correct: false,
+        why: 'Copiar el número de severidad en la prioridad es igualarlas por default: se pierde justamente la decisión de negocio.',
+      },
+      {
+        text: 'Combinar gravedad, frecuencia y visibilidad, y dejar escrito el porqué de cada prioridad.',
+        correct: true,
+        why: 'La prioridad es una decisión de negocio que pesa varias cosas a la vez, y queda justificada para quien la lea después.',
+        next: 'importe',
+      },
+      {
+        text: 'Empezar por lo que más usuarios ven, porque es lo que más se nota.',
+        correct: false,
+        why: 'Priorizar solo por visibilidad deja atrás defectos graves pero poco visibles, hasta que causan un problema serio.',
+      },
+    ],
   },
-  {
-    code: 'Un defecto que corrompe datos aparece una vez cada 50.000 operaciones; el equipo lo deja en prioridad media y revisa cada mes si la frecuencia subió.',
-    rule: 0,
-    why: 'La severidad es alta, pero la prioridad media se justifica por la frecuencia y por el seguimiento mensual. No es igualar las dos dimensiones: es decidir con el dato real.',
-    hint: '¿Se está usando el dato de frecuencia para decidir, o se ignora?',
+  importe: {
+    id: 'importe',
+    situation: 'Quedan dos candidatos para el último lugar de la semana: uno duplica el importe de los pedidos con cupón en una pantalla interna que usa poca gente; el otro es el logo pixelado de la home. ¿Cuál entra?',
+    options: [
+      {
+        text: 'El logo: lo ve cada visitante y daña la imagen.',
+        correct: false,
+        why: 'Es más visible, pero el otro cobra mal: un error de dinero que sigue ocurriendo aunque pocos lo vean pesa más.',
+      },
+      {
+        text: 'Ninguno: los dos esperan a la semana que viene para no tomar una decisión apurada.',
+        correct: false,
+        why: 'Postergar sin criterio no es priorizar: el importe duplicado sigue cobrando mal mientras tanto.',
+      },
+      {
+        text: 'El importe duplicado: ocurre de verdad y afecta dinero, aunque pocos lo vean.',
+        correct: true,
+        why: 'Gravedad real alta y frecuencia concreta: es urgente aunque la pantalla sea poco visible.',
+        next: 'raro',
+      },
+    ],
   },
-  {
-    code: 'En la reunión de priorización, el único criterio que se lee en voz alta es "¿qué tan grave es?"; el número de prioridad termina siendo el mismo que el de severidad en todos los tickets.',
-    rule: 1,
-    why: 'La urgencia se copia de la gravedad sin discutir frecuencia, alcance ni contexto de negocio. Es el atajo de asumir que grave equivale a urgente.',
-    hint: '¿Qué otras preguntas de negocio no se están haciendo antes de asignar el número?',
+  raro: {
+    id: 'raro',
+    situation: 'Último ticket: un defecto corrompe datos, pero aparece una vez cada 50.000 operaciones. ¿Qué hacen con él?',
+    options: [
+      {
+        text: 'Prioridad media o baja, con el motivo escrito y una revisión periódica de su frecuencia.',
+        correct: true,
+        why: 'La severidad es alta pero la frecuencia hoy es muy baja; dejarlo justificado y vigilado permite subirlo si las condiciones cambian.',
+      },
+      {
+        text: 'Prioridad máxima: si corrompe datos, va primero que todo.',
+        correct: false,
+        why: 'Ordenar solo por gravedad ignora la frecuencia: puede consumir la semana algo que casi nunca ocurre, mientras esperan defectos frecuentes.',
+      },
+      {
+        text: 'Prioridad baja y cerrar el tema: casi nunca pasa.',
+        correct: false,
+        why: 'No volver a mirarlo es el riesgo: si la frecuencia sube (más usuarios, otro contexto), nadie se entera hasta que el daño ya ocurrió.',
+      },
+    ],
   },
-  {
-    code: 'El equipo corrige un error de cálculo en el total de una factura antes que un texto desalineado en el pie de página, aunque el texto lo vean todos los usuarios.',
-    rule: 0,
-    why: 'La visibilidad favorece al texto, pero el impacto de un total mal calculado es mayor. Se prioriza por gravedad real, no por cuánto se nota.',
-    hint: '¿Se prioriza por qué tan grave es, o por qué tan visible es?',
-  },
-  {
-    code: 'Se posterga un defecto que duplica el importe de los pedidos con cupón porque ocurre en una pantalla interna que casi nadie ve; se prioriza el logo pixelado de la home.',
-    rule: 2,
-    why: 'El criterio fue exclusivamente cuánto se ve. El defecto postergado cobra de más y afecta el dinero de quien compra, aunque la pantalla sea interna.',
-    hint: '¿Qué le pasa al dinero de un pedido mientras el defecto sigue abierto?',
-  },
-  {
-    code: 'Un bug de severidad alta que ocurre en 1 de cada 200.000 inicios de sesión queda en prioridad baja, con una alerta que avisa si la frecuencia sube.',
-    rule: 0,
-    why: 'La gravedad es alta, pero la frecuencia real es mínima y el equipo se asegura de enterarse si cambia. Que la prioridad sea baja no significa olvidarlo.',
-    hint: '¿Se ignora la gravedad, o se tiene en cuenta junto con la frecuencia?',
-  },
-  {
-    code: 'La prioridad se decide mirando solo el daño posible del defecto; el dato de cuántas veces se repitió por semana está en el reporte, pero nadie lo abre.',
-    rule: 3,
-    why: 'Se evalúa el peor escenario y se ignora la probabilidad. Dos defectos igual de graves pueden merecer prioridades distintas según cuánto ocurren.',
-    hint: '¿Qué información del reporte se está dejando afuera de la decisión?',
-  },
-];
+};
+export const TRIAGE_EXPLANATION =
+  'La prioridad combina gravedad, frecuencia y visibilidad, y se deja escrita: lo visible no siempre va primero, lo grave no siempre es urgente, y lo que hoy es raro se vuelve a mirar.';
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {
@@ -136,5 +162,27 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
         why: 'Describe la gravedad del malfuncionamiento en sí: severidad. La urgencia de negocio no aparece en la frase.',
       },
     ],
+  },
+];
+
+export const LEVEL_PROMPT = '¿Qué palabra de esta línea está mal asignada?';
+export const LEVEL_ROUNDS: SpotTokenRound[] = [
+  {
+    line: 'Severidad alta: el logo de la home se ve pixelado en pantallas grandes.',
+    targetIndex: 1,
+    why: 'No rompe ninguna funcionalidad: la severidad es baja. Que lo vea mucha gente puede subirle la prioridad, pero eso es otra dimensión.',
+    hint: 'Si esto falla, ¿qué funcionalidad deja de andar?',
+  },
+  {
+    line: 'Prioridad baja: el cobro duplica el importe en cada compra con tarjeta.',
+    targetIndex: 1,
+    why: 'Pasa en cada compra y afecta dinero: es urgente corregirlo. La prioridad es alta.',
+    hint: '¿Qué tan seguido pasa, y qué le cuesta al negocio cada vez que pasa?',
+  },
+  {
+    line: 'Severidad baja: si dos pestañas guardan a la vez, se borra el historial del usuario.',
+    targetIndex: 1,
+    why: 'Pierde datos del usuario: la severidad es alta aunque casi nunca ocurra. Lo poco frecuente puede bajar la prioridad, no la severidad.',
+    hint: 'Cuando ocurre, ¿qué tan grave es el daño?',
   },
 ];

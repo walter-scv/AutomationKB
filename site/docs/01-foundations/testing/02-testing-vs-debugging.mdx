@@ -4,14 +4,25 @@ sidebar_position: 2
 ---
 
 import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import MultiSelect from '@site/src/components/MultiSelect';
 import Classify from '@site/src/components/Classify';
-import FindInCode from '@site/src/components/FindInCode';
+import DecisionPath from '@site/src/components/DecisionPath';
 import Quiz from '@site/src/components/Quiz';
+import CodeBlock from '@theme/CodeBlock';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  ACTIVITY_LINES, ACTIVITY_RULE_LABELS,
-  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  ACTIVITY_LINES,
+  ACTIVITY_RULE_LABELS,
+  REPORT_FLOW_START,
+  REPORT_FLOW_NODES,
+  REPORT_FLOW_EXPLANATION,
   CLOSING_QUIZ,
+  ISOLATION_QUESTIONS,
+  ISOLATION_TABLE,
+  STATE_LEFT,
+  STATE_RIGHT,
+  STATE_WHY,
 } from '@site/src/content/lessons/02-testing-vs-debugging';
 
 export const LESSON_SLUG = 'foundations-testing-vs-debugging';
@@ -41,17 +52,23 @@ export function ActivityKindActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function ReportFlowActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['reportflow']);
   return (
     <Activity
-      title="¿Este reporte o cierre está bien?"
-      kind="Clasificar"
-      goal="reconocer un reporte sin pasos reproducibles, una causa adivinada, un cierre sin volver a testear y una entrada mezclada con el resultado."
-      done={isDone('practice')}
-      consigna="Son 8 situaciones. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+      title="Del fallo al cierre"
+      kind="Escenario encadenado"
+      goal="tomar las decisiones de un fallo de punta a punta: cómo reportarlo, qué hace falta para confirmar la corrección y cuándo se puede cerrar."
+      done={isDone('reportflow')}
+      consigna="Vas a seguir un mismo fallo en tres momentos: el reporte, la confirmación con desarrollo y el cierre del ticket. Cada decisión lleva a la siguiente. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al cierre."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <DecisionPath
+        startId={REPORT_FLOW_START}
+        nodes={REPORT_FLOW_NODES}
+        explanation={REPORT_FLOW_EXPLANATION}
+        alreadyDone={isDone('reportflow')}
+        onSolved={() => markDone('reportflow')}
+      />
     </Activity>
   );
 }
@@ -71,81 +88,224 @@ export function ClosingQuizActivity() {
   );
 }
 
+export function IsolateActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['isolate']);
+  return (
+    <Activity
+      title="Aislá el fallo y elegí la regresión"
+      kind="Marcar todas"
+      goal="sacar de un conjunto de pruebas la condición mínima de un fallo, y elegir qué entra en la regresión después de corregirlo."
+      done={isDone('isolate')}
+      consigna="Son 2 preguntas sobre el mismo fallo. El bloque muestra las pruebas que se hicieron para aislarlo, cambiando un factor por vez: el teléfono cargado, la operadora y si el SMS llegó. En cada pregunta, marcá todas las opciones que correspondan. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar las 2."
+    >
+      <CodeBlock language="text">{ISOLATION_TABLE}</CodeBlock>
+      <MultiSelect
+        questions={ISOLATION_QUESTIONS}
+        alreadyDone={isDone('isolate')}
+        onSolved={() => markDone('isolate')}
+      />
+    </Activity>
+  );
+}
+
+export function StateMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['statematch']);
+  return (
+    <Activity
+      title="¿En qué estado queda el reporte?"
+      kind="Emparejar"
+      goal="asignar el estado que corresponde a un reporte de defecto según lo que pasó con él."
+      done={isDone('statematch')}
+      consigna="Son 5 situaciones de reportes de defecto y 5 estados: cada estado corresponde a exactamente una situación. Elegí una situación y después su estado (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste las 5."
+    >
+      <Match
+        left={STATE_LEFT}
+        right={STATE_RIGHT}
+        why={STATE_WHY}
+        leftLabel="Situación"
+        rightLabel="Estado"
+        alreadyDone={isDone('statematch')}
+        onSolved={() => markDone('statematch')}
+      />
+    </Activity>
+  );
+}
+
 Ya viste qué es testing y para qué sirve. Hay una confusión común que vale
 la pena resolver antes de seguir: testing y debugging no son la misma
 actividad, aunque a veces las haga la misma persona.
 
 ## Conceptos
 
-**Testing** identifica un **fallo**: una diferencia entre el
-comportamiento esperado de un sistema y su comportamiento real. Lo hace,
-típicamente, el equipo de QA.
+### Dos actividades distintas
 
-**Debugging** es el proceso de encontrar la causa — el **defecto** en el
-código — que provocó ese fallo, y corregirla. Lo hace, típicamente, el
-equipo de desarrollo.
+Testing y debugging se confunden porque trabajan sobre el mismo problema,
+pero persiguen objetivos distintos. **Testing** pone en evidencia que algo
+no funciona: el testing dinámico lo hace provocando un **fallo**, una
+diferencia observable entre lo esperado y lo que hace el sistema; el
+testing estático, encontrando directamente un defecto en un documento o
+en el código. **Debugging** parte de un fallo ya conocido y busca su
+causa, el **defecto**, para eliminarla. Es una actividad de desarrollo, no
+de testing, aunque en un equipo chico ambas las haga la misma persona.
 
-Son actividades complementarias, pero cada una cubre una mitad distinta
-del problema: testing no corrige nada, solo revela que algo anda mal.
-Debugging no busca fallos nuevos — parte de uno ya encontrado, para
-investigar por qué pasa y resolverlo. En equipos chicos, una misma persona
-puede hacer las dos cosas, pero siguen siendo dos actividades distintas,
-con objetivos distintos.
+El debugging de un fallo tiene tres pasos: reproducirlo, diagnosticar qué
+lo provoca y corregir el defecto. Cuando el defecto lo encontró un testing
+estático, por ejemplo en una revisión de código, no hay fallo que
+reproducir ni causa que diagnosticar: el debugging se limita a eliminarlo.
+
+Después de la corrección, el trabajo vuelve a testing, que confirma que
+el problema se resolvió y que la corrección no rompió otra cosa. Las
+secciones siguientes recorren ese ciclo completo con un único defecto.
+
+### Reproducir y aislar un fallo
+
+El panel de administración de una tienda online exporta los pedidos a un
+archivo CSV. Al abrir uno de esos archivos, en lugar de «José Núñez»
+aparece «JosÃ© NÃºÃ±ez». Reportarlo así, "la exportación muestra mal
+algunos nombres", obliga a quien lo reciba a averiguar desde cero cuándo
+pasa.
+
+Antes de reportar, el trabajo de testing es **aislar** el fallo: cambiar un
+factor por vez para encontrar las condiciones mínimas en que ocurre.
+
+| Prueba | Cliente | Archivo abierto con | ¿Falla? |
+|---|---|---|---|
+| 1 | José Núñez | Excel | Sí |
+| 2 | Ana Gómez | Excel | No |
+| 3 | Martín Paz | Excel | Sí |
+| 4 | Peña Hnos. | Excel | Sí |
+| 5 | José Núñez | Editor de texto plano | No |
+| 6 | José Núñez | LibreOffice, indicando UTF-8 al abrir | No |
+
+Las pruebas 2 a 4 muestran que el fallo depende de los caracteres: no
+ocurre sin tildes ni ñ, y alcanza con una sola. Las pruebas 5 y 6 muestran
+que el contenido del archivo es correcto, porque otros programas lo
+muestran bien. La conclusión es concreta: el fallo ocurre al abrir en
+Excel un CSV exportado que contiene tildes o ñ. Esa frase acota mucho la
+búsqueda y no afirma ninguna causa que no se haya verificado.
+
+### El reporte de defecto
+
+El reporte conecta testing con debugging: si no permite reproducir el
+fallo, el debugging no puede empezar. Con lo aislado, el reporte queda
+así:
+
+```text
+ID:                  DEF-214
+Título:              La exportación de pedidos a CSV muestra mal tildes y ñ al abrirse en Excel
+Objeto y versión:    Panel de administración, versión 3.8.0
+Entorno:             Ambiente de pruebas, Windows 11, Excel 365, Chrome 126
+Precondición:        Existen pedidos de los clientes «José Núñez» y «Ana Gómez»
+Pasos:               1. Ir a Pedidos > Exportar
+                     2. Elegir el rango del 01/10 al 07/10 y tocar «Descargar CSV»
+                     3. Abrir el archivo descargado con doble clic
+Resultado esperado:  La columna Cliente muestra «José Núñez»
+Resultado real:      La columna Cliente muestra «JosÃ© NÃºÃ±ez»
+Información extra:   Ocurre con cualquier nombre con tilde o ñ (probado con tres).
+                     No ocurre con nombres sin esos caracteres. El mismo archivo
+                     se ve bien en un editor de texto y en LibreOffice con UTF-8.
+Evidencia:           Captura de Excel y archivo pedidos-2026-10-07.csv
+Estado:              Nuevo
+```
+
+El título permite entender el problema sin abrir el reporte. La versión y
+el entorno permiten reproducirlo en las mismas condiciones, y evitan la
+respuesta "en mi máquina anda". Los pasos usan datos concretos: un rango
+de fechas y clientes identificados, no "exportar algunos pedidos". El
+resultado esperado y el real van separados, para que no haya que
+interpretar qué difiere. Y la información extra vuelca lo aprendido en el
+aislamiento, sin agregar una causa supuesta: escribir "seguro es un
+problema de la base de datos" habría mandado la investigación al lugar
+equivocado, porque el archivo, como se vio, estaba bien. El reporte
+también lleva severidad y prioridad, que se tratan en su propia entrada.
+
+Un fallo que no se logra reproducir también se reporta, indicando con qué
+pasos y datos se intentó y cuántas veces. Eso orienta la investigación;
+"a veces pasa" no.
+
+### El debugging
+
+Con el reporte, desarrollo reproduce el fallo siguiendo los pasos. Para
+diagnosticarlo parte de lo que dice la información extra: si el archivo
+está bien y el problema aparece solo en Excel, la causa está en cómo
+Excel interpreta el archivo. Encuentra que el CSV se genera en UTF-8 sin
+la marca inicial (*BOM*) que Excel necesita para reconocer esa
+codificación, y que sin ella Excel lo lee con otra. La corrección consiste
+en agregar esa marca al generar el archivo.
+
+### Confirmation testing y regression testing
+
+Una corrección se verifica de dos maneras. El **confirmation testing**
+(también llamado *re-test*) vuelve a ejecutar el caso que falló, con los
+mismos datos y en el mismo entorno, para confirmar que el fallo ya no
+ocurre. Conviene que lo haga quien encontró el fallo, porque conoce
+exactamente las condiciones. En DEF-214, es repetir los pasos del reporte
+y comprobar que Excel muestre «José Núñez».
+
+El **regression testing** ejecuta pruebas que antes pasaban, sobre lo que
+el cambio pudo afectar, para confirmar que no se rompió nada. No consiste
+en volver a probar todo, sino en elegir según el cambio. Agregar una marca
+al inicio del archivo puede afectar a los programas donde el CSV ya se veía
+bien, así que se vuelve a abrir en LibreOffice y en un editor de texto. La
+exportación de productos probablemente usa el mismo código, así que
+también entra. La importación de un CSV exportado entra porque la marca
+nueva puede alterar la lectura de la primera columna. La exportación a PDF
+y el login quedan afuera: usan otro mecanismo o no tienen relación con el
+cambio.
+
+### Los estados de un defecto
+
+Mientras se resuelve, un defecto pasa por estados que dicen en qué parte
+del ciclo está. Los nombres varían según la herramienta, pero el recorrido
+habitual es este:
+
+```text
+Nuevo → Asignado → En corrección → Resuelto → En re-test → Cerrado
+                                                  └──→ Reabierto (si el re-test falla)
+```
+
+"Resuelto" significa que hay una corrección; "Cerrado", que el re-test
+confirmó que funciona. Por eso el cierre lo hace quien probó, no quien
+corrigió. Un reporte también puede terminar como **rechazado**, si el
+comportamiento es el esperado y no hay defecto; **duplicado**, si ya
+estaba reportado; o **no reproducible**, si con la información disponible
+no se logra provocar el fallo.
 
 ## Cuándo usarlo
 
-Testing se aplica continuamente, durante todo el desarrollo, para
-confirmar si algo funciona como se espera. Debugging arranca recién
-después de que un testing (o un reporte) ya identificó un fallo concreto
-y reproducible — no tiene sentido debuggear sin un síntoma confirmado del
-cual partir.
+Testing se aplica durante todo el desarrollo. El debugging empieza recién
+cuando hay un fallo reproducible o un defecto encontrado en una revisión,
+y cada corrección vuelve a pasar por confirmation testing y regression
+testing antes de cerrarse.
 
 ## Buenas prácticas
 
-- **Reportar un fallo con pasos reproducibles**: qué dato se usó, qué se
-  esperaba y qué pasó en realidad, no solo "a veces falla". Sin esto,
-  quien debuggea no tiene de dónde partir y pierde tiempo tratando de
-  reproducir el problema antes de poder investigarlo.
-- **Mantener el reporte de testing enfocado en el síntoma observado**, sin
-  mezclarlo con una causa sin confirmar. Una causa adivinada puede llevar
-  a investigar en la dirección equivocada, mientras el defecto real sigue
-  sin encontrarse.
-- **Antes de cerrar un defecto como corregido, volver a testear que el
-  fallo original ya no ocurre.** Confiar solo en que "el código cambió"
-  no confirma que el síntoma reportado desapareció — a veces el cambio
-  corrige otra cosa y el fallo original sigue ahí.
-- **Separar, en el reporte, el dato de entrada del resultado observado.**
-  Si los dos quedan mezclados en una sola frase, quien debuggea tiene que
-  adivinar cuál de los dos es cuál antes de empezar.
-- **Avisar apenas se detecta un fallo, en vez de acumular varios para
-  reportar juntos al final.** Un fallo reportado tarde puede estar
-  escondido detrás de cambios posteriores, lo que hace mucho más difícil
-  encontrar en qué commit se originó.
+- Aislar el fallo antes de reportarlo, cambiando un factor por vez.
+- Reportar en cuanto se confirma el fallo, en lugar de acumular varios
+  para el final.
+- Indicar en el reporte el caso exacto que confirma la corrección.
+- Elegir la regresión según lo que el cambio pudo afectar.
 
 ## Anti-patrones
 
-- **Reportar un fallo sin pasos para reproducirlo**, lo que hace
-  imposible empezar el debugging — quien lo recibe tiene que volver a
-  buscar el camino para que el fallo vuelva a aparecer.
-- **Adivinar la causa de un fallo** en el reporte de testing, en vez de
-  describir el síntoma observado. Si la causa adivinada es incorrecta,
-  encima desvía la investigación real.
-- **Cerrar un defecto como corregido sin volver a testearlo**, confiando
-  solo en que el código cambió — el cambio puede no resolver exactamente
-  el síntoma que se había reportado.
-- **Mezclar el dato de entrada con el resultado en una sola oración
-  ambigua** ("probé con una contraseña y no anduvo bien"), en vez de
-  separarlos con claridad.
-- **Dejar que el equipo de desarrollo adivine qué probar** para confirmar
-  que el defecto está resuelto, en vez de indicar el caso exacto que hay
-  que volver a correr.
+- **Reportar sin pasos reproducibles** ("a veces falla").
+- **Adivinar la causa en el reporte** en lugar de describir el síntoma.
+- **Mezclar dato de entrada y resultado en una frase ambigua** ("probé con
+  un nombre con tilde y salió mal").
+- **Cerrar un defecto porque "el código cambió"**, sin re-ejecutar el caso
+  original.
+- **Dejar que desarrollo adivine qué probar** para confirmar la corrección.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <ActivityKindActivity />
 
-<PracticeActivity />
+<ReportFlowActivity />
+
+<StateMatchActivity />
 
 <ClosingQuizActivity />
+
+<IsolateActivity />

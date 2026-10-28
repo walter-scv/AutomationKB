@@ -4,33 +4,35 @@ sidebar_position: 28
 ---
 
 import Activity from '@site/src/components/Activity';
+import Terminal from '@site/src/components/Terminal';
 import FindInCode from '@site/src/components/FindInCode';
-import Order from '@site/src/components/Order';
 import Quiz from '@site/src/components/Quiz';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  FIRST_COMMIT_ORDER_ITEMS, FIRST_COMMIT_ORDER_CORRECT, FIRST_COMMIT_ORDER_RULES,
-  COMMIT_MESSAGE_LINES, COMMIT_MESSAGE_RULE_LABELS,
+  COMMIT_MESSAGE_LINES,
+  COMMIT_MESSAGE_RULE_LABELS,
   CLOSING_QUIZ,
+  FIRST_COMMIT_STEPS,
+  FIRST_COMMIT_EXPLANATION,
 } from '@site/src/content/lessons/28-primer-commit';
 
 export const LESSON_SLUG = 'foundations-primer-commit';
 
-export function FirstCommitOrderActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['order']);
+export function FirstCommitTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['firstcommitterminal']);
   return (
     <Activity
-      title="Armá el primer commit"
-      kind="Ordenar"
-      goal="ubicar en orden los pasos para crear un repositorio y confirmar el primer cambio."
-      done={isDone('order')}
-      consigna="Son 4 tarjetas. Ordená todas del primero al último: mové cada una con las flechas (o arrastrándola) y usá «Comprobar orden» hasta que el orden sea correcto."
+      title="Hacé el primer commit en la terminal"
+      kind="Terminal"
+      goal="escribir los cuatro comandos del primer commit, eligiendo qué archivo entra al historial."
+      done={isDone('firstcommitterminal')}
+      consigna="Son 4 pasos en una terminal simulada. La instrucción de cada uno aparece como comentario arriba del prompt: escribí el comando y confirmá con Enter. Si el comando no es el esperado, la terminal te avisa y podés corregirlo. La actividad se completa al terminar los 4 pasos."
     >
-      <Order
-        items={FIRST_COMMIT_ORDER_ITEMS}
-        correctOrder={FIRST_COMMIT_ORDER_CORRECT}
-        rules={FIRST_COMMIT_ORDER_RULES}
-        onSolved={() => markDone('order')}
+      <Terminal
+        steps={FIRST_COMMIT_STEPS}
+        explanation={FIRST_COMMIT_EXPLANATION}
+        alreadyDone={isDone('firstcommitterminal')}
+        onSolved={() => markDone('firstcommitterminal')}
       />
     </Activity>
   );
@@ -74,86 +76,182 @@ export function ClosingQuizActivity() {
 
 ## Conceptos
 
-Ya viste qué es un repositorio y los conceptos centrales de Git: working
-directory, staging area y commit. Cuatro comandos alcanzan para crear un
-repositorio y confirmar el primer cambio:
+La lección anterior presentó las tres áreas de Git. Esta muestra los
+cuatro comandos que llevan un cambio hasta el historial, con un proyecto
+nuevo: una aplicación de agenda, en la carpeta `agenda/`, que por ahora
+tiene un archivo `login.ts` y un archivo de notas personales,
+`notas.txt`, que no tiene que entrar al repositorio.
+
+### `git init`: crear el repositorio
 
 ```bash
-git init
+$ cd agenda
+$ git init
+Initialized empty Git repository in /home/ana/agenda/.git/
 ```
 
-Convierte la carpeta actual en un repositorio: a partir de acá, Git empieza
-a llevar historial de lo que pasa ahí. Se ejecuta una sola vez por
-proyecto.
+El comando crea la carpeta oculta `.git`, donde va a vivir el historial,
+y convierte a `agenda/` en un repositorio. Se ejecuta una sola vez por
+proyecto. No modifica los archivos que ya estaban: no los borra ni los
+confirma, y quedan sin seguimiento hasta que se los agregue. Si el
+proyecto ya existe en GitHub, no se usa `init` sino `git clone`, que trae
+el repositorio ya armado.
+
+### `git status`: revisar antes de actuar
 
 ```bash
-git status
+$ git status
+On branch main
+
+No commits yet
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        login.ts
+        notas.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
 ```
 
-Muestra el estado actual: qué archivos cambiaron, cuáles ya están en el
-staging area y cuáles todavía no. Se puede ejecutar en cualquier momento,
-sin que cambie nada — solo informa.
+`git status` solo informa: no cambia nada y se puede ejecutar todas las
+veces que haga falta. Acá dice que todavía no hay commits y que hay dos
+archivos sin seguimiento. La última línea anticipa lo que pasaría si se
+intentara confirmar ahora: no hay nada en staging, así que no hay nada
+que confirmar. Las líneas entre paréntesis son sugerencias de Git sobre
+el próximo comando.
+
+Cuando la lista es larga, `git status -s` la resume en una línea por
+archivo. La primera columna indica el estado en el staging area y la
+segunda en el working directory: `??` es un archivo sin seguimiento, `A`
+uno nuevo agregado al staging, `M ` uno modificado y agregado, ` M` uno
+modificado y todavía sin agregar.
 
 ```bash
-git add validarContraseña.ts
+$ git status -s
+?? login.ts
+?? notas.txt
 ```
 
-Mueve ese archivo al staging area: lo marca como listo para el próximo
-commit. `git add .` hace lo mismo con todos los archivos cambiados.
+### `git add`: elegir qué entra en el commit
+
+`git add` pasa cambios al staging area. Acepta uno o varios archivos, una
+carpeta, o un punto, que significa "todo lo que cambió desde la carpeta
+actual":
 
 ```bash
-git commit -m "Agregar validación de longitud de contraseña"
+$ git add login.ts                 # un archivo
+$ git add login.ts perfil.ts       # varios archivos
+$ git add src/                     # una carpeta con todo su contenido
+$ git add .                        # todo lo modificado o nuevo
 ```
 
-Confirma lo que está en el staging area, con un mensaje que describe el
-cambio. A partir de acá, ese cambio queda guardado en el historial.
+Si se escribe mal el nombre, Git lo indica:
+
+```text
+fatal: pathspec 'logn.ts' did not match any files
+```
+
+Cuando sale bien, `git add` no muestra nada; para confirmar qué quedó
+preparado, otra vez `git status`. El punto es cómodo, pero agrega todo,
+incluido `notas.txt`. En este proyecto, lo correcto es nombrar el archivo:
+
+```bash
+$ git add login.ts
+$ git status -s
+A  login.ts
+?? notas.txt
+```
+
+`login.ts` está en staging y `notas.txt` sigue afuera. Si algo se agregó
+por error, `git restore --staged <archivo>` lo saca del staging area sin
+perder el cambio (se ve en la lección sobre deshacer cambios). Y si
+`notas.txt` nunca va a versionarse, lo correcto es sumarlo al
+`.gitignore`, para que deje de aparecer.
+
+### `git commit`: guardar en el historial
+
+```bash
+$ git commit -m "Agregar la pantalla de login con email y contraseña"
+[main (root-commit) 3f2a1c9] Agregar la pantalla de login con email y contraseña
+ 1 file changed, 31 insertions(+)
+ create mode 100644 login.ts
+```
+
+La salida indica la rama (`main`), el identificador corto del commit
+(`3f2a1c9`), el mensaje y un resumen de lo que cambió: un archivo, 31
+líneas agregadas, y que `login.ts` es un archivo nuevo. `root-commit`
+aparece solo en el primer commit de un repositorio, porque es el único
+que no tiene un commit padre.
+
+Solo se confirma lo que está en staging. Todo lo demás sigue pendiente
+para un próximo commit. Si se ejecuta `git commit` sin `-m`, Git abre un
+editor de texto en la terminal para escribir el mensaje; el commit se
+crea al guardar y cerrar ese editor. Si el nombre y el email nunca se
+configuraron, el commit se detiene y Git pide configurarlos con los dos
+comandos `git config` de la lección anterior.
+
+### El mensaje del commit
+
+El mensaje es lo que se lee en el historial, meses después, para entender
+qué pasó sin abrir el código. La convención más extendida es empezar con
+un verbo en infinitivo que diga qué hace el commit, y mantener la primera
+línea corta, de alrededor de 50 caracteres: "Agregar la pantalla de
+login", "Corregir el redondeo del total", "Eliminar el campo de fax del
+perfil". Si hace falta explicar el porqué, se agrega un segundo párrafo,
+que con `-m` se escribe repitiendo la opción:
+
+```bash
+$ git commit -m "Bloquear el login tras 3 intentos fallidos" \
+             -m "Requisito de seguridad acordado con el cliente el 20/10."
+```
+
+(La barra invertida al final de la primera línea permite seguir escribiendo
+el mismo comando en la línea siguiente; también se puede escribir todo en
+una sola línea.)
+
+Mensajes como "cambios", "fix", "listo" o "cosas de la reunión" no dicen
+nada: quien busque en el historial dónde se modificó el bloqueo por
+intentos tiene que abrir cada commit para averiguarlo.
+
+La misma regla define qué va en cada commit: **un commit, un cambio**. Si
+en una misma sesión se corrigió el login y se actualizó el README, son dos
+commits. Así cada uno se puede revisar y, si hace falta, deshacer sin
+arrastrar el otro. Un mensaje que necesita un "y" para describir el
+commit ("Corregir login y actualizar README") es la señal de que había
+que separarlo.
+
+Por último, cada commit debería dejar el proyecto en un estado
+funcional: código que compila y pruebas que pasan. Un commit con pruebas
+en rojo, "que se arreglan en el próximo", es un punto del historial al
+que no se puede volver con confianza.
 
 ## Cuándo usarlo
 
-`git init` se ejecuta una sola vez, al arrancar un proyecto nuevo (o para
-convertir en repositorio una carpeta que todavía no lo era). El ciclo
-`status` → `add` → `commit` se repite cada vez que hay un cambio para
-guardar, por chico que sea.
+`git init` se ejecuta una sola vez, al crear un proyecto. El ciclo
+`status`, `add` y `commit` se repite con cada cambio terminado, por
+chico que sea; el primer commit conviene hacerlo apenas hay un cambio
+coherente, sin esperar a que el proyecto esté completo.
 
 ## Buenas prácticas
 
-- **Escribir el mensaje en términos de qué cambió**, no de cómo se sintió
-  hacerlo ("Agregar validación de longitud de contraseña", no "cambios" ni
-  "fix") — el historial solo sirve si se puede leer meses después sin
-  abrir cada diff.
-- **Ejecutar `git status` antes de `git add`**, para confirmar exactamente
-  qué se está por incluir, en vez de asumirlo.
-- **Un commit, un cambio**: si se corrigieron dos cosas sin relación,
-  conviene dos commits separados — así se puede revertir uno sin arrastrar
-  el otro.
-- **Confirmar apenas termina una unidad de cambio**, no acumular horas de
-  trabajo sin commitear — un commit gigante es tan difícil de revisar como
-  de revertir parcialmente.
-- **Agregar archivo por archivo cuando los cambios no están relacionados**,
-  en vez de `git add .` a ciegas, para no terminar mezclando sin querer
-  cosas que debían ir en commits distintos.
+- Revisar `git status` antes de `git add` y antes de `git commit`.
+- Agregar archivo por archivo cuando hay cambios sin relación.
+- Escribir mensajes que digan qué cambió, empezando con un verbo.
+- Confirmar solo código que compila y con las pruebas en verde.
 
 ## Anti-patrones
 
-- **Mensajes genéricos** ("cambios", "fix", "update") que no dicen qué se
-  modificó — obligan a abrir el diff cada vez que alguien necesita saber
-  qué pasó.
-- **`git add .` sin haber mirado `git status` antes**, que puede incluir
-  archivos que no correspondían (una credencial local, un archivo de
-  configuración de tu editor).
-- **Mezclar cambios sin relación en un solo commit**, lo que hace más
-  difícil revertir uno sin afectar al otro.
-- **Confirmar código que no compila o con tests fallando**, rompiendo la
-  garantía de que cualquier commit del historial es un punto al que se
-  puede volver con seguridad.
-- **Esperar a "tener todo perfecto" para el primer commit**, perdiendo
-  justo el beneficio de empezar a versionar desde el principio.
+- **Mensajes genéricos** ("cambios", "fix").
+- **`git add .` sin revisar antes `git status`**.
+- **Mezclar cambios sin relación en un commit**.
+- **Confirmar con pruebas fallando**.
+- **Esperar a "tener todo perfecto"** para el primer commit.
 
 ## Práctica
 
 Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
-<FirstCommitOrderActivity />
+<FirstCommitTerminalActivity />
 
 <CommitMessageActivity />
 
