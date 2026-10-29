@@ -16,8 +16,9 @@ Cada regla nueva va en una o dos líneas, con su motivo, en el archivo que le co
 - Secciones: I. Foundations (`01-foundations/`, tracks `testing/`, `programming/`, `git/`,
   cada uno con un integrador: `15b`, `25b`, `35b`), II. Testing Domains (tracks UI, API,
   Mobile y Performance) y III–VI, todavía sin contenido.
-- `site/src/components/`: los componentes de actividad. `site/scripts/`: verificación y
-  generadores.
+- `site/src/components/`: los componentes de actividad. Cómo armar cada tipo (cuándo
+  usarlo, datos, props y trampas): `.claude/skills/leccion/tipos-de-ejercicio.md`.
+  `site/scripts/`: verificación y generadores.
 - `project/` y `docs/best-practices/` están congelados: no se editan (lo bloquea
   `.claude/settings.json`) ni se usan como fuente de contenido.
 

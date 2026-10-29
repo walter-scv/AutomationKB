@@ -8,6 +8,8 @@ paths:
 
 # Componentes de actividad: detalles que ya fallaron
 
+Cómo armar cada tipo, con datos y ejemplos: `.claude/skills/leccion/tipos-de-ejercicio.md`.
+
 - **Tipos**: FindInCode, Classify, SpotToken, Quiz, Order, Compare, FillBlank, TypeAnswer,
   Match, CommandBuilder, MultiSelect, DecisionPath, Terminal. Cada actividad va envuelta en
   `<Activity title kind goal consigna done>` y usa `useLessonProgress(LESSON_SLUG, ['id'])`.

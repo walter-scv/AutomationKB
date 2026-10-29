@@ -6,7 +6,6 @@ os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 for track in ['testing','programming','git']:
     for f in sorted(glob.glob(f'docs/01-foundations/{track}/*.mdx')):
         s=open(f).read()
-        if '36-laboratorio' in f: continue
         if len(sys.argv)>1 and sys.argv[1] not in f: continue
         heads=re.findall(r'^### (.+)$',s,re.M)
         acts=[]
