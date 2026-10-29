@@ -5,8 +5,8 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'Automation Knowledge Base',
-  tagline: 'Aprendé automation haciendo, no solo leyendo',
+  title: 'QAFoundry',
+  tagline: 'Aprendé testing haciendo, no solo leyendo',
   favicon: 'img/favicon.svg',
 
   future: {
@@ -85,7 +85,7 @@ const config: Config = {
     },
     navbar: {
       style: 'dark',
-      title: 'Automation Knowledge Base',
+      title: 'QAFoundry',
       items: [
         {
           href: 'https://github.com/walter-scv/AutomationKB',
@@ -101,7 +101,7 @@ const config: Config = {
         src: 'img/scvsoft-logo.png',
         width: 120,
       },
-      copyright: `AutomationKB — currícula interactiva de test automation`,
+      copyright: `QAFoundry — currícula interactiva de testing de software`,
     },
     prism: {
       theme: prismThemes.synthwave84,

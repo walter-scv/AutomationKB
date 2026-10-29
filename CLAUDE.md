@@ -1,4 +1,4 @@
-# AutomationKB
+# QAFoundry
 
 Currícula interactiva de testing para QA que empiezan de cero (Docusaurus + MDX en `site/`).
 Contenido en español rioplatense con voseo; tono profesional, no amistoso ni narrativo.

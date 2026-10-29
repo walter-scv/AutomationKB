@@ -34,7 +34,7 @@ function HomepageHeader() {
     <header className={clsx('hero', styles.heroBanner)}>
       <div className={styles.scanlines} aria-hidden="true" />
       <div className={clsx('container', styles.menuPanel)}>
-        <p className={styles.kicker}>QA Automation</p>
+        <p className={styles.kicker}>Software Testing</p>
         <h1 className={styles.title}>{siteConfig.title}</h1>
         <Link className={styles.playButton} to={FIRST_LESSON} onClick={handleStart}>
           <span className={styles.playIcon} aria-hidden="true">▶</span>
