@@ -4,13 +4,25 @@ sidebar_position: 21
 ---
 
 import Activity from '@site/src/components/Activity';
+import Order from '@site/src/components/Order';
+import Match from '@site/src/components/Match';
 import FindInCode from '@site/src/components/FindInCode';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import CodeBlock from '@theme/CodeBlock';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
   LOOP_LINES,
   LOOP_RULE_LABELS,
-  PRACTICE_LINES,
-  PRACTICE_RULE_LABELS,
+  TRACE_CODE,
+  TRACE_ACCEPTED,
+  TRACE_HINTS,
+  TRACE_EXPLANATION,
+  LOOP_MATCH_LEFT,
+  LOOP_MATCH_RIGHT,
+  LOOP_MATCH_WHY,
+  SKIP_ORDER_ITEMS,
+  SKIP_ORDER_CORRECT,
+  SKIP_ORDER_RULES,
 } from '@site/src/content/lessons/21-loops';
 
 export const LESSON_SLUG = 'foundations-loops';
@@ -30,17 +42,63 @@ export function LoopActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function SkipOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['skiporder']);
   return (
     <Activity
-      title="¿Este loop sigue una buena práctica?"
-      kind="Buscar en el código"
-      goal="reconocer un índice manual innecesario, un array modificado mientras se recorre, y un loop infinito."
-      done={isDone('practice')}
-      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+      title="Ordená el loop para que termine"
+      kind="Ordenar"
+      goal="ordenar las líneas de un `while` con `continue` para que saltee un valor sin quedar en un loop infinito."
+      done={isDone('skiporder')}
+      consigna="El loop tiene que procesar los números del 1 al 5 salteando el 3, y terminar. Son 6 líneas desordenadas: ordenalas de la primera a la última moviendo cada una con las flechas (o arrastrándola), y usá «Comprobar orden» para verificar. La actividad se completa cuando el orden es correcto."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <Order items={SKIP_ORDER_ITEMS} correctOrder={SKIP_ORDER_CORRECT} rules={SKIP_ORDER_RULES} onSolved={() => markDone('skiporder')} />
+    </Activity>
+  );
+}
+
+export function TraceActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['trace']);
+  return (
+    <Activity
+      title="Seguí el loop vuelta por vuelta"
+      kind="Respuesta escrita"
+      goal="predecir el resultado de un loop siguiendo cada vuelta a mano, incluido qué hacen `continue` y `break`."
+      done={isDone('trace')}
+      consigna="Leé el código sin ejecutarlo y escribí qué valor tiene `revisados` cuando termina el loop (solo el número). Si te equivocás, recibís una pista y podés volver a intentar; las pistas se vuelven más concretas con cada intento. La actividad se completa al acertar."
+    >
+      <CodeBlock language="ts">{TRACE_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={TRACE_ACCEPTED}
+        hints={TRACE_HINTS}
+        explanation={TRACE_EXPLANATION}
+        placeholder="Valor final de revisados"
+        alreadyDone={isDone('trace')}
+        onSolved={() => markDone('trace')}
+      />
+    </Activity>
+  );
+}
+
+export function LoopMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['loopmatch']);
+  return (
+    <Activity
+      title="Cada loop para su caso"
+      kind="Emparejar"
+      goal="conectar cada forma de loop (y `break`/`continue`) con la situación en la que conviene usarla."
+      done={isDone('loopmatch')}
+      consigna="Son 6 pares. Elegí una construcción de la columna izquierda y después la situación de la derecha en la que conviene usarla (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={LOOP_MATCH_LEFT}
+        right={LOOP_MATCH_RIGHT}
+        leftLabel="Construcción"
+        rightLabel="Cuándo conviene"
+        why={LOOP_MATCH_WHY}
+        alreadyDone={isDone('loopmatch')}
+        onSolved={() => markDone('loopmatch')}
+      />
     </Activity>
   );
 }
@@ -127,6 +185,34 @@ for (const [indice, nombre] of nombres.entries()) {
 El `const [indice, nombre]` separa el par en dos variables: la posición y el
 valor.
 
+### Las tres partes de un `for` clásico
+
+El `for` con índice tiene tres partes entre paréntesis, separadas por
+punto y coma, y cada una se ejecuta en un momento distinto:
+
+```ts
+for (let i = 0; i < precios.length; i++) {
+  console.log(i, precios[i]);
+}
+```
+
+`let i = 0` se ejecuta **una sola vez**, antes de empezar. `i <
+precios.length` se evalúa **antes de cada vuelta**: si es verdadera, se
+ejecuta el cuerpo; si es falsa, el loop termina. `i++` se ejecuta **al
+final de cada vuelta**. Con `precios = [1200, 300, 5400]`, el recorrido es:
+
+```text
+i = 0   → 0 < 3 es verdadero → muestra 0 1200 → i pasa a 1
+i = 1   → 1 < 3 es verdadero → muestra 1 300  → i pasa a 2
+i = 2   → 2 < 3 es verdadero → muestra 2 5400 → i pasa a 3
+i = 3   → 3 < 3 es falso     → el loop termina
+```
+
+Seguir así un loop, vuelta por vuelta, es la forma de entender qué hace
+cuando el resultado no es el esperado. El error clásico es la condición
+`i <= precios.length`: agrega una vuelta con `i = 3`, y `precios[3]` es
+`undefined`.
+
 ### `do...while`
 
 `do...while` ejecuta el cuerpo al menos una vez y recién después evalúa la
@@ -195,6 +281,58 @@ original:
 const pedidosActivos = pedidos.filter((pedido) => !pedido.cancelado);
 ```
 
+### Patrones habituales
+
+La mayoría de los loops responden a uno de unos pocos patrones. **Acumular**
+combina todos los elementos en un resultado, que empieza en un valor neutro:
+
+```ts
+let total = 0;
+for (const precio of precios) {
+  total += precio;
+}
+```
+
+**Contar** suma uno cada vez que un elemento cumple una condición:
+
+```ts
+let vencidos = 0;
+for (const turno of turnos) {
+  if (turno.fecha < hoy) {
+    vencidos++;
+  }
+}
+```
+
+**Buscar y cortar** recorre hasta encontrar lo que se busca y sale con
+`break`, sin revisar el resto:
+
+```ts
+let primerSinStock = undefined;
+for (const producto of productos) {
+  if (producto.stock === 0) {
+    primerSinStock = producto;
+    break;
+  }
+}
+```
+
+Los tres tienen un equivalente entre los métodos de arrays (`reduce`,
+`filter(...).length` y `find`), y cuando existe, el método suele ser más
+corto y más claro. El loop explícito sigue siendo útil cuando la lógica de
+cada vuelta es más compleja que una sola condición.
+
+### Qué probar en un loop
+
+Los defectos de los loops aparecen casi siempre en los extremos, y por eso
+hay tres casos que no pueden faltar. **Cero vueltas:** ¿qué pasa si la
+lista está vacía, o si la condición ya es falsa al empezar? El acumulador
+tiene que quedar en su valor inicial y el código posterior tiene que
+tolerarlo. **Una vuelta:** con un solo elemento se ven los errores de
+límites, como empezar en 1 en lugar de 0. **Varias vueltas:** confirma que
+el loop recorre todos los elementos y que termina; un `while` que nunca
+termina se manifiesta como un programa que no responde.
+
 ## Cuándo usarlo
 
 `for...of` conviene cuando ya existe la lista completa de valores a
@@ -205,37 +343,28 @@ saber de antemano cuántos intentos va a necesitar).
 
 ## Buenas prácticas
 
-- Usar `for...of` para recorrer un array completo — es más directo y deja
-  menos lugar para errores que llevar un índice a mano.
-- En un `while`, confirmar que algo adentro del bloque efectivamente
-  cambia el valor del que depende la condición, antes de darlo por
-  terminado.
-- Si además del valor hace falta la posición, usar `array.entries()` en
-  vez de armar y actualizar un contador aparte — menos código, mismo
-  resultado.
-- Preferir `while` solo cuando la cantidad de vueltas depende de algo que
-  se descubre durante la ejecución; si ya se conoce de antemano (la
-  longitud de un array), `for...of` alcanza sin agregar una variable de
-  control manual.
-- Si el cuerpo del loop crece mucho, extraerlo a una función y llamarla
-  adentro — queda más fácil de leer y de probar por separado.
+- Usar `for...of` para recorrer un array completo.
+- En un `while`, confirmar que algo dentro del bloque cambia la condición.
+- Usar `entries()` cuando además del valor hace falta la posición.
+- Reservar `while` para cuando la cantidad de vueltas se descubre durante
+  la ejecución.
+- Extraer a una función el cuerpo de un loop que crece mucho.
 
 ## Anti-patrones
 
-- **Loop infinito**: un `while` cuya condición nunca se vuelve falsa
-  porque nada adentro del bloque actualiza el valor que usa esa
-  condición. El programa queda colgado, repitiendo para siempre.
-- **Modificar el array que se está recorriendo** con `for...of` (agregar o
-  sacar elementos adentro del mismo loop): el recorrido deja de ser
-  predecible, puede saltear o repetir posiciones.
-- **Usar un índice manual** (`for (let i = 0; ...)`) para simplemente
-  recorrer un array de punta a punta, cuando `for...of` hace lo mismo sin
-  el riesgo de un error de uno de más o de menos en el límite.
+- **Loop infinito**: nada dentro del bloque cambia la condición.
+- **Modificar el array que se está recorriendo**.
+- **Usar un índice manual para recorrer un array completo**, cuando
+  `for...of` hace lo mismo sin riesgo de pasarse del límite.
 
 ## Práctica
 
-Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <LoopActivity />
 
-<PracticeActivity />
+<TraceActivity />
+
+<SkipOrderActivity />
+
+<LoopMatchActivity />

@@ -1,5 +1,10 @@
+import type {TerminalStep} from '@site/src/components/Terminal';
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {MatchItem} from '@site/src/components/Match';
+import type {DecisionNode} from '@site/src/components/DecisionPath';
+import type {OrderItem} from '@site/src/components/Order';
+import type {OrderRule} from '@site/src/components/Order';
 
 export const ASYNC_RULE_LABELS = ['Falta `await` antes de una operación que tarda'];
 
@@ -50,57 +55,38 @@ export const ASYNC_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Marca `async` una función que no usa `await` adentro',
-  'Espera operaciones independientes de a una, pudiendo ir en paralelo',
-];
-
-export const PRACTICE_LINES: CodeLine[] = [
-  {
-    code: 'const usuario = await obtenerUsuario(id);\nconst pedidos = await obtenerPedidosDe(usuario.id);',
-    rule: 0,
-    why: 'Acá la secuencia es obligatoria: la segunda operación necesita el `id` que devuelve la primera. No se pueden lanzar juntas sin conocer ese dato.',
+export const LOAD_START = 'paralelo';
+export const LOAD_NODES: Record<string, DecisionNode> = {
+  paralelo: {
+    id: 'paralelo',
+    situation: 'El panel tarda en cargar. Arranca con `obtenerResumen()` y `obtenerAlertas()`, que no dependen una de la otra. ¿Cómo las esperás?',
+    options: [
+      {text: 'Una después de la otra, con un `await` en cada línea.', correct: false, why: 'Son independientes: esperarlas de a una suma los dos tiempos sin ninguna necesidad.'},
+      {text: 'Con `await Promise.all([obtenerResumen(), obtenerAlertas()])`.', correct: true, why: 'Las dos arrancan juntas y se espera a ambas: el panel tarda lo que tarda la más lenta, no la suma.', next: 'secuencia'},
+      {text: 'Sin `await`, así ninguna frena a la otra.', correct: false, why: 'Sin `await` las variables guardan Promises, no los datos: el panel usaría valores que todavía no llegaron.'},
+    ],
   },
-  {
-    code: 'const cotizacion = await obtenerCotizacion();\nconst clima = await obtenerClima();',
-    rule: 2,
-    why: 'Las dos operaciones son independientes y se esperan una después de la otra: el tiempo total es la suma de ambas. Con `Promise.all` tardaría lo que la más lenta.',
-    hint: '¿La segunda operación necesita algún dato que devuelva la primera?',
+  secuencia: {
+    id: 'secuencia',
+    situation: 'Después, `obtenerPedidosDe(usuario.id)` necesita el `usuario` que devuelve `obtenerUsuario(id)`. ¿Cómo las esperás?',
+    options: [
+      {text: 'Con `Promise.all` también, para ganar tiempo.', correct: false, why: 'No se puede: la segunda necesita un dato de la primera. Lanzarlas juntas deja `usuario` sin valor cuando arranca la segunda.'},
+      {text: 'Primero `await obtenerUsuario(id)`, y con ese resultado `await obtenerPedidosDe(usuario.id)`.', correct: true, why: 'Una depende de la otra: tienen que ir en orden.', next: 'async'},
+      {text: 'Llamar a `obtenerPedidosDe` sin esperar a `obtenerUsuario`, y completar el id después.', correct: false, why: 'El id no existe todavía: la llamada saldría sin el dato que necesita.'},
+    ],
   },
-  {
-    code: 'async function formatearFecha(fecha: Date): Promise<string> {\n  return fecha.toISOString();\n}',
-    rule: 1,
-    why: 'La función no usa `await` adentro: `toISOString()` devuelve el valor al instante. Marcarla `async` obliga a quien la llama a esperar una promesa que no aporta nada.',
-    hint: '¿Hay alguna operación que tarde dentro de esta función?',
+  async: {
+    id: 'async',
+    situation: 'Revisando el código, ves `async function formatearFecha(fecha: Date): Promise<string> { return fecha.toISOString(); }`. ¿Qué hacés?',
+    options: [
+      {text: 'Agregar `await` delante de `fecha.toISOString()` para que tenga sentido el `async`.', correct: false, why: '`toISOString()` no tarda ni devuelve una Promise: no hay nada que esperar.'},
+      {text: 'Dejarla así; que quien la llame use `await`.', correct: false, why: 'Obliga a todos los que la llaman a tratar como asíncrono un resultado inmediato.'},
+      {text: 'Sacarle `async` y que devuelva `string` directo.', correct: true, why: 'No hay ninguna operación que esperar: una función normal alcanza.'},
+    ],
   },
-  {
-    code: 'const [resumen, alertas] = await Promise.all([obtenerResumen(), obtenerAlertas()]);',
-    rule: 0,
-    why: 'Las dos operaciones son independientes y se lanzan juntas; el `await` espera el conjunto. Es el patrón correcto para no sumar los tiempos.',
-  },
-  {
-    code: 'const usuarios = await obtenerUsuarios();\nconst productos = await obtenerProductos();\nconst pedidos = await obtenerPedidosDe(usuarios[0].id);',
-    rule: 2,
-    why: 'Usuarios y productos no dependen entre sí y podrían pedirse en paralelo; solo los pedidos necesitan el `id` de un usuario. Así, las dos primeras se esperan de a una sin necesidad.',
-    hint: '¿Cuáles de estas tres operaciones necesitan el resultado de otra?',
-  },
-  {
-    code: "async function validarEmail(email: string): Promise<boolean> {\n  return email.includes('@');\n}",
-    rule: 1,
-    why: '`includes` es síncrono: no hay ningún `await` en la función. El `async` agrega una promesa que quien llama tiene que esperar igual, sin ninguna operación lenta que lo justifique.',
-    hint: '¿Esta función espera algo, o devuelve el resultado en el acto?',
-  },
-  {
-    code: 'async function guardar(datos: Pedido): Promise<void> {\n  await enviarPedido(datos);\n}',
-    rule: 0,
-    why: 'La función usa `await` para esperar el envío: el `async` es necesario y el resultado no se usa antes de estar listo.',
-  },
-  {
-    code: 'function calcularTotal(lineas: Linea[]): number {\n  return lineas.reduce((acc, linea) => acc + linea.precio, 0);\n}',
-    rule: 0,
-    why: 'Es un cálculo síncrono: no hay ninguna operación que tarde y por eso no lleva `async` ni `await`. Está bien que sea una función común.',
-  },
-];
+};
+export const LOAD_EXPLANATION =
+  'Lo independiente se espera junto con `Promise.all`, lo que depende de otro resultado va en orden, y `async` se reserva para funciones que de verdad esperan algo.';
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {
@@ -144,3 +130,70 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
     ],
   },
 ];
+
+export const ASYNC_MATCH_LEFT: MatchItem[] = [
+  {id: 'all2', text: '`await Promise.all([obtenerUsuario(id), obtenerPedidos(id)])`'},
+  {id: 'allmap', text: '`await Promise.all(ids.map((id) => obtenerUsuario(id)))`'},
+  {id: 'forawait', text: '`for (const id of ids) { await obtenerUsuario(id); }`'},
+  {id: 'asyncnoawait', text: "`async function saludar(): Promise<string> { return 'Hola'; }`"},
+  {id: 'json', text: '`const pedido = await respuesta.json();`'},
+  {id: 'trycatch', text: '`try { await guardar(pedido); } catch (error) { ... }`'},
+];
+export const ASYNC_MATCH_RIGHT: MatchItem[] = [
+  {id: 'forawait', text: 'La misma operación para cada elemento de una lista, una después de la otra.'},
+  {id: 'json', text: 'Espera a que se lea el cuerpo de la respuesta y lo convierte en un objeto.'},
+  {id: 'all2', text: 'Dos operaciones distintas e independientes, lanzadas a la vez.'},
+  {id: 'trycatch', text: 'Si la operación que se espera falla, el error se atrapa ahí mismo.'},
+  {id: 'allmap', text: 'La misma operación para cada elemento de una lista, todas a la vez.'},
+  {id: 'asyncnoawait', text: 'Devuelve una Promise aunque no tenga nada que esperar.'},
+];
+export const ASYNC_MATCH_WHY: Record<string, string> = {
+  all2: '`Promise.all` con un array de dos llamadas distintas las arranca juntas y espera a que terminen ambas.',
+  allmap: '`map` arma una Promise por cada `id`, y `Promise.all` las espera todas juntas: no van en orden.',
+  forawait: 'El `await` dentro del `for...of` frena cada vuelta hasta que termina la anterior: van en secuencia.',
+  asyncnoawait: '`async` siempre envuelve el resultado en una Promise, aunque no haya ningún `await` adentro.',
+  json: '`respuesta.json()` también tarda (lee el cuerpo), por eso lleva su propio `await`.',
+  trycatch: 'Con `await` dentro del `try`, si la Promise se rechaza el control salta al `catch`.',
+};
+
+export const DEPS_ORDER_ITEMS: OrderItem[] = [
+  {id: 'total', what: 'Línea', code: 'const total = calcularTotal(pedidos);'},
+  {id: 'show', what: 'Línea', code: 'mostrarResumen(usuario.nombre, total);'},
+  {id: 'usuario', what: 'Línea', code: 'const usuario = await obtenerUsuario(id);'},
+  {id: 'pedidos', what: 'Línea', code: 'const pedidos = await obtenerPedidosDe(usuario.id);'},
+];
+export const DEPS_ORDER_CORRECT = ['usuario', 'pedidos', 'total', 'show'];
+export const DEPS_ORDER_RULES: OrderRule[] = [
+  {before: 'usuario', after: 'pedidos', why: '`obtenerPedidosDe` necesita `usuario.id`, y `usuario` recién existe después de su `await`.'},
+  {before: 'pedidos', after: 'total', why: '`calcularTotal` recibe la lista de pedidos: tiene que estar esperada antes.'},
+  {before: 'total', after: 'show', why: '`mostrarResumen` usa `total`: va al final, cuando ya está calculado.'},
+];
+
+export const PROMISE_STEPS: TerminalStep[] = [
+  {
+    instruction: 'Existe obtenerEnvio(), que consulta el estado de un envío y tarda un momento. Llamala y guardá lo que devuelve en const consulta, sin esperar.',
+    accepted: ['const consulta = obtenerEnvio()', 'const consulta = obtenerEnvio();'],
+    hint: 'Es una declaración con const, igual que cualquier otra: todavía sin await.',
+    output: 'undefined',
+  },
+  {
+    instruction: 'Mostrá qué hay en consulta en este momento.',
+    accepted: ['consulta', 'consulta;', 'console.log(consulta)', 'console.log(consulta);'],
+    hint: 'Alcanza con escribir el nombre de la variable.',
+    output: 'Promise { <pending> }',
+  },
+  {
+    instruction: 'Esperá a que la consulta termine y guardá el resultado en const envio.',
+    accepted: ['const envio = await consulta', 'const envio = await consulta;', 'const envio = await obtenerEnvio()', 'const envio = await obtenerEnvio();'],
+    hint: 'Es la palabra que indica «hasta que esto termine, no sigas», delante de consulta.',
+    output: 'undefined',
+  },
+  {
+    instruction: 'Mostrá el estado del envío.',
+    accepted: ['envio.estado', 'envio.estado;', 'console.log(envio.estado)', 'console.log(envio.estado);'],
+    hint: 'envio ya es el objeto con los datos: leé su propiedad estado.',
+    output: "'en camino'",
+  },
+];
+export const PROMISE_EXPLANATION =
+  'Sin `await`, `consulta` es una Promise todavía pendiente, no el dato: `Promise { <pending> }` es la señal de que falta esperar. Con `await`, el programa se detiene hasta que la Promise se cumple y `envio` ya tiene el objeto. Si la consulta fallara, la Promise quedaría rechazada y el `await` lanzaría el error.';

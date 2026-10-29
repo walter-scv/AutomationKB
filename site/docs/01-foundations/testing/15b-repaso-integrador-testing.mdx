@@ -4,12 +4,170 @@ sidebar_position: 15.5
 ---
 
 import Activity from '@site/src/components/Activity';
+import SpotToken from '@site/src/components/SpotToken';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
+import Match from '@site/src/components/Match';
+import FillBlank from '@site/src/components/FillBlank';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import MultiSelect from '@site/src/components/MultiSelect';
+import DecisionPath from '@site/src/components/DecisionPath';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
-import {DIAGNOSIS_LINES, DIAGNOSIS_RULE_LABELS, INTEGRATIVE_QUIZ} from '@site/src/content/lessons/15b-repaso-integrador-testing';
+import {
+  DIAGNOSIS_LINES,
+  DIAGNOSIS_RULE_LABELS,
+  INTEGRATIVE_QUIZ,
+  CONCEPT_MATCH_LEFT,
+  CONCEPT_MATCH_RIGHT,
+  CONCEPT_MATCH_WHY,
+  COUPON_BVA_TEMPLATE,
+  COUPON_BVA_SLOTS,
+  COUPON_BVA_BANK,
+  COUPON_BVA_EXPLANATION,
+  COUPON_ROWS_ACCEPTED,
+  COUPON_ROWS_HINTS,
+  COUPON_ROWS_EXPLANATION,
+  COUPON_CASE_PREFIX,
+  COUPON_CASE_STEPS,
+  COUPON_CASE_EXPLANATION,
+  COUPON_TECHNIQUE_QUESTIONS,
+  INCIDENT_START,
+  INCIDENT_NODES,
+  INCIDENT_EXPLANATION,
+  NOTES_ROUNDS,
+  NOTES_PROMPT,
+} from '@site/src/content/lessons/15b-repaso-integrador-testing';
 
 export const LESSON_SLUG = 'foundations-repaso-integrador-testing';
+
+export function ConceptMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['conceptmatch']);
+  return (
+    <Activity
+      title="¿Qué concepto es cada momento?"
+      kind="Emparejar"
+      goal="reconocer, en momentos distintos del proyecto de cupones, conceptos de las entradas 01, 02, 03, 05 y 06."
+      done={isDone('conceptmatch')}
+      consigna="Son 5 momentos del proyecto de cupones y 5 conceptos: cada concepto corresponde a exactamente un momento. Elegí un momento y después su concepto (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={CONCEPT_MATCH_LEFT}
+        right={CONCEPT_MATCH_RIGHT}
+        leftLabel="Momento"
+        rightLabel="Concepto"
+        why={CONCEPT_MATCH_WHY}
+        alreadyDone={isDone('conceptmatch')}
+        onSolved={() => markDone('conceptmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function CouponBoundaryActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['couponbva']);
+  return (
+    <Activity
+      title="Los límites del código de cupón"
+      kind="Completar huecos"
+      goal="elegir los cuatro valores límite de una regla de largo (entrada 11)."
+      done={isDone('couponbva')}
+      consigna="Completá los cuatro huecos con los valores que aplica boundary value analysis a la regla del largo del código, de menor a mayor (cada ficha se usa una vez y sobran algunas); clickeá un hueco para vaciarlo. La actividad se completa cuando los cuatro quedan bien."
+    >
+      <FillBlank
+        template={COUPON_BVA_TEMPLATE}
+        slots={COUPON_BVA_SLOTS}
+        bank={COUPON_BVA_BANK}
+        explanation={COUPON_BVA_EXPLANATION}
+        alreadyDone={isDone('couponbva')}
+        onSolved={() => markDone('couponbva')}
+      />
+    </Activity>
+  );
+}
+
+export function CouponRowsActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['couponrows']);
+  return (
+    <Activity
+      title="¿Cuántas filas tiene la tabla del descuento?"
+      kind="Respuesta escrita"
+      goal="calcular el tamaño de una decision table a partir de las condiciones que interactúan (entrada 12)."
+      done={isDone('couponrows')}
+      consigna="El descuento depende de tres condiciones de sí/no que interactúan: el cupón es válido, el carrito suma $5000 o más, y el cliente tiene cuenta (no compra como invitado). Escribí cuántas filas tiene la decision table completa (solo el número). Si te equivocás, recibís una pista y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <TypeAnswer
+        accepted={COUPON_ROWS_ACCEPTED}
+        hints={COUPON_ROWS_HINTS}
+        explanation={COUPON_ROWS_EXPLANATION}
+        placeholder="Cantidad de filas"
+        alreadyDone={isDone('couponrows')}
+        onSolved={() => markDone('couponrows')}
+      />
+    </Activity>
+  );
+}
+
+export function CouponCaseActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['couponcase']);
+  return (
+    <Activity
+      title="Armá el caso del cupón"
+      kind="Armar"
+      goal="armar un caso completo, claro, verificable e independiente (entradas 08 y 09)."
+      done={isDone('couponcase')}
+      consigna="Armá el caso para aplicar un cupón válido, en 3 pasos: precondición, pasos y resultado esperado. En cada uno elegí la opción que deja el caso ejecutable y verificable por cualquiera; el siguiente aparece recién al acertar. La actividad se completa cuando el caso queda armado."
+    >
+      <CommandBuilder
+        prefix={COUPON_CASE_PREFIX}
+        steps={COUPON_CASE_STEPS}
+        explanation={COUPON_CASE_EXPLANATION}
+        alreadyDone={isDone('couponcase')}
+        onSolved={() => markDone('couponcase')}
+      />
+    </Activity>
+  );
+}
+
+export function CouponTechniqueActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['coupontechnique']);
+  return (
+    <Activity
+      title="¿Qué técnicas usarías?"
+      kind="Marcar todas"
+      goal="elegir el conjunto de técnicas que corresponde a un mismo sistema (entradas 10, 11, 13 y 14)."
+      done={isDone('coupontechnique')}
+      consigna="Es 1 pregunta con 5 enfoques. Marcá todos los que corresponden para diseñar los casos de los cupones, sabiendo que QA no tiene acceso al código. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={COUPON_TECHNIQUE_QUESTIONS}
+        alreadyDone={isDone('coupontechnique')}
+        onSolved={() => markDone('coupontechnique')}
+      />
+    </Activity>
+  );
+}
+
+export function IncidentActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['incident']);
+  return (
+    <Activity
+      title="Del fallo a la causa raíz"
+      kind="Escenario encadenado"
+      goal="seguir un incidente de los cupones desde el reporte hasta el cierre (entradas 02 y 04)."
+      done={isDone('incident')}
+      consigna="Vas a seguir un mismo fallo de los cupones en tres momentos: el reporte, la causa raíz y el cierre. Cada decisión lleva a la siguiente. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al cierre."
+    >
+      <DecisionPath
+        startId={INCIDENT_START}
+        nodes={INCIDENT_NODES}
+        explanation={INCIDENT_EXPLANATION}
+        alreadyDone={isDone('incident')}
+        onSolved={() => markDone('incident')}
+      />
+    </Activity>
+  );
+}
 
 export function DiagnosisActivity() {
   const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['diagnosis']);
@@ -17,7 +175,7 @@ export function DiagnosisActivity() {
     <Activity
       title="Diagnosticá el problema real"
       kind="Clasificar"
-      goal="combinar varias técnicas de las últimas 15 entradas para diagnosticar correctamente un problema, en vez de reconocer una sola técnica aislada."
+      goal="diagnosticar qué técnica o criterio faltó en cada problema, en vez de reconocer una sola técnica aislada (entradas 09, 11, 12 y 15)."
       done={isDone('diagnosis')}
       need={
         <div>
@@ -62,11 +220,32 @@ export function IntegrativeQuizActivity() {
     <Activity
       title="Escenarios que combinan varias técnicas"
       kind="Elegí la opción"
-      goal="aplicar dos o más técnicas de diseño o criterios de priorización juntos a un mismo escenario, no una sola a la vez."
+      goal="aplicar dos o más técnicas de diseño o criterios de priorización juntos a un mismo escenario (entradas 07, 11, 12, 13 y 15)."
       done={isDone('quiz')}
       consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
     >
       <Quiz questions={INTEGRATIVE_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+export function NotesActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['notes']);
+  return (
+    <Activity
+      title="Las notas del proyecto"
+      kind="Señalar en la línea"
+      goal="detectar, en anotaciones del proyecto de cupones, la palabra que contradice un concepto del bloque (entradas 01, 02, 06, 07, 08 y 09)."
+      done={isDone('notes')}
+      consigna="Son 5 anotaciones del equipo sobre el proyecto de los cupones, y cada una tiene una sola palabra incorrecta. Hacé click en esa palabra. Si tocás otra, se marca en rojo, recibís una pista y podés probar de nuevo. La actividad se completa cuando resolviste las 5."
+    >
+      <SpotToken
+        rounds={NOTES_ROUNDS}
+        prompt={NOTES_PROMPT}
+        itemLabel="Anotación"
+        alreadyDone={isDone('notes')}
+        onSolved={() => markDone('notes')}
+      />
     </Activity>
   );
 }
@@ -83,14 +262,42 @@ decidir qué tan urgente es.
 Este repaso no enseña nada nuevo: junta varias entradas anteriores en los
 mismos escenarios, a propósito.
 
+## El proyecto de los cupones
+
+Siete de los ejercicios de abajo usan el mismo proyecto, para que no haga
+falta aprender un escenario nuevo en cada uno: una tienda online lanza
+**cupones de descuento** en el checkout, con estas reglas:
+
+- El código de cupón tiene entre **6 y 10 caracteres**.
+- El descuento se aplica solo si el cupón es válido **y** el carrito suma
+  **$5000 o más**.
+- Un cupón empieza **Activo**; después de usarse queda **Usado**, y al
+  pasar su fecha queda **Vencido**.
+
+Los otros dos ejercicios (el diagnóstico y el de escenarios combinados)
+traen sus propios casos.
+
 ## Práctica
 
-Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Son 9 ejercicios y entre todos cubren las 15 entradas del bloque: cada uno
+dice en su objetivo qué entradas repasa. Son independientes entre sí y cada
+bloque avisa cuándo está resuelto.
+
+<ConceptMatchActivity />
+
+<CouponBoundaryActivity />
 
 <DiagnosisActivity />
 
-Las situaciones anteriores pedían reconocer una técnica por vez. Estas
-piden combinar dos o más:
+<CouponRowsActivity />
+
+<CouponCaseActivity />
+
+<NotesActivity />
+
+<CouponTechniqueActivity />
+
+<IncidentActivity />
 
 <IntegrativeQuizActivity />
 

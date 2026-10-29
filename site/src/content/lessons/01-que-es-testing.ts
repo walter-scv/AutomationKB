@@ -1,67 +1,70 @@
+import type {ClassifyItem} from '@site/src/components/Classify';
 import type {CodeLine} from '@site/src/components/FindInCode';
+import type {MatchItem} from '@site/src/components/Match';
+import type {MultiSelectQuestion} from '@site/src/components/MultiSelect';
 
-export const OBJECTIVE_RULE_LABELS = [
-  'Verificar que se cumple un requisito',
-  'Dar confianza a los interesados',
-  'Disparar la corrección de un defecto',
-  'Reducir el riesgo de que algo falle en uso',
-  'Evaluar un producto de trabajo (requisito, historia o diseño)',
+export const OBJECTIVE_MATCH_LEFT: MatchItem[] = [
+  {id: 'eval', text: 'Antes de programar, el tester revisa el diseño de la pantalla de alta para decidir si está listo; marca que no está definido qué mostrar cuando el email ya existe.'},
+  {id: 'risk', text: 'El equipo concentra la última semana de testing en el alta y el cobro, y deja el cambio de idioma para una revisión rápida, porque un fallo en el cobro cuesta ventas.'},
+  {id: 'req', text: 'El tester ejecuta el alta con los tres casos del criterio de aceptación —email nuevo, repetido y con formato inválido— y compara cada resultado con lo que pide el documento.'},
+  {id: 'defect', text: 'El equipo recorre la importación de datos probando escenarios variados, para encontrar la mayor cantidad de errores posible y que desarrollo los corrija antes del lanzamiento.'},
+  {id: 'confidence', text: 'Antes de la firma, QA entrega al cliente un resumen de lo que se probó y la evidencia de cada ejecución, para que el cliente firme con respaldo.'},
 ];
+export const OBJECTIVE_MATCH_RIGHT: MatchItem[] = [
+  {id: 'req', text: 'Verificar que se cumple un requisito'},
+  {id: 'confidence', text: 'Dar confianza a los interesados'},
+  {id: 'eval', text: 'Evaluar un producto de trabajo (requisito, historia o diseño)'},
+  {id: 'defect', text: 'Disparar la corrección de defectos'},
+  {id: 'risk', text: 'Reducir el riesgo de que algo falle en uso'},
+];
+export const OBJECTIVE_MATCH_WHY: Record<string, string> = {
+  eval: 'Lo que se evalúa es el diseño, un producto de trabajo que todavía no es código. La revisión sirve para decidir si está listo.',
+  risk: 'El esfuerzo se reparte según el impacto de un fallo: el cobro pesa más que el cambio de idioma. Eso es reducir el riesgo donde más duele.',
+  req: 'Hay un criterio documentado y cada resultado se compara contra él: el objetivo es confirmar que el alta cumple lo especificado.',
+  defect: 'El propósito declarado es encontrar fallas para que se corrijan, no confirmar un criterio ni priorizar por impacto.',
+  confidence: 'El destinatario es el cliente y el propósito es que tenga evidencia para decidir. Eso es dar confianza a los interesados.',
+};
 
-export const OBJECTIVE_LINES: CodeLine[] = [
+export const IS_TESTING_QUESTIONS: MultiSelectQuestion[] = [
   {
-    code: 'Antes de programar, el tester revisa el diseño de la pantalla de alta para decidir si está listo; marca que no está definido qué mostrar cuando el email ya existe.',
-    rule: 5,
-    why: 'Lo que se evalúa es el diseño, un producto de trabajo que todavía no es código. La revisión sirve para decidir si está listo, no para encontrar fallas en el sistema ya construido.',
-    hint: '¿Qué se está mirando: el comportamiento del sistema o el documento que lo describe?',
-  },
-  {
-    code: 'Un analista usa el panel para armar el reporte mensual de su área y comenta que la pantalla carga rápido.',
-    rule: 0,
-    why: 'Está usando el sistema para su trabajo real, sin un criterio contra el cual comparar el resultado. Que la pantalla cargue rápido es una impresión de uso, no un resultado de testing.',
-    hint: '¿Hay un criterio documentado contra el cual se compara el resultado acá?',
-  },
-  {
-    code: 'El equipo concentra la última semana de testing en el alta y el cobro, y deja el cambio de idioma para una revisión rápida, porque un fallo en el cobro cuesta ventas.',
-    rule: 4,
-    why: 'El esfuerzo se distribuye según el impacto de un fallo: el cobro pesa más que el cambio de idioma. Eso es reducir el riesgo donde más duele.',
-    hint: '¿Qué decide el equipo con ese reparto: qué parte tiene más impacto si falla, o qué parte es más fácil de probar?',
-  },
-  {
-    code: 'El equipo hace una demo del alta a un cliente y anota sus comentarios de diseño para la próxima iteración.',
-    rule: 0,
-    why: 'La demo muestra el producto y recoge opiniones de diseño, pero no compara el comportamiento contra un criterio. Mostrar no es evaluar sistemáticamente.',
-    hint: '¿Se compara el comportamiento contra un criterio, o se muestra y se recogen opiniones?',
-  },
-  {
-    code: 'El tester ejecuta el alta con los tres casos del criterio de aceptación —email nuevo, repetido y con formato inválido— y compara cada resultado con lo que pide el documento, para confirmar que se cumple.',
-    rule: 1,
-    why: 'Hay un criterio documentado y cada resultado se compara contra él. El objetivo es confirmar que el alta cumple lo especificado.',
-    hint: '¿Contra qué se compara cada resultado: una impresión personal o un criterio escrito?',
-  },
-  {
-    code: 'Una persona que se suma al equipo abre la app y recorre el alta para conocerla antes de una reunión, sin registrar nada.',
-    rule: 0,
-    why: 'Recorre la app para conocerla, sin criterio ni registro de resultados. Explorar para aprender no es una evaluación sistemática.',
-    hint: '¿Hay un criterio o un registro de lo que se encontró acá?',
-  },
-  {
-    code: 'El equipo recorre la importación de datos probando escenarios variados, con un objetivo: encontrar la mayor cantidad de errores posible para que desarrollo los corrija antes del lanzamiento.',
-    rule: 3,
-    why: 'El propósito declarado es encontrar defectos para que se corrijan, no confirmar un criterio ni priorizar por impacto. La sesión existe para alimentar la corrección.',
-    hint: '¿Para qué se ejecuta la sesión: para confirmar algo que ya está escrito o para encontrar fallas que haya que corregir?',
-  },
-  {
-    code: 'Una persona de marketing recorre la app para sacar capturas para la página del producto y elige las pantallas que mejor se ven.',
-    rule: 0,
-    why: 'Elige capturas por su aspecto para la página del producto; no compara funcionalidad contra ningún criterio. Eso es uso con otro fin, no testing.',
-    hint: '¿Se compara algo contra un criterio, o se elige por otro motivo?',
-  },
-  {
-    code: 'Antes de la firma, QA entrega al cliente un resumen de lo que se probó y la evidencia de cada ejecución, para que el cliente firme con respaldo.',
-    rule: 2,
-    why: 'El destinatario es el cliente y el propósito es que tenga evidencia para decidir la firma. Eso es dar confianza a los interesados.',
-    hint: '¿El resumen busca confirmar un requisito puntual o darle al cliente respaldo para decidir?',
+    prompt: '¿Cuáles de estas situaciones son testing? Marcá todas las que correspondan.',
+    options: [
+      {
+        text: 'Un analista usa el panel para armar el reporte mensual de su área y comenta que la pantalla carga rápido.',
+        correct: false,
+        why: 'Usa el sistema para su trabajo real, sin un criterio contra el cual comparar. "Carga rápido" es una impresión de uso, no un resultado de testing.',
+      },
+      {
+        text: 'Antes del release, QA corre la lista de casos de regresión del login y registra cuáles pasaron y cuáles no.',
+        correct: true,
+        why: 'Cada caso tiene un resultado esperado y se registra qué pasó: es una evaluación sistemática contra un criterio.',
+      },
+      {
+        text: 'El equipo hace una demo del alta a un cliente y anota sus comentarios de diseño para la próxima iteración.',
+        correct: false,
+        why: 'La demo muestra el producto y recoge opiniones, pero no compara el comportamiento contra un criterio. Mostrar no es evaluar.',
+      },
+      {
+        text: 'Una persona que se suma al equipo recorre el alta para conocerla antes de una reunión, sin registrar nada.',
+        correct: false,
+        why: 'Explorar para aprender, sin criterio ni registro de resultados, no es una evaluación sistemática.',
+      },
+      {
+        text: 'Una tester compara los mensajes de error del alta contra la lista que define el documento de UX y anota los dos que no coinciden.',
+        correct: true,
+        why: 'Hay un criterio escrito (la lista de UX), se compara contra él y se registra la diferencia: eso es testing.',
+      },
+      {
+        text: 'Una persona de marketing recorre la app para sacar capturas para la página del producto y elige las pantallas que mejor se ven.',
+        correct: false,
+        why: 'Elige pantallas por su aspecto; no compara funcionalidad contra ningún criterio. Es uso con otro fin.',
+      },
+      {
+        text: 'El equipo carga un reporte de 10.000 filas para confirmar que cumple el requisito de abrirse en menos de 3 segundos.',
+        correct: true,
+        why: 'El requisito define un número concreto y la prueba lo contrasta: es verificar un requisito, aunque sea de rendimiento.',
+      },
+    ],
   },
 ];
 
@@ -123,3 +126,13 @@ export const PRACTICE_LINES: CodeLine[] = [
   },
 ];
 
+export const STATIC_COLUMNS = ['Testing estático', 'Testing dinámico', 'Aseguramiento de la calidad'];
+export const STATIC_ITEMS: ClassifyItem[] = [
+  {code: 'Antes de que se programe, una tester lee la historia del check-in online y anota que no dice hasta cuántas horas antes del vuelo se habilita.', column: 0, why: 'Evalúa un producto de trabajo (la historia) sin ejecutar nada y encuentra un defecto directamente: es testing estático.', hint: '¿Hay algo ejecutándose en este momento?'},
+  {code: 'Con la versión de prueba instalada, un tester hace el check-in de una reserva con dos pasajeros y compara las tarjetas de embarque con el criterio de aceptación.', column: 1, why: 'Ejecuta el sistema y compara lo que pasa con un criterio: es testing dinámico.', hint: '¿Se está usando el sistema funcionando o se está leyendo un documento?'},
+  {code: 'Después de tres sprints con historias sin datos de prueba, el equipo acuerda que ninguna historia entra al desarrollo sin ellos.', column: 2, why: 'No evalúa un producto: cambia la forma de trabajar para que el problema no vuelva a aparecer. Es aseguramiento de la calidad, orientado al proceso.', hint: '¿Lo que cambia es un producto concreto o la forma de trabajar del equipo?'},
+  {code: 'En la revisión del código del cálculo de equipaje, una desarrolladora detecta que el límite de peso está escrito como 23 cuando el requisito dice 23,5 kg.', column: 0, why: 'El código también es un producto de trabajo: revisarlo sin ejecutarlo es testing estático, y el defecto se encuentra directamente.', hint: 'Que lo haga una desarrolladora y sobre código, ¿cambia si se ejecutó algo?'},
+  {code: 'Se carga una reserva con un pasajero de 85 años y se confirma que el sistema ofrece la asistencia especial que pide el requisito.', column: 1, why: 'Se ejecuta el sistema con un dato concreto y se compara el resultado con el requisito: testing dinámico.', hint: '¿El resultado se observa en el sistema funcionando?'},
+  {code: 'El equipo incorpora una checklist de revisión obligatoria para toda historia que mencione plazos o vencimientos.', column: 2, why: 'Es una medida preventiva sobre el proceso: busca que los defectos de ese tipo no se produzcan. Usarla después, sobre una historia concreta, sí sería testing estático.', hint: '¿Se está evaluando una historia en particular o definiendo cómo se van a revisar todas?'},
+  {code: 'Al revisar el diseño de la pantalla de pago, el tester nota que no contempla qué se muestra si la tarjeta es rechazada.', column: 0, why: 'Un diseño es un producto de trabajo; revisarlo sin ejecutar encuentra la omisión antes de programarla: testing estático.', hint: '¿Existe todavía una pantalla funcionando para probar?'},
+];

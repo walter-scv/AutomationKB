@@ -1,4 +1,6 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
+import type {DecisionNode} from '@site/src/components/DecisionPath';
+import type {MultiSelectQuestion} from '@site/src/components/MultiSelect';
 
 export const CATEGORY_RULE_LABELS = ['Basada en experiencia (conocimiento/intuición de quien testea)', 'White-box (estructura interna del código)'];
 
@@ -47,50 +49,87 @@ export const CATEGORY_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = ['Depende solo de experiencia en un sistema crítico', 'Usa siempre la misma técnica por costumbre'];
+export const CHOICE_START = 'contacto';
+export const CHOICE_NODES: Record<string, DecisionNode> = {
+  contacto: {
+    id: 'contacto',
+    situation: 'Te toca el formulario de contacto. La especificación es clara: el mensaje es obligatorio y admite hasta 500 caracteres. No tenés acceso al código. ¿Por dónde empezás?',
+    options: [
+      {
+        text: 'Con una técnica white-box, midiendo qué ramas de la validación se ejecutan.',
+        correct: false,
+        why: 'White-box necesita ver el código fuente, y no lo tenés. Además, la especificación ya da todo lo necesario para diseñar casos desde afuera.',
+      },
+      {
+        text: 'Con una técnica black-box, derivando los casos de la regla de los 500 caracteres.',
+        correct: true,
+        why: 'Hay una especificación clara: es el punto de partida natural para black-box.',
+        next: 'pagos',
+      },
+      {
+        text: 'Con una sesión exploratoria: es un formulario simple y no hace falta más.',
+        correct: false,
+        why: 'Teniendo una regla documentada, empezar sin usarla desaprovecha lo que el caso tiene para ofrecer. La exploración puede sumarse después.',
+      },
+    ],
+  },
+  pagos: {
+    id: 'pagos',
+    situation: 'Ahora, un sistema que procesa pagos internacionales. Hay especificación para las reglas principales, pero varias combinaciones de monedas no están documentadas. ¿Cómo lo cubrís?',
+    options: [
+      {
+        text: 'Casos formales black-box para lo especificado, más sesiones exploratorias para las combinaciones sin documentar.',
+        correct: true,
+        why: 'Se combinan categorías: cobertura formal donde hay especificación, y experiencia donde hay zonas grises.',
+        next: 'turnos',
+      },
+      {
+        text: 'Que lo cubra el tester senior con su intuición: conoce el sistema mejor que nadie.',
+        correct: false,
+        why: 'En un sistema crítico, depender solo de la experiencia deja sin cubrir los puntos ciegos de esa persona, y ahí los errores salen caros.',
+      },
+      {
+        text: 'Solo los casos formales de la especificación: lo que no está documentado no se prueba.',
+        correct: false,
+        why: 'Justamente donde no hay documentación es donde la experiencia aporta: quedarse solo con black-box deja esas combinaciones sin mirar.',
+      },
+    ],
+  },
+  turnos: {
+    id: 'turnos',
+    situation: 'El módulo de turnos se probaba bien con particiones de equivalencia. En este release, una reserva pasa a comportarse distinto según su estado: pendiente, confirmada o cancelada. ¿Qué hacés con los casos?',
+    options: [
+      {
+        text: 'Seguir con las mismas particiones: siempre funcionaron para este módulo.',
+        correct: false,
+        why: 'Usar siempre la misma técnica por costumbre deja afuera los defectos que esa técnica no está pensada para atrapar, como los que dependen del estado.',
+      },
+      {
+        text: 'Reemplazar los casos por sesiones exploratorias, porque el módulo se volvió más complejo.',
+        correct: false,
+        why: 'La complejidad nueva sigue estando especificada (los tres estados), así que corresponde una técnica formal que la cubra, no abandonar la cobertura formal.',
+      },
+      {
+        text: 'Revisar la técnica: ahora el comportamiento depende del estado, así que hace falta una técnica pensada para estados.',
+        correct: true,
+        why: 'Cuando el sistema cambia, la técnica elegida se revisa: lo que alcanzaba con un campo simple deja de alcanzar cuando aparecen estados.',
+      },
+    ],
+  },
+};
+export const CHOICE_EXPLANATION =
+  'La técnica se elige según lo que tiene cada caso: especificación clara → black-box; zonas sin documentar → sumar experiencia; código disponible → white-box del lado de desarrollo. Y la elección se revisa cuando el sistema cambia.';
 
-export const PRACTICE_LINES: CodeLine[] = [
+export const MANUAL_QUESTIONS: MultiSelectQuestion[] = [
   {
-    code: 'El equipo arma todos los casos del nuevo módulo de turnos con equivalence partitioning, aunque el comportamiento cambia según el estado de la reserva: pendiente, confirmada o cancelada.',
-    rule: 2,
-    why: 'La técnica elegida mira valores de entrada, pero acá el resultado depende del estado en que está la reserva. Aplicar siempre la misma técnica deja afuera ese cambio de estado.',
-    hint: '¿El resultado depende solo del valor ingresado o también del estado del registro?',
-  },
-  {
-    code: 'Para el formulario de contacto, el equipo usa boundary value analysis porque la especificación fija un máximo de 500 caracteres; para el flujo de reserva, arma una tabla de estados.',
-    rule: 0,
-    why: 'La elección cambia según lo que pide cada parte del sistema: la especificación del campo justifica boundary, y el flujo con estados justifica state transition.',
-    hint: '¿La técnica elegida cambia según lo que necesita cada parte del sistema?',
-  },
-  {
-    code: 'El área de salud de una app audita accesos a historias clínicas solo con sesiones exploratorias de dos testers, sin casos formales.',
-    rule: 1,
-    why: 'Un sistema crítico cubierto únicamente por intuición deja puntos ciegos. La exploración suma, pero necesita cobertura formal de respaldo.',
-    hint: '¿Qué pasa si los dos testers no están disponibles la semana del release?',
-  },
-  {
-    code: 'El equipo deja una sesión exploratoria al final de cada release para lo que no anticipó, pero antes corrió los casos formales de la especificación.',
-    rule: 0,
-    why: 'Combina una técnica formal con experiencia, cada una en el lugar donde aporta. La sesión no reemplaza los casos formales: los complementa.',
-    hint: '¿La exploración reemplaza los casos formales, o los complementa?',
-  },
-  {
-    code: 'Pase lo que pase, el equipo abre el primer caso con error guessing; aunque la especificación de la nueva API trae las reglas completas, nadie las usa para diseñar.',
-    rule: 2,
-    why: 'La especificación daba una base para una técnica formal. Elegir siempre la misma técnica por costumbre desperdicia la información disponible.',
-    hint: '¿Qué información estaba disponible y se dejó de lado?',
-  },
-  {
-    code: 'El único control de un sistema que mueve pagos internacionales es la intuición de un tester senior; no hay casos documentados ni cobertura formal.',
-    rule: 1,
-    why: 'La experiencia de una sola persona no alcanza como único control en un sistema de alto impacto. Sin casos formales, no hay respaldo si esa persona falta o si algo cambia.',
-    hint: '¿Qué queda sin cubrir si esa persona no está, o si el sistema cambia?',
-  },
-  {
-    code: 'El equipo suma testing exploratorio a un sistema con especificación completa, porque quiere cubrir combinaciones que el documento no menciona.',
-    rule: 0,
-    why: 'La exploración complementa la cobertura formal cuando se busca lo que la especificación no anticipó. No reemplaza los casos formales: agrega otra mirada.',
-    hint: '¿Esto reemplaza la cobertura formal, o la complementa?',
+    prompt: '¿Cuáles de estas tareas puede hacer un QA manual sin acceso al código fuente? Marcá todas las que correspondan.',
+    options: [
+      {text: 'Probar el cupo de una reserva con 0, 1, 8 y 9 personas, según la regla de la especificación.', correct: true, why: 'Es black-box: los valores salen de la especificación, sin mirar el código.'},
+      {text: 'Medir qué porcentaje de las ramas del `if` de validación se ejecutaron al correr la suite.', correct: false, why: 'Es white-box: necesita ver la estructura interna del código.'},
+      {text: 'Recorrer una checklist de accesibilidad en cada pantalla nueva.', correct: true, why: 'Es basada en experiencia: la lista guía qué revisar desde afuera del sistema.'},
+      {text: 'Explorar sin guion la pantalla de favoritos durante 40 minutos, anotando lo que encuentra.', correct: true, why: 'Es testing exploratorio, basado en experiencia: no requiere el código.'},
+      {text: 'Revisar qué funciones del módulo de pagos nunca fueron llamadas por los tests.', correct: false, why: 'Es white-box: para saber qué funciones se llamaron hay que instrumentar y leer el código.'},
+      {text: 'Armar casos para las combinaciones de tipo de cuenta y país que define la especificación.', correct: true, why: 'Es black-box: las combinaciones salen de la especificación.'},
+    ],
   },
 ];
-

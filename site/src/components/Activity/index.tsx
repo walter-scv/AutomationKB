@@ -56,7 +56,7 @@ export default function Activity({title, kind, goal, need, tools, consigna, done
       )}
 
       <p className={styles.consigna}>
-        <strong>Tu tarea:</strong> {consigna}
+        <strong>Tu tarea:</strong> {typeof consigna === 'string' ? <InlineText text={consigna} /> : consigna}
       </p>
 
       {children}

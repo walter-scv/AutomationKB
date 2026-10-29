@@ -1,5 +1,8 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {DecisionNode} from '@site/src/components/DecisionPath';
+import type {OrderItem} from '@site/src/components/Order';
+import type {OrderRule} from '@site/src/components/Order';
 
 export const MERGE_RULE_LABELS = [
   'Trae los cambios de main recién al final',
@@ -52,56 +55,76 @@ export const MERGE_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Resuelve el conflicto eligiendo una versión sin leer la otra',
-  'Posterga el merge por miedo, en vez de integrar en partes',
-  'No vuelve a probar después de resolver el conflicto a mano',
-];
-
-export const PRACTICE_LINES: CodeLine[] = [
-  {
-    code: 'El conflicto en `validarPedido.ts` se resolvió combinando las dos versiones a mano; como los tests automáticos ya habían pasado en verde antes del conflicto, se confirma el merge sin volver a correrlos.',
-    rule: 3,
-    why: 'Ese resultado verde es de antes de la combinación manual: no dice nada sobre el código que quedó después. Es justo el caso donde una mezcla introduce un error que ningún conflicto marca.',
-    hint: '¿Ese resultado verde corresponde al código que quedó después de combinar las dos versiones?',
+export const CONFLICT_START = 'aparece';
+export const CONFLICT_NODES: Record<string, DecisionNode> = {
+  aparece: {
+    id: 'aparece',
+    situation: 'Traés `main` a tu rama `feature/envio-gratis` y Git marca un conflicto en `envio.ts`. ¿Qué hacés?',
+    options: [
+      {
+        text: 'Dejar la rama sin mergear un par de semanas, hasta que `main` se calme.',
+        correct: false,
+        why: 'Postergar por miedo solo agranda el problema: en dos semanas `main` va a tener más cambios y el conflicto va a ser más grande.',
+      },
+      {
+        text: 'Abrir `envio.ts` y leer las dos versiones en conflicto antes de decidir nada.',
+        correct: true,
+        why: 'Un conflicto es una decisión pendiente: para tomarla hay que entender qué hace cada versión.',
+        next: 'combinar',
+      },
+      {
+        text: 'Cancelar el merge y volver a crear la rama desde cero.',
+        correct: false,
+        why: 'Volver a empezar no hace desaparecer el conflicto: las mismas líneas siguen cambiadas en `main`, y el trabajo de la rama se pierde.',
+      },
+    ],
   },
-  {
-    code: 'En un conflicto de tres bloques, se resuelve cada bloque por separado, se corre la suite completa y recién ahí se confirma el merge.',
-    rule: 0,
-    why: 'Se combinó entendiendo parte por parte y se verificó el resultado antes de cerrar: cubre las dos precauciones importantes.',
-    hint: '¿Se entendió cada bloque y se verificó el resultado antes de confirmar?',
+  combinar: {
+    id: 'combinar',
+    situation: 'En `main`, alguien subió el umbral de envío pesado de 10 a 12 kg; en tu rama, agregaste envío gratis para compras desde $5000. Los dos cambios tocan la misma línea. ¿Cómo lo resolvés?',
+    options: [
+      {
+        text: 'Quedarte con tu versión ("Accept Current Change"): sos quien está trabajando en el envío.',
+        correct: false,
+        why: 'Elegir una versión sin considerar la otra borra el cambio del umbral a 12 kg, que también es necesario.',
+      },
+      {
+        text: 'Quedarte con la de `main` ("Accept Incoming Change"): lo que ya está integrado manda.',
+        correct: false,
+        why: 'Eso borra tu envío gratis desde $5000, que es justamente el objetivo de la rama.',
+      },
+      {
+        text: 'Editar la línea a mano para que tenga los dos cambios: umbral de 12 kg y envío gratis desde $5000.',
+        correct: true,
+        why: 'Los dos cambios son válidos y no se contradicen: la resolución correcta los combina.',
+        next: 'probar',
+      },
+    ],
   },
-  {
-    code: 'Ante el primer conflicto, la rama de `feature/exportar` se queda sin mergear dos semanas más, "hasta que main se calme".',
-    rule: 2,
-    why: 'main no se va a calmar: sigue recibiendo commits. Esperar agranda el conflicto que se quería evitar, en vez de resolverlo ahora que es chico.',
-    hint: '¿Qué hace main mientras la rama espera?',
+  probar: {
+    id: 'probar',
+    situation: 'El archivo ya no tiene marcas de conflicto y compila. Los tests habían pasado en verde antes del merge. ¿Qué hacés antes de confirmar?',
+    options: [
+      {
+        text: 'Correr los tests de nuevo y probar el cálculo de envío con los dos cambios juntos.',
+        correct: true,
+        why: 'La combinación a mano es código nuevo que ningún test probó todavía: hay que volver a probar.',
+      },
+      {
+        text: 'Confirmar directamente: los tests ya habían pasado antes del conflicto.',
+        correct: false,
+        why: 'Esos tests probaron cada versión por separado, no la combinación que acabás de escribir a mano.',
+      },
+      {
+        text: 'Confirmar y avisar al equipo que pruebe el envío si tiene tiempo.',
+        correct: false,
+        why: 'Delegar la prueba "si hay tiempo" deja sin verificar justo la línea que se tocó a mano.',
+      },
+    ],
   },
-  {
-    code: 'Se mergea `fix/typo` el mismo día, con un solo commit que otra persona revisó antes.',
-    rule: 0,
-    why: 'Rama corta, cambio revisado y merge inmediato: el conflicto no tiene tiempo de crecer.',
-    hint: '¿Este conflicto tuvo tiempo de crecer?',
-  },
-  {
-    code: 'Ante un conflicto en `carrito.ts`, se elige "Accept Current Change" en los cuatro bloques porque el autor es quien más conoce ese archivo.',
-    rule: 1,
-    why: 'Conocer el archivo no equivale a saber qué agregó la otra rama: alguno de esos bloques podía traer un cambio necesario. Elegir en bloque sin mirar el otro lado es lo que hay que evitar.',
-    hint: '¿Qué cambio de la otra rama pudo quedar afuera de esa elección?',
-  },
-  {
-    code: 'Un conflicto en la configuración se resuelve combinando ambas listas de valores y verificando que la app levante antes de commitear.',
-    rule: 0,
-    why: 'Se conservó lo de los dos lados y se comprobó el resultado: la combinación no quedó librada a la suerte.',
-    hint: '¿Se descartó alguna versión sin mirarla, o se combinaron ambas?',
-  },
-  {
-    code: 'Se resuelve un conflicto borrando la versión de la otra rama y dejando solo la propia, sin abrir el historial para ver qué agregaba.',
-    rule: 1,
-    why: 'Descartar una versión sin leerla puede borrar trabajo real de otra persona; el conflicto se resuelve comparando, no eligiendo por descarte.',
-    hint: '¿Se revisó qué aportaba la versión que se borró?',
-  },
-];
+};
+export const CONFLICT_EXPLANATION =
+  'Un conflicto se resuelve en el momento, leyendo las dos versiones, combinándolas cuando las dos son válidas y volviendo a probar antes de confirmar: la línea resuelta a mano es código nuevo.';
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {
@@ -113,4 +136,23 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
       {text: 'Falta subir la rama al remoto: el conflicto desaparece apenas se hace push.', correct: false, why: 'El push no toca el conflicto; incluso puede ser rechazado por la misma razón. Lo que falta es integrar los cambios y resolver las líneas marcadas.'},
     ],
   },
+];
+
+export const MERGE_ORDER_ITEMS: OrderItem[] = [
+  {id: 'add', what: 'Paso', code: 'git add carrito.ts'},
+  {id: 'merge', what: 'Paso', code: 'git merge fix/total-con-envio'},
+  {id: 'push', what: 'Paso', code: 'git push'},
+  {id: 'checkout', what: 'Paso', code: 'git checkout main'},
+  {id: 'resolve', what: 'Paso', code: '// resolver el conflicto en carrito.ts y volver a correr los tests'},
+  {id: 'commit', what: 'Paso', code: 'git commit'},
+  {id: 'pull', what: 'Paso', code: 'git pull'},
+];
+export const MERGE_ORDER_CORRECT = ['checkout', 'pull', 'merge', 'resolve', 'add', 'commit', 'push'];
+export const MERGE_ORDER_RULES: OrderRule[] = [
+  {before: 'checkout', after: 'pull', why: '`git pull` actualiza la rama en la que estás parado: primero hay que estar en `main`.'},
+  {before: 'pull', after: 'merge', why: 'la rama se integra sobre el `main` más reciente, no sobre uno desactualizado.'},
+  {before: 'merge', after: 'resolve', why: 'el conflicto aparece recién al mergear.'},
+  {before: 'resolve', after: 'add', why: 'el archivo se marca como resuelto después de resolverlo y probarlo, no antes.'},
+  {before: 'add', after: 'commit', why: 'el commit confirma lo que está en staging, incluido el archivo resuelto.'},
+  {before: 'commit', after: 'push', why: 'se sube el merge ya confirmado: sin commit, no hay nada nuevo que compartir.'},
 ];

@@ -1,0 +1,350 @@
+---
+title: "Clases: datos y operaciones juntos"
+sidebar_position: 23.5
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import FillBlank from '@site/src/components/FillBlank';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import DecisionPath from '@site/src/components/DecisionPath';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  QUEUE_TEMPLATE,
+  QUEUE_SLOTS,
+  QUEUE_BANK,
+  QUEUE_EXPLANATION,
+  SCORE_ACCEPTED,
+  SCORE_HINTS,
+  SCORE_EXPLANATION,
+  SCORE_CODE,
+  DESIGN_START,
+  DESIGN_NODES,
+  DESIGN_EXPLANATION,
+  CLASS_ERR_LEFT,
+  CLASS_ERR_RIGHT,
+  CLASS_ERR_WHY,
+} from '@site/src/content/lessons/23a-clases';
+
+export const LESSON_SLUG = 'foundations-clases';
+
+export function QueueActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['queue']);
+  return (
+    <Activity
+      title="Completá la clase"
+      kind="Completar huecos"
+      goal="reconocer las palabras clave que declaran una clase, su constructor, el acceso a sus propiedades y la creación de una instancia."
+      done={isDone('queue')}
+      consigna="Completá los cuatro huecos de la clase y de la línea que crea la instancia con las fichas (cada ficha se usa una vez y sobran algunas); clickeá un hueco para vaciarlo. La actividad se completa cuando los cuatro quedan bien."
+    >
+      <FillBlank
+        template={QUEUE_TEMPLATE}
+        slots={QUEUE_SLOTS}
+        bank={QUEUE_BANK}
+        explanation={QUEUE_EXPLANATION}
+        alreadyDone={isDone('queue')}
+        onSolved={() => markDone('queue')}
+      />
+    </Activity>
+  );
+}
+
+export function ScoreActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['score']);
+  return (
+    <Activity
+      title="¿Qué imprime?"
+      kind="Respuesta escrita"
+      goal="predecir el estado de dos instancias de la misma clase después de una secuencia de llamadas."
+      done={isDone('score')}
+      consigna="Leé el código y escribí lo que imprime la última línea: dos números separados por un espacio. Si te equivocás, recibís una pista, cada vez más concreta, y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="ts">{SCORE_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={SCORE_ACCEPTED}
+        hints={SCORE_HINTS}
+        explanation={SCORE_EXPLANATION}
+        placeholder="Lo que imprime"
+        alreadyDone={isDone('score')}
+        onSolved={() => markDone('score')}
+      />
+    </Activity>
+  );
+}
+
+export function DesignActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['design']);
+  return (
+    <Activity
+      title="Diseñá el turnero"
+      kind="Escenario encadenado"
+      goal="decidir cómo declarar cada parte de una clase y qué caso de prueba ejercita su estado."
+      done={isDone('design')}
+      consigna="Vas a armar una clase en cuatro decisiones: el estado, el dato fijo, el método y la prueba. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al final."
+    >
+      <DecisionPath
+        startId={DESIGN_START}
+        nodes={DESIGN_NODES}
+        explanation={DESIGN_EXPLANATION}
+        alreadyDone={isDone('design')}
+        onSolved={() => markDone('design')}
+      />
+    </Activity>
+  );
+}
+
+export function ClassErrorActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['classerror']);
+  return (
+    <Activity
+      title="Cada error con su corrección"
+      kind="Emparejar"
+      goal="leer los errores que TypeScript informa al usar mal una clase, incluida la herencia, y elegir la corrección de cada uno."
+      done={isDone('classerror')}
+      consigna="Son 5 líneas con el error que informa TypeScript y 5 correcciones: cada corrección resuelve exactamente un error. Elegí un error y después su corrección (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={CLASS_ERR_LEFT}
+        right={CLASS_ERR_RIGHT}
+        why={CLASS_ERR_WHY}
+        leftLabel="Error"
+        rightLabel="Corrección"
+        alreadyDone={isDone('classerror')}
+        onSolved={() => markDone('classerror')}
+      />
+    </Activity>
+  );
+}
+
+Las interfaces describen la forma de un dato. Una clase va un paso más allá: junta los datos con las operaciones que los modifican, protege lo que no se debe tocar desde afuera y permite crear varios objetos del mismo tipo, cada uno con su propio estado.
+
+## Conceptos
+
+Un objeto guarda datos, y las funciones operan sobre ellos. Cuando los
+datos y las operaciones van siempre juntos, tenerlos separados trae dos
+problemas. El primero es que nada impide modificar los datos sin pasar por
+las funciones:
+
+```ts
+const cuenta = { numero: '001-4471', saldo: 5000 };
+
+function depositar(cuenta: { saldo: number }, monto: number): void {
+  if (monto > 0) {
+    cuenta.saldo = cuenta.saldo + monto;
+  }
+}
+
+depositar(cuenta, 2000);   // pasa por la validación
+cuenta.saldo = -900;       // nada lo impide
+```
+
+El segundo es que, para crear otra cuenta, hay que volver a escribir la
+forma del objeto y recordar qué funciones le corresponden. Una **clase**
+resuelve las dos cosas: reúne en un solo lugar los datos de una entidad y
+las operaciones que se pueden hacer con ellos, y permite crear tantos
+objetos de ese tipo como hagan falta.
+
+### Declarar una clase
+
+```ts
+class CuentaCorriente {
+  numero: string;
+  saldo: number;
+
+  constructor(numero: string, saldoInicial: number) {
+    this.numero = numero;
+    this.saldo = saldoInicial;
+  }
+
+  depositar(monto: number): void {
+    if (monto > 0) {
+      this.saldo = this.saldo + monto;
+    }
+  }
+
+  consultarSaldo(): number {
+    return this.saldo;
+  }
+}
+```
+
+Las partes, de arriba abajo: el nombre de la clase, por convención con
+mayúscula inicial. Las **propiedades**, con su tipo, como en una interface.
+El **constructor**, una función especial que se ejecuta al crear cada
+objeto y que deja las propiedades con su valor inicial. Y los **métodos**,
+que son las funciones de la clase; se declaran sin la palabra `function`.
+
+Dentro de la clase, **`this`** es el objeto sobre el que se está
+trabajando. `this.saldo` es "el saldo de esta cuenta". Sin `this`, el
+nombre `saldo` no se refiere a la propiedad, y TypeScript lo marca:
+
+```text
+error TS2663: Cannot find name 'saldo'. Did you mean the instance member 'this.saldo'?
+```
+
+### Crear objetos con `new`
+
+La clase es el molde; cada objeto creado a partir de ella es una
+**instancia**. Se crea con `new`, que ejecuta el constructor con los
+argumentos indicados:
+
+```ts
+const cuentaDeAna = new CuentaCorriente('001-4471', 5000);
+const cuentaDeLuis = new CuentaCorriente('001-9020', 0);
+
+cuentaDeAna.depositar(2000);
+cuentaDeAna.consultarSaldo();    // 7000
+cuentaDeLuis.consultarSaldo();   // 0
+```
+
+Cada instancia tiene **sus propios valores**: depositar en la cuenta de
+Ana no cambia la de Luis. Los métodos son los mismos para todas, pero cada
+llamada trabaja sobre el objeto que está antes del punto.
+
+Olvidar `new` es un error frecuente al empezar, y el mensaje lo sugiere:
+
+```ts
+const cuenta = CuentaCorriente('001-4471', 5000);
+```
+
+```text
+error TS2348: Value of type 'typeof CuentaCorriente' is not callable. Did you mean to include 'new'?
+```
+
+### `private` y `readonly`: proteger los datos
+
+Con la clase tal como está, `cuentaDeAna.saldo = -900` sigue siendo
+posible. Los modificadores de acceso restringen quién puede tocar cada
+propiedad. Una propiedad **`private`** solo se puede usar dentro de la
+clase. Una propiedad **`readonly`** se asigna en el constructor y después
+no se puede cambiar. Lo que no lleva modificador es **`public`**: accesible
+desde cualquier lugar.
+
+```ts
+class CuentaCorriente {
+  readonly numero: string;
+  private saldo: number;
+  // ... constructor y métodos iguales
+}
+
+const cuenta = new CuentaCorriente('001-4471', 5000);
+cuenta.saldo = -900;
+cuenta.numero = '001-0000';
+```
+
+```text
+error TS2341: Property 'saldo' is private and only accessible within class 'CuentaCorriente'.
+error TS2540: Cannot assign to 'numero' because it is a read-only property.
+```
+
+Ahora la única forma de cambiar el saldo es `depositar`, que valida el
+monto. Ese es el sentido de `private`: que los datos solo cambien a través
+de las operaciones que la clase ofrece, que son las que cuidan que el
+objeto quede en un estado válido. Leer el saldo sigue siendo posible, a
+través de `consultarSaldo()`.
+
+### Propiedades declaradas en el constructor
+
+Declarar una propiedad, recibirla en el constructor y asignarla con
+`this.x = x` es tan habitual que TypeScript tiene una forma abreviada: si
+un parámetro del constructor lleva un modificador (`private`, `readonly`,
+`public`), se convierte automáticamente en propiedad:
+
+```ts
+class CuentaCorriente {
+  constructor(readonly numero: string, private saldo: number) {}
+
+  depositar(monto: number): void {
+    if (monto > 0) {
+      this.saldo = this.saldo + monto;
+    }
+  }
+}
+```
+
+Es exactamente la misma clase de antes, con menos líneas. El cuerpo del
+constructor queda vacío (`{}`) porque no hay nada más que hacer. Esta forma
+es muy común en código real, así que conviene reconocerla.
+
+### Propiedades con valor inicial
+
+Una propiedad que siempre empieza con el mismo valor no necesita pasar por
+el constructor: se le asigna el valor en la declaración, y TypeScript
+infiere su tipo.
+
+```ts
+class CuentaCorriente {
+  private movimientos: number[] = [];
+  private bloqueada = false;
+  // ...
+}
+```
+
+### Heredar de otra clase
+
+Igual que una interface puede extender a otra, una clase puede **heredar**
+de otra con `extends`: tiene todo lo de la clase original y agrega lo
+propio. El constructor de la clase hija tiene que llamar primero al de la
+original con `super(...)`:
+
+```ts
+class CajaDeAhorro extends CuentaCorriente {
+  constructor(numero: string, saldo: number, readonly tasaAnual: number) {
+    super(numero, saldo);
+  }
+}
+
+const ahorro = new CajaDeAhorro('002-3310', 10000, 0.3);
+ahorro.depositar(500);   // método heredado de CuentaCorriente
+ahorro.tasaAnual;        // 0.3, propio de CajaDeAhorro
+```
+
+Una clase también puede comprometerse a cumplir una interface con
+`implements`: `class CuentaCorriente implements Cuenta { ... }`. Si le falta
+alguna propiedad o método de la interface, TypeScript lo marca.
+
+### Qué probar en una clase
+
+Una clase guarda estado entre una llamada y otra, y eso cambia qué hay que
+probar. Llamar a cada método una vez no alcanza. Los casos que aportan
+información son las **secuencias**: depositar dos veces y comprobar que se
+acumula; depositar un monto inválido y comprobar que el saldo no cambió
+(una validación que falla no tiene que dejar el objeto a medio modificar).
+También hay que comprobar la **independencia entre instancias**: operar
+sobre una cuenta no tiene que afectar a otra. Y los **valores iniciales**:
+qué devuelve `consultarSaldo()` en una cuenta recién creada, antes de
+cualquier operación.
+
+## Cuándo usarlo
+
+Una clase conviene cuando hay datos que van siempre acompañados de las
+mismas operaciones, y cuando hacen falta varias instancias de la misma
+entidad con su propio estado. Para describir solo la forma de un dato, sin
+comportamiento, alcanza con una interface.
+
+## Buenas prácticas
+
+- Marcar `private` lo que solo debe cambiar a través de los métodos.
+- Marcar `readonly` lo que no cambia después de crear el objeto.
+- Usar `this` para cada propiedad dentro de los métodos.
+- Probar secuencias de llamadas y la independencia entre instancias.
+
+## Anti-patrones
+
+- **Propiedades públicas que cualquiera puede dejar en un valor inválido**.
+- **Una clase sin métodos**, cuando una interface alcanzaba.
+- **Probar cada método aislado**, sin secuencias.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<QueueActivity />
+
+<ClassErrorActivity />
+
+<ScoreActivity />
+
+<DesignActivity />

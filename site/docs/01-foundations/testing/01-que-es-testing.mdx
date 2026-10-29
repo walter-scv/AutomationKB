@@ -4,28 +4,62 @@ sidebar_position: 1
 ---
 
 import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
 import FindInCode from '@site/src/components/FindInCode';
+import Match from '@site/src/components/Match';
+import MultiSelect from '@site/src/components/MultiSelect';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  OBJECTIVE_LINES,
-  OBJECTIVE_RULE_LABELS,
+  OBJECTIVE_MATCH_LEFT,
+  OBJECTIVE_MATCH_RIGHT,
+  OBJECTIVE_MATCH_WHY,
+  IS_TESTING_QUESTIONS,
   PRACTICE_LINES,
   PRACTICE_RULE_LABELS,
+  STATIC_ITEMS,
+  STATIC_COLUMNS,
 } from '@site/src/content/lessons/01-que-es-testing';
 
 export const LESSON_SLUG = 'foundations-que-es-testing';
 
 export function ObjectiveActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['objective']);
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['objectivematch']);
   return (
     <Activity
-      title="¿Qué objetivo de testing persigue?"
-      kind="Clasificar"
-      goal="reconocer, en cada situación, qué objetivo de testing declara — o si en realidad no es testing."
-      done={isDone('objective')}
-      consigna="Son 9 situaciones. Cada una declara un propósito: evaluar un producto de trabajo, disparar la corrección de un defecto, reducir el riesgo de que algo falle en uso, verificar que se cumple un requisito o dar confianza a los interesados. Una sesión puede aportar a más de uno, pero acá elegí el que la situación declara como propósito; si solo usa o muestra el sistema sin comparar contra un criterio, elegí «No es testing». La actividad se completa cuando clasificaste las 5 que sí persiguen un objetivo."
+      title="¿Qué objetivo persigue cada sesión?"
+      kind="Emparejar"
+      goal="reconocer, en cada situación, cuál de los cinco objetivos de testing declara como propósito."
+      done={isDone('objectivematch')}
+      consigna="Son 5 situaciones y 5 objetivos: cada objetivo corresponde a exactamente una situación. Una sesión puede aportar a más de un objetivo, pero emparejala con el que declara como propósito. Elegí una situación y después su objetivo (o al revés); si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste las 5."
     >
-      <FindInCode lines={OBJECTIVE_LINES} ruleLabels={OBJECTIVE_RULE_LABELS} okLabel="No es testing" prompt="¿Qué objetivo persigue?" counterLabel="situaciones de testing" itemLabel="Situación" alreadyDone={isDone('objective')} onSolved={() => markDone('objective')} />
+      <Match
+        left={OBJECTIVE_MATCH_LEFT}
+        right={OBJECTIVE_MATCH_RIGHT}
+        leftLabel="Situación"
+        rightLabel="Objetivo"
+        why={OBJECTIVE_MATCH_WHY}
+        alreadyDone={isDone('objectivematch')}
+        onSolved={() => markDone('objectivematch')}
+      />
+    </Activity>
+  );
+}
+
+export function IsTestingActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['istesting']);
+  return (
+    <Activity
+      title="¿Esto es testing?"
+      kind="Marcar todas"
+      goal="distinguir una evaluación contra un criterio de un simple uso del sistema."
+      done={isDone('istesting')}
+      consigna="Es 1 pregunta con 7 situaciones. Marcá todas las que son testing: hay una evaluación contra un criterio y se registra el resultado. Las que solo usan, muestran o recorren el sistema sin comparar contra nada, dejalas sin marcar. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={IS_TESTING_QUESTIONS}
+        alreadyDone={isDone('istesting')}
+        onSolved={() => markDone('istesting')}
+      />
     </Activity>
   );
 }
@@ -45,83 +79,243 @@ export function PracticeActivity() {
   );
 }
 
+export function StaticDynamicActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['staticdynamic']);
+  return (
+    <Activity
+      title="¿Estático, dinámico o del proceso?"
+      kind="Clasificar"
+      goal="distinguir testing estático de testing dinámico, y los dos del aseguramiento de la calidad."
+      done={isDone('staticdynamic')}
+      consigna="Son 7 situaciones del equipo de una aerolínea y 3 cajas: Testing estático, Testing dinámico y Aseguramiento de la calidad. Arrastrá cada situación a su caja. Para decidir: si cambia la forma de trabajar de todo el equipo, es aseguramiento de la calidad; si evalúa un producto concreto, fijate si se ejecuta el sistema (dinámico) o no (estático). La actividad se completa cuando ubicaste las 7."
+    >
+      <Classify
+        items={STATIC_ITEMS}
+        columns={STATIC_COLUMNS}
+        itemLabel="Situación"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('staticdynamic')}
+        onSolved={() => markDone('staticdynamic')}
+      />
+    </Activity>
+  );
+}
+
 ## Conceptos
 
-Testing es el proceso de evaluar un producto de software para verificar
-que cumple con los requisitos especificados, y para detectar defectos. No
-es lo mismo que usar el sistema: usar una aplicación sin un objetivo ni un
-requisito contra el cual comparar el resultado no es una evaluación
-sistemática.
+### Qué es testing
 
-Testing persigue varios objetivos, no uno solo:
+Testing es el conjunto de actividades que se realizan para encontrar
+defectos y evaluar la calidad de un producto de software y de los
+productos de trabajo que se generan para construirlo: requisitos,
+historias de usuario, diseños, código. Lo que se evalúa en cada caso se
+llama **objeto de prueba**.
 
-- **Evaluar productos de trabajo.** No solo código: también requisitos,
-  historias de usuario o diseños, antes de que se conviertan en código.
-- **Disparar la corrección de defectos.** Un defecto encontrado a tiempo
-  se corrige más barato que uno encontrado en producción.
-- **Reducir el riesgo** de que algo falle una vez en uso, concentrando el
-  esfuerzo donde el impacto de un fallo sería mayor.
-- **Verificar que se cumplen requisitos**, sean funcionales, contractuales
-  o regulatorios.
-- **Dar confianza** a los interesados (un cliente, el resto del equipo) de
-  que el sistema tiene la calidad esperada, respaldada con evidencia.
+Dos ideas equivocadas sobre testing aparecen seguido. La primera es que
+testing consiste en ejecutar la aplicación y ver si funciona. Ejecutar es
+solo una parte: antes hay que decidir qué evaluar y contra qué criterio,
+diseñar las pruebas y preparar lo necesario; después, comparar resultados,
+reportar lo que falló y comunicar el estado de la calidad. La segunda es
+que testing solo verifica que el sistema cumpla lo especificado. También
+evalúa si el sistema sirve a quienes lo van a usar, aunque cumpla la
+especificación al pie de la letra (esa diferencia se desarrolla en la
+entrada de verificación y validación).
+
+Testing es, sobre todo, una actividad intelectual. Requiere conocer el
+dominio, analizar qué puede fallar y pensar críticamente sobre lo que se
+observa, más que recorrer pantallas.
+
+### Comparar contra un criterio
+
+Toda prueba compara un **resultado real** (lo que hizo el sistema) con un
+**resultado esperado** (lo que tendría que haber hecho). El resultado
+esperado sale de la **base de prueba**: la documentación que establece
+qué tiene que pasar, como los requisitos o los criterios de aceptación de
+una historia. Sin base de prueba no hay resultado esperado, y sin
+resultado esperado no hay forma de decidir si algo falló.
+
+Tomemos como objeto de prueba la recuperación de contraseña de una
+aplicación web, con esta base de prueba:
+
+> **Historia:** como usuario registrado, quiero recuperar mi contraseña
+> desde la pantalla de login para volver a ingresar si la olvidé.
+>
+> **Criterios de aceptación**
+> 1. Si se ingresa un email registrado, se envía un enlace de
+>    recuperación y se muestra «Si el email está registrado, vas a recibir
+>    un enlace».
+> 2. Si se ingresa un email no registrado, se muestra el mismo mensaje y
+>    no se envía nada, para no revelar qué emails existen.
+> 3. El enlace vence a los 30 minutos.
+> 4. El enlace se puede usar una sola vez.
+> 5. La contraseña nueva debe tener entre 8 y 64 caracteres.
+
+El trabajo empieza antes de abrir la aplicación: de cada criterio se
+derivan las **condiciones de prueba**, los aspectos concretos que hay que
+comprobar. El primer criterio exige comprobar que llega el enlace y que
+el mensaje es exactamente el indicado. El segundo, que un email
+inexistente muestra el mismo mensaje y que no sale ningún email. El
+tercero obliga a probar un enlace usado antes de los 30 minutos y otro
+usado después. El cuarto, el segundo uso de un mismo enlace. El quinto,
+contraseñas en el límite de cada extremo: 7, 8, 64 y 65 caracteres. Cinco
+criterios dan once condiciones, y cada una se traduce después en casos
+con datos concretos.
+
+### Usar el sistema no es testearlo
+
+Desde afuera, usar una aplicación y testearla se parecen: en los dos
+casos alguien la recorre. Lo que distingue al testing es que cada
+comparación se hace contra un criterio y queda registrada.
+
+Un uso informal de la recuperación de contraseña se documenta así:
+"probé recuperar la contraseña con mi email, me llegó el enlace y pude
+cambiarla; anda bien". Esa frase cubre una sola de las once condiciones,
+el camino exitoso del primer criterio, y no permite que nadie repita ni
+audite lo que se hizo. Una ejecución de testing, en cambio, deja un
+registro como este:
+
+| Condición | Datos | Resultado esperado | Resultado real | Estado |
+|---|---|---|---|---|
+| Llega el enlace | `ana@mail.com`, registrado | Email con enlace | Llegó a las 10:00:12 | Pasa |
+| No revela emails | `noexiste@mail.com` | Mismo mensaje, sin email | «Ese email no existe» | Falla |
+| Un solo uso | Enlace ya utilizado | «Este enlace ya fue utilizado» | Permite cambiar la contraseña otra vez | Falla |
+
+Las dos fallas encontradas, una de ellas de seguridad, no aparecen nunca
+en un uso informal: con un único email propio no se ve el mensaje para
+emails inexistentes, y nadie vuelve a abrir un enlace que ya usó.
+
+### Testing estático y testing dinámico
+
+El testing **dinámico** ejecuta el software y observa su comportamiento,
+como en el registro anterior. El testing **estático** evalúa un producto
+de trabajo sin ejecutarlo: se revisa un requisito, una historia, un
+diseño o el código en busca de defectos.
+
+El testing estático puede empezar apenas existe la historia. Una revisión
+de los criterios de la recuperación de contraseña, antes de que se
+programen, encuentra varios problemas. El tercer criterio dice que el
+enlace vence a los 30 minutos, pero no desde cuándo: ¿desde la solicitud
+o desde el envío del email? Tampoco se dice qué pasa si se pide un
+segundo enlace mientras el primero sigue vigente, ni cuántas solicitudes
+se aceptan por hora, una omisión que deja la funcionalidad abierta al
+abuso. Y el quinto criterio exige solo un largo, cuando la pantalla de
+registro de la misma aplicación exige además un número: dos requisitos
+que se contradicen.
+
+Ninguno de esos defectos requirió ejecutar nada, y cada uno, aclarado en
+la revisión, evita programar algo que después habría que rehacer. El
+testing dinámico encuentra otra clase de problemas, los que solo aparecen
+al ejecutar, como las dos fallas del registro anterior. Por eso los dos
+tipos se complementan: el estático encuentra defectos directamente y
+temprano; el dinámico encuentra fallos, cuya causa después hay que
+investigar.
+
+### Los objetivos del testing
+
+Según la situación, una actividad de testing persigue uno o varios de
+estos objetivos:
+
+- Evaluar productos de trabajo, como requisitos, historias, diseños y
+  código.
+- Provocar fallos y encontrar defectos, para disparar su corrección.
+- Asegurar la cobertura requerida del objeto de prueba.
+- Reducir el riesgo de que la calidad del software sea insuficiente una
+  vez en uso.
+- Verificar que se cumplen los requisitos especificados.
+- Verificar que se cumplen requisitos contractuales, legales y
+  regulatorios.
+- Dar información a los interesados para que tomen decisiones.
+- Dar confianza en la calidad del objeto de prueba.
+- Validar que el objeto de prueba está completo y funciona como los
+  interesados esperan.
+
+El objetivo no es una formalidad: determina qué se prueba, cuándo se da
+por terminado el trabajo y qué se informa. Sobre la misma recuperación de
+contraseña, si el objetivo es verificar los requisitos, se ejecutan las
+once condiciones y el trabajo termina cuando todas tienen resultado. Si
+el objetivo es encontrar la mayor cantidad de defectos antes del
+lanzamiento, además de esas condiciones se prueban variaciones que los
+criterios no mencionan, como un email con mayúsculas o espacios, el
+enlace abierto en otro navegador o dos solicitudes seguidas, y el trabajo
+se cierra al agotar el tiempo asignado. Si el objetivo es reducir el
+riesgo, el esfuerzo se concentra en lo que más daño causa si falla, el
+vencimiento y la reutilización del enlace, mientras que el texto exacto
+del mensaje pasa a segundo plano.
+
+El objetivo también define cómo se informa. "Se ejecutaron 120 casos y
+pasaron 118" no permite saber si se cubrió lo importante. "Las once
+condiciones de los requisitos se ejecutaron: nueve pasan y dos fallan, el
+mensaje para emails inexistentes revela qué cuentas existen y el enlace
+se puede reutilizar; queda abierto un riesgo de seguridad alto" dice qué
+se verificó, qué falló y qué decisión hay que tomar.
+
+### Testing y aseguramiento de la calidad
+
+Testing y aseguramiento de la calidad (QA) suelen usarse como sinónimos,
+pero no lo son. Testing se orienta al **producto** y es correctivo:
+evalúa lo que ya se construyó para encontrar sus defectos, y es la forma
+principal de lo que se conoce como control de calidad. El aseguramiento
+de la calidad se orienta al **proceso** y es preventivo: busca que la
+forma de trabajar del equipo evite que los defectos aparezcan, y es
+responsabilidad de todo el equipo, no solo de quien testea.
+
+Los resultados del testing sirven a los dos. Encontrar que el criterio de
+vencimiento del enlace es ambiguo es testing, y lleva a corregir esa
+historia. Si las revisiones muestran que la mayoría de las historias con
+plazos llegan sin decir desde cuándo se cuentan, el problema es del
+proceso, y la respuesta de aseguramiento de la calidad es exigir ese
+dato antes de que una historia entre al desarrollo.
+
+### Por qué es necesario el testing
+
+El testing es una forma eficiente de detectar defectos, que después se
+eliminan con debugging; así contribuye, de forma indirecta, a la calidad
+del producto. También permite evaluar la calidad en cada etapa del
+desarrollo, y esa información alimenta decisiones como la de liberar o no
+una versión. Representa a los usuarios, que casi nunca participan del
+proyecto, al probar lo que ellos van a hacer y no solo lo que el equipo
+imaginó. Y en muchos casos es una obligación: un contrato, una ley o una
+norma regulatoria pueden exigir evidencia de que el sistema fue probado,
+como el segundo criterio de la recuperación de contraseña, que existe
+para proteger datos personales.
 
 ## Cuándo usarlo
 
-Testing se aplica en cualquier punto del desarrollo donde haga falta
-evaluar si algo cumple lo esperado: desde revisar un requisito antes de
-que se programe, hasta validar el sistema completo antes de un release.
-No reemplaza otras prácticas de calidad, como un buen diseño — es la
-práctica que confirma, con evidencia, si esas otras prácticas funcionaron.
+Testing acompaña todo el desarrollo. El estático puede empezar en cuanto
+existe un requisito o una historia; el dinámico, en cuanto hay algo
+ejecutable. Después de cada corrección se vuelve a probar, y antes de
+liberar una versión se prueba que lo que ya funcionaba siga funcionando.
 
 ## Buenas prácticas
 
-- **Definir el objetivo de una sesión de testing antes de empezar**: ¿qué
-  se va a evaluar hoy, y contra qué criterio? Sin esto, dos personas
-  pueden testear la misma pantalla y cubrir cosas distintas sin que nadie
-  se dé cuenta del hueco.
-- **Basar el testing en requisitos o criterios de aceptación
-  documentados**, no en suposiciones de lo que "debería" pasar. Una
-  suposición es personal — un criterio documentado es lo mismo para
-  cualquiera que lo lea, hoy o dentro de seis meses.
-- **Registrar lo que se encontró, no solo si la sesión "pasó" o "no
-  pasó".** Un veredicto global no dice qué quedó cubierto: dos sesiones
-  que terminan en "pasó" pueden haber evaluado cosas completamente
-  distintas.
-- **Priorizar dónde se concentra el esfuerzo según el riesgo**, no según
-  lo que resulte más cómodo o rápido de probar. El objetivo de reducir
-  riesgo se pierde si el esfuerzo termina en la parte más simple del
-  sistema en vez de en la más crítica.
-- **Evaluar productos de trabajo tempranos** (un requisito, una historia
-  de usuario) y no solo el código ya construido — un problema encontrado
-  ahí es mucho más barato de corregir que uno encontrado en producción.
+- Definir el objetivo y la base de prueba antes de empezar, porque de
+  ahí salen las condiciones a cubrir y el criterio para terminar.
+- Derivar las condiciones de prueba de cada criterio, en lugar de
+  recorrer la funcionalidad.
+- Registrar cada ejecución con datos, resultado esperado y resultado real.
+- Revisar los requisitos y las historias antes de que se programen.
+- Informar contra el objetivo: qué se cubrió, qué falló y qué riesgo
+  queda.
 
 ## Anti-patrones
 
-- **Testear sin un objetivo claro**: abrir la aplicación a ver qué
-  aparece, sin un criterio contra el cual comparar el resultado. El
-  resultado de esa sesión no se puede repetir ni auditar después, porque
-  nadie sabe qué se comparó contra qué.
-- **Confundir "lo usé y anduvo" con "lo testeé"**: usar el sistema de
-  forma casual no es evaluarlo sistemáticamente contra un requisito —
-  deja pasar cualquier caso que no se te haya ocurrido probar al azar.
-- **Dar por buena una funcionalidad sin contrastarla contra ningún
-  requisito o criterio de aceptación documentado.** El visto bueno queda
-  sin ningún respaldo: si algo falla después, no hay forma de saber si el
-  requisito cambió o si nunca se verificó esa parte.
-- **Medir el éxito por cantidad de casos ejecutados, no por objetivo
-  cumplido.** Ejecutar 500 casos suena bien, pero si ninguno cubre la
-  parte de mayor riesgo del sistema, el número no dice nada sobre la
-  calidad real.
-- **Esperar a que exista código para empezar a testear.** Ignora que un
-  requisito o una historia de usuario ya se pueden evaluar antes — y que
-  encontrar ahí una contradicción sale mucho más barato que encontrarla
-  después de programada.
+- **Testear sin un objetivo claro**: recorrer la aplicación "a ver qué
+  aparece", sin un criterio contra el cual comparar.
+- **Confundir "lo usé y anduvo" con "lo testeé"**.
+- **Dar por buena una funcionalidad sin contrastarla contra un criterio
+  documentado**.
+- **Medir el éxito por cantidad de casos ejecutados** en lugar de por
+  objetivo cumplido.
+- **Esperar a que exista código para empezar a testear**.
 
 ## Práctica
 
-Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <ObjectiveActivity />
 
 <PracticeActivity />
+
+<IsTestingActivity />
+
+<StaticDynamicActivity />

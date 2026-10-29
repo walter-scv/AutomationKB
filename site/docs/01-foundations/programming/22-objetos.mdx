@@ -4,16 +4,26 @@ sidebar_position: 22
 ---
 
 import Activity from '@site/src/components/Activity';
+import Terminal from '@site/src/components/Terminal';
+import Match from '@site/src/components/Match';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
-import {
-  useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
   GROUPING_LINES,
   GROUPING_RULE_LABELS,
-  PRACTICE_LINES,
-  PRACTICE_RULE_LABELS,
   CLOSING_QUIZ,
+  ACCESS_CODE,
+  ACCESS_ACCEPTED,
+  ACCESS_HINTS,
+  ACCESS_EXPLANATION,
+  NAMING_LEFT,
+  NAMING_RIGHT,
+  NAMING_WHY,
+  RESERVA_STEPS,
+  RESERVA_EXPLANATION,
 } from '@site/src/content/lessons/22-objetos';
 
 export const LESSON_SLUG = 'foundations-objetos';
@@ -33,17 +43,25 @@ export function GroupingActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function NamingActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['naming']);
   return (
     <Activity
-      title="¿Este objeto está bien armado?"
-      kind="Buscar en el código"
-      goal="reconocer un nombre genérico (de objeto o de propiedad) y una mezcla de datos sin relación real en un mismo objeto."
-      done={isDone('practice')}
-      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+      title="Ponele nombre a cada objeto"
+      kind="Emparejar"
+      goal="elegir, a partir de las propiedades, un nombre que diga qué entidad representa un objeto o qué guarda una propiedad."
+      done={isDone('naming')}
+      consigna="Son 4 pares. A la izquierda, objetos (y una propiedad) con nombres genéricos; a la derecha, el nombre que describe lo que contienen. Emparejá cada uno con su nombre, mirando las propiedades. Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 4."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <Match
+        left={NAMING_LEFT}
+        right={NAMING_RIGHT}
+        leftLabel="Con nombre genérico"
+        rightLabel="Nombre que lo describe"
+        why={NAMING_WHY}
+        alreadyDone={isDone('naming')}
+        onSolved={() => markDone('naming')}
+      />
     </Activity>
   );
 }
@@ -59,6 +77,51 @@ export function ClosingQuizActivity() {
       consigna="Son 4 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 4 están bien."
     >
       <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+export function AccessActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['access']);
+  return (
+    <Activity
+      title="Llegá al dato"
+      kind="Respuesta escrita"
+      goal="escribir la expresión que lee una propiedad dentro de un array de objetos, combinando índice y punto."
+      done={isDone('access')}
+      consigna="Escribí la expresión que lee cuántas unidades del Mouse hay en el carrito (solo la expresión, por ejemplo `carrito.algo`). Si te equivocás, recibís una pista y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="ts">{ACCESS_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={ACCESS_ACCEPTED}
+        hints={ACCESS_HINTS}
+        explanation={ACCESS_EXPLANATION}
+        placeholder="carrito..."
+        alreadyDone={isDone('access')}
+        onSolved={() => markDone('access')}
+      />
+    </Activity>
+  );
+}
+
+export function ReservaConsoleActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['reservaconsole']);
+  return (
+    <Activity
+      title="Leé la reserva en la consola"
+      kind="Terminal"
+      goal="leer propiedades que pueden faltar con `?.` y `??`, desestructurar un objeto y comparar dos objetos por su contenido."
+      done={isDone('reservaconsole')}
+      consigna="Son 4 pasos en una consola de JavaScript simulada. La instrucción de cada uno aparece como comentario arriba del prompt: escribí la expresión y confirmá con Enter. Si no es la esperada, la consola te avisa y podés corregirla. La actividad se completa al terminar los 4 pasos."
+    >
+      <Terminal
+        steps={RESERVA_STEPS}
+        explanation={RESERVA_EXPLANATION}
+        promptSymbol=">"
+        commentPrefix="//"
+        alreadyDone={isDone('reservaconsole')}
+        onSolved={() => markDone('reservaconsole')}
+      />
     </Activity>
   );
 }
@@ -143,6 +206,79 @@ pedidos[0].total; // 100
 Cada elemento del array es un objeto completo; el índice llega al objeto y
 el punto llega a la propiedad.
 
+### Propiedades que pueden faltar
+
+Leer una propiedad de algo que no existe es una de las causas de error más
+frecuentes. Si `cliente.direccion` es `undefined`, intentar leer
+`cliente.direccion.ciudad` detiene el programa:
+
+```text
+TypeError: Cannot read properties of undefined (reading 'ciudad')
+```
+
+El mensaje dice exactamente qué pasó: se intentó leer `ciudad` de algo que
+era `undefined`. El operador `?.` (*optional chaining*) evita el error:
+si lo que está a la izquierda es `undefined` o `null`, la expresión entera
+devuelve `undefined` en lugar de fallar.
+
+```ts
+const ciudad = cliente.direccion?.ciudad;   // undefined si no hay dirección
+```
+
+Combinado con `??`, que elige un valor alternativo cuando el de la
+izquierda es `undefined` o `null`, se puede dar un valor por defecto:
+
+```ts
+const ciudad = cliente.direccion?.ciudad ?? 'Sin dirección';
+```
+
+`?.` no reemplaza a pensar si el dato puede faltar: si la dirección es
+obligatoria y no está, ocultar el error con `?.` solo lo traslada a otro
+lugar. Se usa cuando la ausencia es un caso válido.
+
+### Desestructurar un objeto
+
+Cuando se necesitan varias propiedades de un objeto, la **desestructuración**
+las extrae en variables con el mismo nombre, en una sola línea:
+
+```ts
+const pedido = {numero: 1042, total: 15900, estado: 'en preparación'};
+
+const {numero, estado} = pedido;
+console.log(numero, estado);   // 1042 'en preparación'
+```
+
+Es equivalente a escribir `const numero = pedido.numero` y `const estado =
+pedido.estado`. Se usa mucho en los parámetros de una función, para que la
+firma diga qué propiedades usa:
+
+```ts
+function describirPedido({numero, estado}: {numero: number; estado: string}): string {
+  return `Pedido ${numero}: ${estado}`;
+}
+```
+
+### Comparar objetos
+
+`===` entre dos objetos no compara su contenido: compara si son **el mismo
+objeto**. Dos objetos con las mismas propiedades y los mismos valores son,
+para `===`, distintos:
+
+```ts
+const a = {codigo: 'TEC-01'};
+const b = {codigo: 'TEC-01'};
+console.log(a === b);   // false: son dos objetos distintos
+const c = a;
+console.log(a === c);   // true: c apunta al mismo objeto que a
+```
+
+Esto explica dos comportamientos que suelen sorprender. Primero, para
+saber si dos objetos tienen los mismos datos hay que comparar sus
+propiedades (`a.codigo === b.codigo`), no los objetos. Segundo, asignar un
+objeto a otra variable no lo copia: `c` y `a` son el mismo objeto, y
+modificar `c.codigo` modifica también `a.codigo`. Para tener una copia
+independiente se usa el spread: `const copia = {...a}`.
+
 ### Nombres de objetos y propiedades
 
 El nombre del objeto tiene que decir qué entidad representa: `usuario`,
@@ -208,49 +344,28 @@ capa de acceso (`.algo`) sin ningún beneficio real.
 
 ## Buenas prácticas
 
-- **Agrupar en un objeto los datos que una misma función recibe o
-  devuelve juntos.** Si una función necesita tres datos de la misma
-  entidad, recibir un solo objeto en vez de tres parámetros sueltos deja
-  explícito que viajan juntos, y evita el error de pasarlos en el orden
-  equivocado.
-- **Elegir nombres de propiedad que digan qué es el valor** (`email`, no
-  `valor1`). Quien lea `datosDeRegistro.email` entiende qué contiene sin
-  tener que ir a buscar dónde se asignó; `datosDeRegistro.valor1` obliga a
-  adivinar o rastrear el código.
-- **Elegir también un nombre de objeto específico** (`direccionDeEnvio`,
-  no `datos` u `obj`). Un nombre genérico no dice qué entidad agrupa, y
-  obliga a leer las propiedades de adentro para entender qué es.
-- **Mantener en el objeto solo propiedades que describen la misma
-  entidad.** Si una propiedad no tiene relación con las demás, su lugar es
-  otro objeto o una variable aparte — mezclarla ahí solo porque está
-  disponible en ese momento hace más difícil entender qué representa el
-  objeto en conjunto.
+- Agrupar en un objeto los datos que una misma función recibe o devuelve juntos.
+- Elegir nombres de propiedad que digan qué es el valor.
+- Elegir también un nombre de objeto específico.
+- Mantener en el objeto solo propiedades que describen la misma entidad.
 
 ## Anti-patrones
 
-- **Variables sueltas que describen la misma entidad** (`nombre`,
-  `apellido`, `edad` de una persona) en vez de un solo objeto `persona`. Si
-  más adelante una función necesita "a la persona", hay que juntar y pasar
-  tres parámetros en vez de uno, y es fácil olvidarse de alguno.
-- **Nombre de objeto o de propiedad genérico** (`obj`, `datos`, `valor2`)
-  que no dice qué representa. Obliga a cualquiera que lea el código a
-  adivinar o a rastrear dónde se usa esa propiedad para entender qué
-  contiene.
-- **Agrupar valores sin relación real** solo porque aparecen cerca en el
-  código o están disponibles en ese momento — eso no simplifica nada, solo
-  esconde datos independientes detrás de un mismo punto, como si
-  estuvieran relacionados cuando no lo están.
-- **Un objeto que mezcla una entidad de negocio con configuración de UI**
-  (por ejemplo, los datos de sesión de un usuario junto con si tiene el
-  tema oscuro activado) — son dos cosas que cambian por razones distintas
-  y deberían vivir separadas.
+- **Variables sueltas que describen la misma entidad**.
+- **Nombre de objeto o de propiedad genérico**.
+- **Agrupar valores sin relación real**.
+- **Un objeto que mezcla una entidad de negocio con configuración de UI**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <GroupingActivity />
 
-<PracticeActivity />
+<AccessActivity />
+
+<ReservaConsoleActivity />
+
+<NamingActivity />
 
 <ClosingQuizActivity />

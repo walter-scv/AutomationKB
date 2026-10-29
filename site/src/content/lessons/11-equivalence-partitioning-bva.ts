@@ -1,6 +1,7 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
 import type {OrderItem, OrderRule} from '@site/src/components/Order';
+import type {FillBlankSlot} from '@site/src/components/FillBlank';
 
 export const BOUNDARY_RULE_LABELS = ['Redundante: la partición ya está cubierta por otro valor del plan'];
 
@@ -87,24 +88,17 @@ export const APPLIES_QUIZ: QuizQuestion[] = [
   },
 ];
 
-export const CLOSING_QUIZ: QuizQuestion[] = [
-  {
-    question: 'Para un código de descuento de 6 a 10 caracteres, alguien propone probar 5, 6, 10 y 11. ¿Qué le decís?',
-    options: [
-      {text: 'Está completo: cubre los dos lados de cada límite, que es lo que busca boundary value analysis.', correct: true, why: '5 y 11 son los primeros inválidos de cada lado, y 6 y 10 los últimos válidos. Los cuatro bordes están cubiertos.'},
-      {text: 'Está incompleto: falta un valor del medio del rango para confirmar que el caso válido funciona.', correct: false, why: 'Un valor del medio de la partición válida se comporta igual que 6 y 10. Agregarlo suma tiempo, no información nueva sobre los límites.'},
-      {text: 'Está de más: con 5 y 11 alcanza para detectar cualquier problema del campo.', correct: false, why: 'Probar solo los inválidos deja sin confirmar que los válidos se aceptan. Un error en el otro lado del límite pasaría sin notarse.'},
-    ],
-  },
-  {
-    question: 'La regla de un campo cambia de «entre 8 y 64 caracteres» a «entre 10 y 64». El plan de test sigue probando 7, 8, 64 y 65. ¿Qué pasa con ese plan?',
-    options: [
-      {text: 'Sigue siendo válido, porque los números son los mismos que antes.', correct: false, why: 'Los límites de la regla cambiaron: ahora el mínimo es 10. Probar los números viejos da una falsa sensación de cobertura.'},
-      {text: '7 y 8 dejaron de ser los bordes: el plan ahora prueba valores del medio sin tocar los límites nuevos.', correct: true, why: 'Con el mínimo en 10, los bordes pasan a ser 9, 10, 64 y 65. Los valores viejos ya no verifican la regla que rige hoy.'},
-      {text: 'Solo hay que agregar 9 y 10; el resto sigue probando los bordes actuales.', correct: false, why: '7 y 8 ya no son bordes del rango nuevo: quedaron en la zona inválida. El plan actualizado tiene que reemplazarlos, no solo sumar valores.'},
-    ],
-  },
+export const UPDATE_TEMPLATE =
+  'Regla nueva: entre 1 y 6 pasajeros por reserva.\n\nBorde de abajo →  inválido: {{low_out}}   válido: {{low_in}}\nBorde de arriba → válido: {{high_in}}   inválido: {{high_out}}';
+export const UPDATE_SLOTS: FillBlankSlot[] = [
+  {id: 'low_out', answer: '0'},
+  {id: 'low_in', answer: '1'},
+  {id: 'high_in', answer: '6'},
+  {id: 'high_out', answer: '7'},
 ];
+export const UPDATE_BANK = ['9', '1', '5', '7', '0', '10', '6', '2'];
+export const UPDATE_EXPLANATION =
+  'El borde de abajo no cambió: 0 (primer inválido) y 1 (último válido) siguen siendo los límites. El de arriba sí: ahora el último válido es 6 y el primer inválido es 7. 9 y 10 eran los límites de la regla vieja: seguir probándolos da una falsa sensación de cobertura, porque ya no tocan el límite real. Y 2 y 5 caen en el medio de la partición válida: no son límites.';
 
 export const PRACTICE_RULE_LABELS = [
   'Solo probó un lado del límite',

@@ -1,0 +1,63 @@
+.prompt {
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.round {
+  margin-bottom: 16px;
+}
+
+.round:last-of-type {
+  margin-bottom: 10px;
+}
+
+.label {
+  font-size: 0.8rem;
+  color: var(--akb-muted);
+  margin-bottom: 4px;
+}
+
+.line {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.9rem;
+  background: var(--akb-code-bg);
+  color: var(--akb-code-ink);
+  border-radius: 8px;
+  padding: 10px 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.8;
+}
+
+.token {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: inherit;
+  font: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0 1px;
+  border-radius: 3px;
+}
+
+.token:hover:not(:disabled) {
+  border-bottom-color: var(--akb-accent);
+}
+
+.token.ok {
+  background: var(--akb-accent-tint);
+  border-bottom-color: var(--akb-accent);
+  box-shadow: var(--akb-glow-accent);
+}
+
+.token.bad {
+  background: var(--akb-err-tint);
+  border-bottom-color: var(--akb-err);
+}
+
+.counter {
+  font-size: 0.9rem;
+  color: var(--akb-muted);
+  margin-top: 4px;
+}

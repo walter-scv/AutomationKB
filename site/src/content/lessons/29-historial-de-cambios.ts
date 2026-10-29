@@ -1,61 +1,34 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
+import type {TerminalStep} from '@site/src/components/Terminal';
 
-export const DIFF_RULE_LABELS = [
-  'Usó el comando equivocado para lo que quería ver',
-  'Revisó solo los cambios sueltos y no lo que ya estaba en staging',
-  'No se revisó el diff antes de confirmar',
-];
-
-export const DIFF_LINES: CodeLine[] = [
+export const REVIEW_STEPS: TerminalStep[] = [
   {
-    code: 'Antes de hacer `git add`, se corre `git diff` y se confirma que el cambio es solo el esperado.',
-    rule: 0,
-    why: '`git diff` muestra los cambios que todavía no están en staging: es justo lo que hace falta mirar antes de agregarlos.',
-    hint: '¿Este `git diff` se corrió antes o después de confirmar el commit?',
+    instruction: 'Modificaste checkout.ts y todavía no lo agregaste. Mirá línea por línea qué cambió.',
+    accepted: ['git diff', 'git diff checkout.ts'],
+    hint: 'Es el comando que compara lo que todavía no está en staging contra el último commit.',
+    output: '-  const TIMEOUT_MS = 30000;\n+  const TIMEOUT_MS = 3000;\n   const reintentos = 3;',
   },
   {
-    code: 'Se confirma un cambio de configuración sin abrir el diff; el commit incluye un timeout bajado de 30s a 3s por error.',
-    rule: 3,
-    why: 'El diff habría mostrado el valor nuevo antes de confirmar. Sin esa revisión, un cambio numérico chico pasa inadvertido aunque rompa el comportamiento.',
-    hint: '¿Qué habría mostrado el diff sobre esa línea que se confirmó?',
+    instruction: 'El timeout de 3000 era un error y ya lo corregiste a 30000 en el editor. Pasá checkout.ts al staging area.',
+    accepted: ['git add checkout.ts'],
+    hint: 'Nombrá el archivo exacto que querés agregar.',
+    output: '',
   },
   {
-    code: 'Ya agregaste dos archivos con `git add`; corrés `git diff` (sin `--staged`), ves solo el tercero y confirmás los tres creyendo que revisaste todo.',
-    rule: 2,
-    why: '`git diff` sin `--staged` muestra solo lo que quedó fuera del staging. Los dos archivos ya agregados no aparecen, así que no se revisaron.',
-    hint: '¿Qué parte de los cambios deja de mostrar `git diff` después de `git add`?',
+    instruction: 'Antes de confirmar, revisá exactamente lo que quedó en staging (no lo que quedó suelto).',
+    accepted: ['git diff --staged', 'git diff --cached', 'git diff --staged checkout.ts'],
+    hint: '`git diff` solo muestra lo que todavía no agregaste. Para lo que ya está en staging hace falta un flag.',
+    output: '+  // reintenta el cobro si el proveedor no responde\n   const TIMEOUT_MS = 30000;',
   },
   {
-    code: 'Cuando ya agregaste todo, corrés `git diff --staged` para revisar exactamente lo que va a entrar en el commit.',
-    rule: 0,
-    why: '`--staged` compara el staging contra el último commit: es la vista correcta de lo que se va a confirmar.',
-    hint: '¿`--staged` compara contra lo que ya está en staging, o contra lo que quedó afuera?',
-  },
-  {
-    code: 'Para saber quién escribió una línea hace tres meses, corrés `git diff` sobre el archivo y esperás ver el autor.',
-    rule: 1,
-    why: '`git diff` muestra contenido que cambió, no autores ni fechas. Para eso sirven `git log` o `git blame`; el diff no puede responder esa pregunta.',
-    hint: '¿Qué comando muestra autor y mensaje de cada cambio, y cuál solo muestra el contenido?',
-  },
-  {
-    code: 'Antes de confirmar, se abre el diff y se nota que el cambio de una línea rompe una función que la usaba; se corrige antes del commit.',
-    rule: 0,
-    why: 'Revisar el diff no es solo leer las líneas verdes y rojas: también es ver el contexto y preguntarse qué depende de eso. Acá la revisión evitó el problema.',
-    hint: '¿Se revisó el contexto alrededor del cambio, o solo las líneas resaltadas?',
-  },
-  {
-    code: 'Se corre `git add .` sin mirar qué archivos cambiaron, y el commit termina incluyendo un archivo de configuración local que no debía subirse.',
-    rule: 3,
-    why: 'Sin revisar el diff (o al menos `git status`) antes de agregar, es fácil incluir algo sin darse cuenta. El archivo queda en el historial aunque se borre después.',
-    hint: '¿Se confirmó, antes de este commit, exactamente qué archivos se estaban incluyendo?',
-  },
-  {
-    code: 'Después de `git add`, se corre `git diff` para ver los cambios que quedaron fuera del staging antes de decidir si van en el mismo commit.',
-    rule: 0,
-    why: 'Después de agregar, `git diff` muestra justamente lo que no está en staging. Usarlo así sirve para separar lo que entra ahora de lo que queda para otro commit.',
-    hint: '¿Qué parte de los cambios muestra `git diff` después de un `git add` parcial?',
+    instruction: 'Antes de tocar validar.ts, que no abrís hace meses, mirá su historial: quién lo cambió, cuándo y por qué.',
+    accepted: ['git log -- validar.ts', 'git log validar.ts', 'git log --oneline -- validar.ts', 'git log --oneline validar.ts'],
+    hint: 'Es `git log`, acotado a un archivo puntual.',
+    output: 'commit 8b1d2e4\nAuthor: Lucía <lucia@tienda.com>\n    Aceptar emails con + en la validación (pedido de soporte)',
   },
 ];
+export const REVIEW_EXPLANATION =
+  '`git diff` muestra lo que todavía no agregaste, `git diff --staged` lo que ya está listo para el commit (son cosas distintas cuando ya agregaste una parte), y `git log -- archivo` cuenta la historia de un archivo antes de modificarlo. Revisar antes de confirmar fue lo que atrapó el timeout equivocado.';
 
 export const PRACTICE_RULE_LABELS = [
   'Modificó el archivo sin mirar su historial',
@@ -109,3 +82,15 @@ export const PRACTICE_LINES: CodeLine[] = [
   },
 ];
 
+export const LOG_OUTPUT = `$ git log --oneline
+9c1e4b7 Mostrar el total con dos decimales en el carrito
+a3f9c21 Aceptar emails con + en el registro
+5d20e88 Agregar test del cupón vencido
+1b7f3aa Validar el largo del código de cupón`;
+export const LOG_ACCEPTED = ['5d20e88'];
+export const LOG_HINTS = [
+  'Cada línea es un commit: primero su id corto y después el mensaje. Buscá primero el que habla de emails con +.',
+  '`git log` lista del commit más reciente (arriba) al más viejo (abajo). El que vino antes está más abajo.',
+];
+export const LOG_EXPLANATION =
+  'El commit de los emails con + es `a3f9c21`. Como `git log` muestra primero lo más reciente, el que vino justo antes es el de abajo: `5d20e88`. Con ese id podés, por ejemplo, mirar con `git checkout` cómo estaba el registro antes del cambio.';

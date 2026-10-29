@@ -1,5 +1,6 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {MatchItem} from '@site/src/components/Match';
 
 export const PRACTICE_RULE_LABELS = [
   'Afirma la causa (error humano) sin evidencia',
@@ -58,92 +59,24 @@ export const PRACTICE_LINES: CodeLine[] = [
   },
 ];
 
-export const VOCAB_QUIZ: QuizQuestion[] = [
-  {
-    question:
-      'Un analista lee el requisito "mínimo 8 caracteres" y lo interpreta como "más de 8 caracteres". ¿Cómo se llama esa acción humana equivocada?',
-    options: [
-      {
-        text: 'Defecto: la falla que queda en el código a partir de esa interpretación.',
-        correct: false,
-        why: 'El defecto es la consecuencia en el código. En el momento en que el analista interpreta mal, todavía no se escribió ninguna condición.',
-      },
-      {
-        text: 'Error: la acción humana que produce un resultado incorrecto.',
-        correct: true,
-        why: 'El error ocurre en la interpretación de la persona, antes de que exista código. Todavía no hay ningún defecto ni ningún fallo: solo una decisión equivocada.',
-      },
-      {
-        text: 'Fallo: el comportamiento visible que produce esa interpretación.',
-        correct: false,
-        why: 'El fallo aparece recién cuando el sistema se ejecuta y alguien observa un resultado distinto al esperado. Acá estamos antes de esa instancia.',
-      },
-    ],
-  },
-  {
-    question:
-      'Como consecuencia de esa interpretación, el código queda con `password.length > 8` en vez de `>= 8`. ¿Cómo se llama eso?',
-    options: [
-      {
-        text: 'Error: la equivocación de quien escribió la condición.',
-        correct: false,
-        why: 'El error humano ya ocurrió antes, en la interpretación del requisito. Lo que estamos mirando ahora es su rastro concreto en el código.',
-      },
-      {
-        text: 'Fallo: el síntoma que aparece al ejecutar la validación.',
-        correct: false,
-        why: 'La línea todavía no se ejecutó con un usuario real. Sin ejecución no hay síntoma observable, así que no puede ser un fallo.',
-      },
-      {
-        text: 'Defecto: la falla en el código que resulta del error humano.',
-        correct: true,
-        why: 'El operador equivocado ya vive en el código, pero todavía no produjo ningún comportamiento visible. Esa es exactamente la definición de defecto.',
-      },
-    ],
-  },
-  {
-    question:
-      'Un usuario ingresa una contraseña de exactamente 8 caracteres, que debería ser válida, y el sistema la rechaza. ¿Cómo se llama lo que observó?',
-    options: [
-      {
-        text: 'Fallo: la desviación observable entre el comportamiento esperado y el real.',
-        correct: true,
-        why: 'El usuario ve un resultado concreto que no coincide con lo esperado. Ese síntoma visible es el fallo, y es lo que dispara la investigación.',
-      },
-      {
-        text: 'Defecto: la condición equivocada que está en el código.',
-        correct: false,
-        why: 'El defecto es la causa que está en el código, no lo que el usuario observa. El usuario no ve el operador: ve que le rechazan una contraseña válida.',
-      },
-      {
-        text: 'Error: la interpretación equivocada del requisito.',
-        correct: false,
-        why: 'El error humano ya ocurrió mucho antes, cuando se leyó el requisito. Lo que el usuario observa ahora es la consecuencia visible de ese error, no el error en sí.',
-      },
-    ],
-  },
-  {
-    question:
-      'En el mismo incidente, ¿cuál de estas opciones describe la causa raíz y no solo el defecto puntual?',
-    options: [
-      {
-        text: 'El operador `>` escrito en lugar de `>=` en la validación.',
-        correct: false,
-        why: 'Ese es el defecto concreto: donde se manifiesta el problema en el código. Corregirlo resuelve este caso, pero no impide que la misma mala interpretación genere otro defecto.',
-      },
-      {
-        text: 'El mensaje de error que no explica que se necesitan 8 caracteres o más.',
-        correct: false,
-        why: 'Un mensaje más claro puede mejorar la experiencia, pero no es el origen de la condición equivocada. El defecto seguiría rechazando contraseñas válidas.',
-      },
-      {
-        text: 'El malentendido original del requisito, que puede repetirse en otra condición parecida.',
-        correct: true,
-        why: 'Si solo se corrige el operador, el mismo malentendido puede volver a producir un defecto en otra validación. La causa raíz es lo que, si se elimina, evita que el patrón se repita.',
-      },
-    ],
-  },
+export const CHAIN_MATCH_LEFT: MatchItem[] = [
+  {id: 'error', text: 'Error'},
+  {id: 'defecto', text: 'Defecto'},
+  {id: 'fallo', text: 'Fallo'},
+  {id: 'raiz', text: 'Causa raíz'},
 ];
+export const CHAIN_MATCH_RIGHT: MatchItem[] = [
+  {id: 'fallo', text: 'Una clienta con un carrito de exactamente $5000 ve que le cobran el envío.'},
+  {id: 'raiz', text: 'El requisito dice "desde $5000" sin aclarar si incluye ese monto, y el equipo no acostumbra confirmar los límites con producto antes de programar.'},
+  {id: 'defecto', text: 'En la función del envío queda escrita la condición `total > 5000`.'},
+  {id: 'error', text: 'Al implementar, el desarrollador lee "desde $5000" y entiende "más de $5000".'},
+];
+export const CHAIN_MATCH_WHY: Record<string, string> = {
+  error: 'Es la acción humana puntual: una interpretación equivocada en el momento de programar.',
+  defecto: 'Es lo que ese error deja en el código. Todavía no se ve nada hasta que se ejecuta con el monto justo.',
+  fallo: 'Es la desviación observable: lo esperado (envío gratis) contra lo que pasó (le cobran el envío).',
+  raiz: 'Es el origen de fondo: mientras los límites ambiguos no se aclaren, el mismo error puede repetirse en cualquier otra condición con "desde" o "hasta".',
+};
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {

@@ -1,5 +1,7 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {DecisionNode} from '@site/src/components/DecisionPath';
+import type {MatchItem} from '@site/src/components/Match';
 
 export const CONDITIONAL_RULE_LABELS = [
   'Repite en el `else if` la condición negada que ya cubría el `else`',
@@ -48,53 +50,24 @@ export const CONDITIONAL_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Deja una rama `else` vacía que se puede borrar',
-  'Asigna `true`/`false` con `if/else` en vez de usar la comparación directo',
-  'Niega la condición y complica la lectura cuando se podría invertir',
+export const SIMPLIFY_LEFT: MatchItem[] = [
+  {id: 'emptyelse', text: '`if (usuario.activo) { mostrarPanel(usuario); } else { }`'},
+  {id: 'boolassign', text: '`let esNuevo: boolean; if (pedidos.length === 0) { esNuevo = true; } else { esNuevo = false; }`'},
+  {id: 'negated', text: '`if (!pedido.pagado) { mostrarBotonPagar(); } else { mostrarConfirmacion(); }`'},
+  {id: 'boolreturn', text: '`if (edad >= 18) { return true; } return false;`'},
 ];
-
-export const PRACTICE_LINES: CodeLine[] = [
-  {
-    code: 'if (!pedido.pagado) {\n  mostrarBotonPagar();\n} else {\n  mostrarConfirmacion();\n}',
-    rule: 3,
-    why: 'Para entender el caso habitual hay que leer primero una negación y después el `else`. Invertir las ramas pone el caso positivo en el `if`: `if (pedido.pagado) { mostrarConfirmacion(); } else { mostrarBotonPagar(); }`.',
-    hint: '¿Cuántas veces hay que negar mentalmente la condición para entender la rama principal?',
-  },
-  {
-    code: "const puedeCancelar = estado === 'pendiente' && horasDesdeCompra < 24;",
-    rule: 0,
-    why: 'Combina dos condiciones del mismo tipo con `&&`; las dos son necesarias y no hay negaciones ni un `if/else` de más. El nombre describe la regla completa.',
-  },
-  {
-    code: 'let clienteNuevo: boolean;\nif (pedidosDelCliente.length === 0) {\n  clienteNuevo = true;\n} else {\n  clienteNuevo = false;\n}',
-    rule: 2,
-    why: 'Las dos ramas asignan exactamente el resultado de la comparación y su negación. `const clienteNuevo = pedidosDelCliente.length === 0;` produce el mismo booleano sin cuatro líneas que mantener.',
-    hint: '¿Qué diferencia hay entre el valor que asigna la primera rama y el de la segunda?',
-  },
-  {
-    code: 'if (usuario.activo) {\n  mostrarPanel(usuario);\n} else {\n  // el usuario inactivo no tiene panel\n}',
-    rule: 1,
-    why: 'La rama `else` no ejecuta nada: borrarla deja el mismo comportamiento y una sola rama que leer. Un comentario que explica por qué no hay nada no cambia el flujo.',
-    hint: '¿Qué cambia en el programa si se borra todo el `else`?',
-  },
-  {
-    code: 'if (total === 0) {\n  mostrarCarritoVacio();\n} else {\n  habilitarCheckout();\n}',
-    rule: 0,
-    why: 'Cada rama hace algo distinto y necesario; no hay ninguna asignación booleana ni una negación que invertir. Es la forma directa de manejar dos casos.',
-  },
-  {
-    code: 'if (!usuario.activo) {\n  bloquearAcceso();\n} else {\n  mostrarPanel();\n}',
-    rule: 3,
-    why: 'La condición negada obliga a leer el `else` para encontrar el caso normal. Con `if (usuario.activo) { mostrarPanel(); } else { bloquearAcceso(); }` la rama principal se entiende sin dar vuelta la condición.',
-    hint: '¿La rama que más se usa quedó expresada en positivo, o hay que pasar por el `else` para encontrarla?',
-  },
-  {
-    code: 'const bloqueado = intentosFallidos >= 3;',
-    rule: 0,
-    why: 'La comparación ya devuelve un booleano y se asigna directo, sin `if/else`. El nombre `bloqueado` describe el valor resultante.',
-  },
+export const SIMPLIFY_RIGHT: MatchItem[] = [
+  {id: 'boolreturn', text: '`return edad >= 18;`'},
+  {id: 'negated', text: '`if (pedido.pagado) { mostrarConfirmacion(); } else { mostrarBotonPagar(); }`'},
+  {id: 'emptyelse', text: '`if (usuario.activo) { mostrarPanel(usuario); }`'},
+  {id: 'boolassign', text: '`const esNuevo = pedidos.length === 0;`'},
 ];
+export const SIMPLIFY_WHY: Record<string, string> = {
+  emptyelse: 'Un `else` vacío no hace nada: se borra y el comportamiento es el mismo.',
+  boolassign: 'La comparación ya da `true` o `false`: se asigna directo, y además puede ser `const`.',
+  negated: 'Invertir la condición saca el `!` y deja primero el caso "positivo", sin cambiar qué se ejecuta en cada caso.',
+  boolreturn: 'Igual que al asignar: si la condición ya es el booleano que se quiere, se devuelve directo.',
+};
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {
@@ -141,4 +114,100 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
   },
 ];
 
+export const GRADE_START = 'nota4';
+export const GRADE_NODES: Record<string, DecisionNode> = {
+  nota4: {
+    id: 'nota4',
+    situation: 'Con `nota = 4`, ¿qué queda guardado en `resultado`?',
+    options: [
+      {
+        text: '`Desaprobado`',
+        correct: false,
+        why: '`<` es "menor estricto": `4 < 4` es falso, porque 4 no es menor que sí mismo. Entonces no entra en la primera rama.',
+      },
+      {
+        text: '`Aprobado`',
+        correct: true,
+        why: '`4 < 4` es falso, así que se evalúa la siguiente: `4 <= 7` es verdadero y entra ahí.',
+        next: 'nota7',
+      },
+      {
+        text: '`Promocionado`',
+        correct: false,
+        why: 'El `else` final solo se ejecuta si ninguna condición anterior fue verdadera. Revisá qué pasa con la segunda.',
+      },
+    ],
+  },
+  nota7: {
+    id: 'nota7',
+    situation: 'Ahora con `nota = 7`, ¿qué queda guardado en `resultado`?',
+    options: [
+      {
+        text: '`Promocionado`',
+        correct: false,
+        why: '`<=` incluye el propio valor: `7 <= 7` es verdadero. No hace falta llegar al `else`.',
+      },
+      {
+        text: '`Desaprobado`',
+        correct: false,
+        why: '`7 < 4` es falso, así que no entra en la primera rama.',
+      },
+      {
+        text: '`Aprobado`',
+        correct: true,
+        why: '`7 < 4` es falso y `7 <= 7` es verdadero: `<=` significa "menor o igual", así que el 7 entra.',
+        next: 'nota9',
+      },
+    ],
+  },
+  nota9: {
+    id: 'nota9',
+    situation: 'Por último, con `nota = 9`, ¿qué queda guardado en `resultado`?',
+    options: [
+      {
+        text: '`Promocionado`',
+        correct: true,
+        why: 'Ni `9 < 4` ni `9 <= 7` son verdaderas, así que cae al `else` final.',
+      },
+      {
+        text: '`Aprobado`',
+        correct: false,
+        why: '`nota <= 7` pide que la nota sea 7 o menos — 9 no cumple esa condición.',
+      },
+      {
+        text: 'Ninguno: `resultado` queda vacío',
+        correct: false,
+        why: 'Una cadena que termina en `else` siempre ejecuta alguna rama: si ninguna condición es verdadera, se ejecuta el `else`.',
+      },
+    ],
+  },
+};
+export const GRADE_EXPLANATION =
+  'Las condiciones se evalúan de arriba hacia abajo y se ejecuta solo la primera verdadera. En los límites manda el operador: `4 < 4` es falso (por eso el 4 aprueba) y `7 <= 7` es verdadero (por eso el 7 todavía no promociona). Y como la cadena termina en `else`, siempre se ejecuta alguna rama.';
 
+export const SWITCH_CODE = `const plan = 'pro';
+let mensaje = '';
+
+switch (plan) {
+  case 'basico':
+    mensaje += 'A';
+    break;
+  case 'pro':
+    mensaje += 'B';
+  case 'empresa':
+    mensaje += 'C';
+    break;
+  default:
+    mensaje += 'D';
+}
+
+const etiqueta = mensaje.length > 1 ? 'doble' : 'simple';
+console.log(mensaje, etiqueta);`;
+export const SWITCH_ACCEPTED = ['BC doble', 'BC, doble', "'BC' 'doble'"];
+export const SWITCH_HINTS = [
+  'Seguí el switch: ¿con qué case coincide plan, y qué hay al final de ese case?',
+  "En el case 'pro' falta el break: la ejecución sigue con el case siguiente aunque no coincida.",
+  'mensaje termina con dos letras. Con eso, resolvé el ternario: ¿la condición es verdadera o falsa?',
+];
+export const SWITCH_EXPLANATION =
+  "`plan` coincide con `'pro'` y se agrega `B`; como ese `case` no tiene `break`, sigue con el de `'empresa'` y agrega `C`, y ahí sí corta. `mensaje` queda `'BC'`, su largo es 2 y el ternario elige `'doble'`. Un `break` olvidado es exactamente esto: dos acciones donde se esperaba una.";

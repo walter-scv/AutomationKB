@@ -4,13 +4,20 @@ sidebar_position: 9
 ---
 
 import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
+import SpotToken from '@site/src/components/SpotToken';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  QUALITY_LINES, QUALITY_RULE_LABELS,
-  TROUBLESHOOT_LINES, TROUBLESHOOT_RULE_LABELS,
+  QUALITY_LINES,
+  QUALITY_RULE_LABELS,
+  WORD_PROMPT,
+  WORD_ROUNDS,
   CLOSING_QUIZ,
+  DIAG_START,
+  DIAG_NODES,
+  DIAG_EXPLANATION,
 } from '@site/src/content/lessons/09-caracteristicas-buen-caso';
 
 export const LESSON_SLUG = 'foundations-caracteristicas-buen-caso';
@@ -30,21 +37,22 @@ export function QualityActivity() {
   );
 }
 
-export function TroubleshootActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['trouble']);
+export function WordActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['word']);
   return (
     <Activity
-      title="¿Por qué da resultados distintos?"
-      kind="Clasificar"
-      goal="diagnosticar, a partir de un síntoma real de ejecución, cuál de las tres causas típicas lo está provocando."
-      done={isDone('trouble')}
-      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+      title="La palabra que lo arruina"
+      kind="Señalar en la línea"
+      goal="encontrar, dentro de una línea de un caso, la palabra exacta que rompe una de las cuatro características."
+      done={isDone('word')}
+      consigna="Son 4 líneas de casos distintos, cada una con una sola palabra que hace que el caso no sea Claro, Verificable, Independiente o Repetible (una por característica). Hacé click en esa palabra. Si tocás otra, se marca en rojo, recibís una pista y podés probar de nuevo. La actividad se completa cuando resolviste las 4."
     >
-      <FindInCode
-        lines={TROUBLESHOOT_LINES}
-        ruleLabels={TROUBLESHOOT_RULE_LABELS}
-        alreadyDone={isDone('trouble')}
-        onSolved={() => markDone('trouble')}
+      <SpotToken
+        rounds={WORD_ROUNDS}
+        prompt={WORD_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('word')}
+        onSolved={() => markDone('word')}
       />
     </Activity>
   );
@@ -65,78 +73,179 @@ export function ClosingQuizActivity() {
   );
 }
 
+export function DiagnoseActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['diagnose']);
+  return (
+    <Activity
+      title="¿Por qué dio distinto?"
+      kind="Escenario encadenado"
+      goal="diagnosticar, a partir de cómo difieren dos resultados del mismo caso, qué característica del caso hay que corregir."
+      done={isDone('diagnose')}
+      consigna="Vas a seguir los casos de reservas de un gimnasio en cuatro decisiones. En cada una, dos ejecuciones dieron resultados distintos. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al final."
+    >
+      <DecisionPath
+        startId={DIAG_START}
+        nodes={DIAG_NODES}
+        explanation={DIAG_EXPLANATION}
+        alreadyDone={isDone('diagnose')}
+        onSolved={() => markDone('diagnose')}
+      />
+    </Activity>
+  );
+}
+
 ## Conceptos
 
-Un caso de test con la estructura correcta (precondición, pasos, resultado
-esperado) puede, aun así, ejecutarse distinto según quién lo lea. Cuatro
-características determinan si eso puede pasar:
+Un caso puede tener todas sus partes (precondición, pasos y resultado
+esperado) y aun así dar resultados distintos según quién lo ejecute o
+cuándo. Cuatro características determinan si un caso es confiable: que
+sea **claro**, **verificable**, **independiente** y **repetible**. Cuando
+dos ejecuciones del mismo caso no coinciden, casi siempre falla una de
+las cuatro.
 
-| Característica | Qué significa |
-|---|---|
-| **Claro** | Cualquiera que lo lea lo ejecuta exactamente de la misma forma. |
-| **Verificable** | El resultado esperado es un hecho concreto, no una opinión. |
-| **Independiente** | No depende de datos ni de pasos que haya dejado otro caso. |
-| **Repetible** | Mismos pasos, mismo resultado, sin importar cuándo ni quién lo ejecute. |
+Los ejemplos que siguen son casos del sistema de préstamos de una
+biblioteca.
 
-Un caso que rompe **Claro** deja algún dato a elección de quien lo ejecuta
-(por ejemplo, "completar con un dato válido" en vez de un valor concreto).
-Uno que rompe **Verificable** describe el resultado como una impresión
-("se ve bien") en vez de un hecho. Uno que rompe **Independiente** asume
-un estado que no declaró como precondición. Y uno que rompe **Repetible**
-depende de algo externo y variable, como la hora del día.
+### Claro
+
+Un caso es claro cuando cualquier persona que lo lea lo ejecuta de la
+misma forma, sin tener que decidir nada. Lo que lo vuelve ambiguo es dejar
+algo a criterio de quien ejecuta, casi siempre un dato o una acción
+genérica:
+
+```text
+Paso 2: buscar un libro disponible y prestarlo a un socio habilitado.
+```
+
+¿Qué libro? ¿Qué socio? Una persona elige un libro con un solo ejemplar y
+otra uno con diez; una elige un socio sin préstamos y otra uno que ya
+tiene dos. El caso prueba cosas distintas cada vez. La versión clara
+nombra los datos:
+
+```text
+Paso 2: buscar el libro «Rayuela» (ISBN 9788437604572, 3 ejemplares
+        disponibles) y prestarlo al socio N.º 1048, sin préstamos activos.
+```
+
+La claridad también aplica a las acciones. "Esperar a que cargue" no dice
+cuánto ni qué; "esperar a que aparezca la lista de ejemplares" sí.
+
+### Verificable
+
+Un caso es verificable cuando su resultado esperado es un hecho que se
+puede comprobar sin opinar: un texto exacto, un valor, un estado. Si el
+resultado admite interpretación, dos personas pueden ver exactamente lo
+mismo y una marcar "pasa" y la otra "falla".
+
+```text
+Resultado esperado: el préstamo se registra correctamente.
+```
+
+"Correctamente" no dice qué mirar. Lo verificable es describir qué cambia
+y dónde se ve:
+
+```text
+Resultado esperado: aparece «Préstamo registrado. Devolución: 26/11»;
+                    «Rayuela» pasa a mostrar 2 ejemplares disponibles.
+```
+
+Palabras como *correctamente*, *bien*, *adecuado*, *rápido*, *completo* o
+*prolijo* en un resultado esperado son una señal de que el caso no es
+verificable.
+
+### Independiente
+
+Un caso es independiente cuando no depende de que otro caso se haya
+ejecutado antes ni de datos que otro caso haya dejado. Un caso dependiente
+funciona cuando la suite se ejecuta en un orden y falla, sin que nada esté
+roto, cuando el orden cambia o cuando se ejecuta solo.
+
+```text
+Precondición: el socio N.º 1048 tiene el préstamo creado en CT-030.
+Pasos:        registrar la devolución de ese préstamo.
+```
+
+Si CT-030 no se ejecutó, o falló, este caso falla también, y el reporte va
+a señalar un defecto en la devolución que no existe. La versión
+independiente prepara su propio punto de partida en la precondición:
+
+```text
+Precondición: el socio N.º 1048 tiene un préstamo activo de «Rayuela»
+              (crearlo desde Préstamos > Nuevo si no existe).
+```
+
+### Repetible
+
+Un caso es repetible cuando, ejecutado varias veces con los mismos pasos,
+da el mismo resultado. Lo que rompe la repetibilidad son los datos o las
+condiciones que cambian solos entre una ejecución y la siguiente.
+
+El tiempo es una de las causas más frecuentes. Un caso que espera "la
+fecha de devolución es dentro de 14 días" con un valor fijo escrito el día
+que se diseñó (26/11) falla cualquier otro día. Se resuelve expresando el
+resultado en relación con la fecha de ejecución ("la fecha de devolución
+es la fecha actual más 14 días") o fijando la fecha del entorno de
+pruebas.
+
+Otra causa son los datos que el propio caso consume. Un caso que presta
+el último ejemplar disponible de un libro pasa la primera vez; la segunda
+vez el libro ya no tiene ejemplares y el caso falla. La versión repetible
+incluye en la precondición el estado que necesita ("«Rayuela» tiene 3
+ejemplares disponibles") o deja el sistema como estaba al terminar
+(registrar la devolución).
+
+Las dependencias externas, como un servicio de terceros que a veces tarda
+o el volumen de uso del sistema en ese momento, también pueden hacer que
+un caso pase por la mañana y falle por la tarde. Si el resultado depende
+de algo que el caso no controla, el caso no es repetible.
+
+### Diagnosticar un caso que da resultados distintos
+
+Cuando dos personas obtienen resultados distintos con el mismo caso, la
+diferencia en sí indica qué característica revisar:
+
+- Si cada una usó **datos o acciones distintas**, falta claridad.
+- Si vieron **lo mismo pero lo interpretaron distinto**, el resultado no es
+  verificable.
+- Si **el orden o lo que se ejecutó antes** cambió el resultado, el caso no
+  es independiente.
+- Si **el mismo caso cambió de resultado con el tiempo** o al repetirlo, no
+  es repetible.
 
 ## Cuándo usarlo
 
-Estas cuatro características importan en cualquier caso que se vaya a
-ejecutar más de una vez, por más de una persona, o que se vaya a sumar a
-una suite de regresión. Para una exploración única, de uso y descarte, el
-costo de pulir cada característica puede no justificarse — pero incluso
-ahí, Verificable sigue importando: sin un resultado concreto, ni siquiera
-quien lo ejecutó una vez puede confirmar qué encontró.
+Las cuatro características se revisan al escribir cada caso y, sobre
+todo, al revisar los casos de otra persona y cada vez que un caso da
+resultados inconsistentes. Importan en cualquier caso que se vaya a
+documentar; incluso en una exploración, que no tiene casos escritos de
+antemano, verificable sigue importando para poder decir qué se encontró.
 
 ## Buenas prácticas
 
-- **Reemplazar "un dato válido" por el dato exacto a usar.** Es la
-  diferencia entre un caso que cualquiera ejecuta igual y uno que cada
-  persona interpreta a su manera.
-- **Reemplazar "se ve bien" / "funciona correctamente" por un hecho
-  puntual**: un texto, una URL, un valor. Un hecho se puede confirmar en
-  segundos; una impresión genera discusión.
-- **Declarar toda precondición de la que el caso dependa**, en vez de
-  darla por sabida — lo que es obvio para quien escribió el caso puede no
-  serlo para quien lo ejecuta meses después.
-- **Evitar que el resultado dependa de algo externo y variable** (la hora,
-  el azar, el estado de otro sistema) — si no se puede controlar esa
-  variable, tampoco se puede confiar en el resultado.
-- **Revisar un caso viejo cuando empieza a fallar de forma inconsistente.**
-  Es la señal más común de que alguna de las cuatro características se
-  rompió en algún momento, aunque el caso "siempre funcionó antes".
+- Nombrar datos concretos en lugar de describirlos ("un socio
+  habilitado").
+- Eliminar del resultado esperado las palabras que expresan opinión.
+- Hacer que cada caso prepare en la precondición todo lo que necesita.
+- Expresar las fechas en relación con la fecha de ejecución, o fijar la
+  fecha del entorno.
+- Dejar el sistema como estaba al terminar, cuando el caso consume datos.
 
 ## Anti-patrones
 
-- **Dejar un dato a elección de quien ejecuta** ("con información
-  válida") en vez de especificarlo — dos ejecuciones pueden terminar
-  probando datos distintos sin que nadie se dé cuenta.
-- **Describir el resultado como una impresión** en vez de un hecho
-  verificable — el caso nunca termina de "pasar" de forma objetiva.
-- **Asumir un estado previo** sin declararlo como precondición — el caso
-  funciona solo si se ejecuta en cierto orden, y nadie escribió esa regla
-  en ningún lado.
-- **Depender de una condición externa variable** (fecha, hora, azar) para
-  que el caso dé el resultado esperado — el caso pasa o falla según el
-  momento en que se lo corra, sin que el sistema haya cambiado.
-- **Confiar en un caso que "a veces falla" en vez de investigar por qué.**
-  Un caso inconsistente entrena al equipo a re-ejecutar y listo, en vez de
-  preguntarse cuál de las cuatro características se rompió.
+- **Pasos que dejan datos a criterio de quien ejecuta**.
+- **Resultados esperados subjetivos**.
+- **Casos que dependen de lo que dejó otro caso**.
+- **Valores que cambian solos**, como fechas fijas o datos que se
+  consumen.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <QualityActivity />
 
-### Cuando dos ejecuciones dan resultados distintos
-
-<TroubleshootActivity />
-
 <ClosingQuizActivity />
+
+<DiagnoseActivity />
+
+<WordActivity />

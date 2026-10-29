@@ -4,13 +4,24 @@ sidebar_position: 20
 ---
 
 import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import Terminal from '@site/src/components/Terminal';
 import FindInCode from '@site/src/components/FindInCode';
+import CommandBuilder from '@site/src/components/CommandBuilder';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
   ARRAY_LINES,
   ARRAY_RULE_LABELS,
   PRACTICE_LINES,
   PRACTICE_RULE_LABELS,
+  CHAIN_PREFIX,
+  CHAIN_STEPS,
+  CHAIN_EXPLANATION,
+  CONSOLE_STEPS,
+  CONSOLE_EXPLANATION,
+  ARRAY_Q_LEFT,
+  ARRAY_Q_RIGHT,
+  ARRAY_Q_WHY,
 } from '@site/src/content/lessons/20-arrays';
 
 export const LESSON_SLUG = 'foundations-arrays';
@@ -41,6 +52,72 @@ export function PracticeActivity() {
       consigna="Son 7 bloques. Si el loop usa un número fijo en vez de `.length`, esa es la regla que aplica, aunque además acceda por índice; si accede a una posición sin confirmar que el array no esté vacío, elegí «Accede a una posición sin confirmar que el array no esté vacío»; si mezcla datos sin relación en un array, elegí «Mezcla datos sin relación en un array en vez de un objeto». En los que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
     >
       <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+    </Activity>
+  );
+}
+
+export function ChainActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['chain']);
+  return (
+    <Activity
+      title="Encadená los métodos"
+      kind="Armar"
+      goal="elegir qué método de array va en cada paso de una cadena, según lo que devuelve cada uno."
+      done={isDone('chain')}
+      consigna="Tenés un array `productos`; cada producto tiene un `precio` (number) y un `enOferta` (boolean), que se leen con punto: `producto.precio` (los objetos se ven en detalle en la entrada de Objetos). Querés guardar en `totalEnOferta` la suma de los precios de los productos que están en oferta. Armá la cadena en 3 pasos eligiendo un método por paso; el siguiente paso aparece recién al acertar el anterior. La actividad se completa cuando la cadena queda armada."
+    >
+      <CommandBuilder
+        prefix={CHAIN_PREFIX}
+        steps={CHAIN_STEPS}
+        explanation={CHAIN_EXPLANATION}
+        alreadyDone={isDone('chain')}
+        onSolved={() => markDone('chain')}
+      />
+    </Activity>
+  );
+}
+
+export function ConsoleActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['console']);
+  return (
+    <Activity
+      title="Probalo en la consola"
+      kind="Terminal"
+      goal="escribir los accesos básicos a un array (cantidad, primero, último y una posición que no existe) y ver qué devuelve cada uno."
+      done={isDone('console')}
+      consigna="Es una consola de JavaScript simulada, como la de Node o la del navegador: escribís una expresión, apretás Enter y te muestra su valor (no hace falta `console.log`, aunque también se acepta). Son 4 pasos; la instrucción de cada uno aparece como comentario arriba del prompt. Si la expresión no es la esperada, te avisa y podés corregirla. La actividad se completa al terminar los 4 pasos."
+    >
+      <Terminal
+        steps={CONSOLE_STEPS}
+        explanation={CONSOLE_EXPLANATION}
+        promptSymbol=">"
+        commentPrefix="//"
+        alreadyDone={isDone('console')}
+        onSolved={() => markDone('console')}
+      />
+    </Activity>
+  );
+}
+
+export function ArrayQuestionActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['arrayquestion']);
+  return (
+    <Activity
+      title="Cada pregunta con su método"
+      kind="Emparejar"
+      goal="elegir el método de array que responde cada pregunta: si un valor está, si alguno o todos cumplen, el primero o todos los que cumplen, y cómo ordenar sin alterar el original."
+      done={isDone('arrayquestion')}
+      consigna="Son 6 preguntas sobre listas y 6 expresiones: cada expresión responde exactamente una pregunta. Elegí una pregunta y después su expresión (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste las 6."
+    >
+      <Match
+        left={ARRAY_Q_LEFT}
+        right={ARRAY_Q_RIGHT}
+        why={ARRAY_Q_WHY}
+        leftLabel="Pregunta"
+        rightLabel="Expresión"
+        alreadyDone={isDone('arrayquestion')}
+        onSolved={() => markDone('arrayquestion')}
+      />
     </Activity>
   );
 }
@@ -142,6 +219,23 @@ Ninguno de estos métodos modifica el array original: devuelven un
 resultado y dejan la lista intacta. Eso es importante cuando el array se
 sigue usando después.
 
+Como `filter` y `map` devuelven un array nuevo, se puede llamar otro método
+directamente sobre ese resultado. Eso se llama **encadenar**: cada paso
+recibe lo que dejó el anterior. Por legibilidad, se suele escribir un
+método por línea:
+
+```ts
+const longitudesValidas = candidatos
+  .filter((candidato) => candidato.length >= 8) // 1. quedan solo los válidos
+  .map((candidato) => candidato.length);        // 2. de cada uno, su longitud
+```
+
+El orden importa. Si primero se hiciera el `map`, quedaría una lista de
+números y el `filter` ya no tendría las contraseñas para revisar. Y lo que
+devuelve cada método define qué se puede hacer después: `find` y `reduce`
+devuelven **un solo valor**, no un array, así que en general cierran la
+cadena; `.length` también da un número, la cantidad de elementos.
+
 Para copiar un array se usa el **spread** (`...`):
 
 ```ts
@@ -160,6 +254,80 @@ const nombres: string[] = [];
 nombres.push('Ana');
 nombres.push('Beto');
 ```
+
+### Preguntar por el contenido: `includes`, `some` y `every`
+
+Muchas veces no hace falta transformar un array sino responder una
+pregunta sobre él. Tres métodos devuelven directamente un `boolean`:
+
+```ts
+const roles = ['lector', 'editor'];
+roles.includes('editor');                         // true: ¿está este valor?
+
+const montos = [1200, 300, 5400];
+montos.some((monto) => monto > 5000);             // true: ¿al menos uno cumple?
+montos.every((monto) => monto > 0);               // true: ¿todos cumplen?
+```
+
+`includes` compara con `===`, así que `[1, 2, 3].includes('2')` es
+`false`. `some` y `every` reciben una función, igual que `filter`. Con un
+array vacío, `some` devuelve `false` y `every` devuelve `true` ("todos los
+elementos cumplen" es verdadero cuando no hay ninguno): un detalle que
+conviene recordar al probar código que usa `every` para validar una lista.
+
+### Ordenar: `sort` modifica el array
+
+`sort` ordena los elementos, pero a diferencia de `filter` o `map`, **modifica
+el array original**:
+
+```ts
+const apellidos = ['Ruiz', 'Gómez', 'Pérez'];
+apellidos.sort();
+console.log(apellidos);   // ['Gómez', 'Pérez', 'Ruiz']: el array original cambió
+```
+
+Además, sin argumentos, `sort` compara los elementos como texto, lo que da
+un resultado inesperado con números:
+
+```ts
+const cantidades = [10, 9, 100];
+cantidades.sort();
+console.log(cantidades);   // [10, 100, 9]: ordenó como texto ('1' va antes que '9')
+```
+
+Para ordenar números se le pasa una función de comparación, y para no
+alterar el original se ordena una copia:
+
+```ts
+const ordenadas = [...cantidades].sort((a, b) => a - b);   // [9, 10, 100]
+```
+
+La función recibe dos elementos y devuelve un número negativo si `a` va
+antes, positivo si va después, o cero si da igual. `a - b` ordena de menor
+a mayor; `b - a`, de mayor a menor.
+
+Con texto, el `sort` sin argumentos compara por el código de cada
+carácter: las mayúsculas quedan antes que las minúsculas, y las letras con
+tilde, después de la z. Para ordenar como lo haría una persona se compara
+con `localeCompare`, que devuelve el número negativo, positivo o cero que
+espera `sort`:
+
+```ts
+const ciudades = ['tandil', 'Azul', 'Ávila', 'bahía'];
+[...ciudades].sort();                                  // ['Azul', 'bahía', 'tandil', 'Ávila']
+[...ciudades].sort((a, b) => a.localeCompare(b));     // ['Ávila', 'Azul', 'bahía', 'tandil']
+```
+
+### Qué probar en código que recibe un array
+
+El código que trabaja con listas suele fallar en los mismos casos, y por
+eso hay tres que conviene probar siempre: la lista **vacía** (¿el código
+accede a `[0]` sin confirmar que existe?), la lista con **un solo
+elemento** (¿el primero y el último coinciden y el código lo maneja?) y la
+lista con **varios elementos** (¿se recorren todos, o un límite fijo deja
+afuera algunos?). Para una función que calcula el promedio de las notas de
+un alumno, por ejemplo, la lista vacía es el caso que más defectos revela:
+dividir por `notas.length` cuando vale `0` da `NaN`.
 
 ### Cantidad fija o `.length`
 
@@ -222,42 +390,29 @@ con variables sueltas.
 
 ## Buenas prácticas
 
-- **Nombrar los arrays en plural** (`candidatos`, `usuarios`), para que el
-  nombre deje en claro que es una lista y no un solo valor.
-- **Usar `.length` para saber cuántos elementos tiene**, en vez de asumir
-  un número fijo — si el array cambia de tamaño más adelante, el código
-  que depende de `.length` se sigue comportando bien.
-- **Confirmar que el array no esté vacío antes de acceder a una posición
-  puntual** (como `[0]`). Si está vacío, esa posición es `undefined`, y
-  seguir operando sobre `undefined` rompe el programa más adelante, lejos
-  de donde está la causa real.
-- **Agrupar en un array solo valores del mismo tipo y la misma
-  naturaleza** (varias contraseñas candidatas, varios emails). Si dos
-  valores no tienen relación entre sí, van en un objeto con nombre, no en
-  un array por posición.
-- **Elegir un nombre que describa qué contiene la lista**, no solo que es
-  plural: `candidatos` dice más que `datos` o `lista`.
+- Nombrar los arrays en plural.
+- Usar `.length` para saber cuántos elementos tiene.
+- Confirmar que el array no esté vacío antes de acceder a una posición puntual.
+- Agrupar en un array solo valores del mismo tipo y la misma naturaleza.
+- Elegir un nombre que describa qué contiene la lista.
 
 ## Anti-patrones
 
-- **Nombrar un array en singular** (`candidato` para una lista de varios
-  valores) — confunde a quien lee el código.
-- **Acceder a un índice sin saber si existe.** `candidatos[10]` en un
-  array de 5 elementos no da un error: devuelve `undefined`, lo cual puede
-  pasar desapercibido y causar un bug más adelante, lejos de donde
-  realmente está el problema.
-- **Asumir una cantidad fija de elementos** (recorrer "hasta el 3" a mano)
-  en vez de usar `.length` — si el array crece o se achica, ese número
-  fijo queda desactualizado sin que nada avise.
-- **Mezclar datos sin relación en un mismo array** (un email y un
-  contador de intentos, por ejemplo) en vez de usar un objeto con
-  nombres — quien lea `dato[1]` más adelante no tiene forma de saber qué
-  representa sin rastrear de dónde salió.
+- **Nombrar un array en singular**.
+- **Acceder a un índice sin saber si existe**.
+- **Asumir una cantidad fija de elementos**.
+- **Mezclar datos sin relación en un mismo array**.
 
 ## Práctica
 
-Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <ArrayActivity />
 
+<ConsoleActivity />
+
 <PracticeActivity />
+
+<ChainActivity />
+
+<ArrayQuestionActivity />

@@ -4,10 +4,35 @@ sidebar_position: 35.5
 ---
 
 import Activity from '@site/src/components/Activity';
+import FillBlank from '@site/src/components/FillBlank';
+import Terminal from '@site/src/components/Terminal';
+import MultiSelect from '@site/src/components/MultiSelect';
+import Match from '@site/src/components/Match';
+import SpotToken from '@site/src/components/SpotToken';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
+import DecisionPath from '@site/src/components/DecisionPath';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
-import {DIAGNOSIS_LINES, DIAGNOSIS_RULE_LABELS, INTEGRATIVE_QUIZ} from '@site/src/content/lessons/35b-repaso-integrador-git';
+import {
+  DIAGNOSIS_LINES,
+  DIAGNOSIS_RULE_LABELS,
+  INTEGRATIVE_QUIZ,
+  WHERE_MATCH_LEFT,
+  WHERE_MATCH_RIGHT,
+  WHERE_MATCH_WHY,
+  INTEGRATE_STEPS,
+  INTEGRATE_EXPLANATION,
+  WORD_PROMPT,
+  WORD_ROUNDS,
+  IGNORE_QUESTIONS,
+  RELEASE_PATH_START,
+  RELEASE_PATH_NODES,
+  RELEASE_PATH_EXPLANATION,
+  RELEASE_TEMPLATE,
+  RELEASE_SLOTS,
+  RELEASE_BANK,
+  RELEASE_EXPLANATION,
+} from '@site/src/content/lessons/35b-repaso-integrador-git';
 
 export const LESSON_SLUG = 'foundations-repaso-integrador-git';
 
@@ -17,7 +42,7 @@ export function DiagnosisActivity() {
     <Activity
       title="Diagnosticá qué salió mal"
       kind="Clasificar"
-      goal="reconocer, en una situación real de equipo, cuál de estas cinco prácticas del bloque no se aplicó."
+      goal="reconocer, en una situación real de equipo, cuál de estas cinco prácticas del bloque no se aplicó (entradas 28, 30, 32, 33 y 34)."
       done={isDone('diagnosis')}
       need={
         <div>
@@ -62,7 +87,7 @@ export function IntegrativeQuizActivity() {
     <Activity
       title="Un flujo de trabajo completo"
       kind="Elegí la opción"
-      goal="aplicar ramas, commits, el remoto y Pull Requests juntos, como se usan en un flujo de trabajo real."
+      goal="aplicar ramas, commits, el remoto y Pull Requests juntos, como se usan en un flujo de trabajo real (entradas 30, 32 y 35)."
       done={isDone('quiz')}
       consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
     >
@@ -71,18 +96,167 @@ export function IntegrativeQuizActivity() {
   );
 }
 
-Ya viste, una por una, las 10 entradas de Git y GitHub: qué es el control
+export function WhereMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['wherematch']);
+  return (
+    <Activity
+      title="¿Dónde está cada cosa?"
+      kind="Emparejar"
+      goal="ubicar cada momento del trabajo en la lista de deseos: en qué área de Git está el cambio, qué va en `.gitignore` y cómo mirar la historia de un archivo (entradas 26, 27, 29 y 32)."
+      done={isDone('wherematch')}
+      consigna="Son 5 momentos del trabajo en la lista de deseos y 5 respuestas: cada respuesta corresponde a exactamente un momento. Elegí un momento y después su respuesta (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={WHERE_MATCH_LEFT}
+        right={WHERE_MATCH_RIGHT}
+        leftLabel="Momento"
+        rightLabel="Dónde está / qué corresponde"
+        why={WHERE_MATCH_WHY}
+        alreadyDone={isDone('wherematch')}
+        onSolved={() => markDone('wherematch')}
+      />
+    </Activity>
+  );
+}
+
+export function IntegrateActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['integrate']);
+  return (
+    <Activity
+      title="Integrá main y resolvé el conflicto"
+      kind="Terminal"
+      goal="traer main a una rama, encontrar el conflicto y cerrarlo con los comandos correctos (entradas 27 y 31)."
+      done={isDone('integrate')}
+      consigna="Son 4 pasos en una terminal simulada. La instrucción de cada uno aparece como comentario arriba del prompt: escribí el comando y confirmá con Enter. Si el comando no es el esperado, la terminal te avisa y podés corregirlo. La actividad se completa al terminar los 4 pasos."
+    >
+      <Terminal
+        steps={INTEGRATE_STEPS}
+        explanation={INTEGRATE_EXPLANATION}
+        alreadyDone={isDone('integrate')}
+        onSolved={() => markDone('integrate')}
+      />
+    </Activity>
+  );
+}
+
+export function WordActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['word']);
+  return (
+    <Activity
+      title="La palabra que no corresponde"
+      kind="Señalar en la línea"
+      goal="detectar, dentro de un comando, la palabra exacta que no hace lo que la persona quería (entradas 28, 32 y 34)."
+      done={isDone('word')}
+      consigna="Son 3 comandos, cada uno con un comentario que dice qué se quería hacer. En cada uno, hacé click en la palabra del comando que no corresponde con eso. Si tocás otra, se marca en rojo, recibís una pista y podés probar de nuevo. La actividad se completa cuando resolviste los 3."
+    >
+      <SpotToken
+        rounds={WORD_ROUNDS}
+        prompt={WORD_PROMPT}
+        itemLabel="Comando"
+        alreadyDone={isDone('word')}
+        onSolved={() => markDone('word')}
+      />
+    </Activity>
+  );
+}
+
+export function IgnoreActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['ignore']);
+  return (
+    <Activity
+      title="¿Qué queda afuera del repositorio?"
+      kind="Marcar todas"
+      goal="decidir qué archivos del proyecto van en `.gitignore` y cuáles se versionan (entrada 26)."
+      done={isDone('ignore')}
+      consigna="Es 1 pregunta con 6 archivos o carpetas del proyecto de la tienda. Marcá todos los que tienen que quedar fuera del repositorio; los demás se versionan. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={IGNORE_QUESTIONS}
+        alreadyDone={isDone('ignore')}
+        onSolved={() => markDone('ignore')}
+      />
+    </Activity>
+  );
+}
+
+export function ReleasePathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['releasepath']);
+  return (
+    <Activity
+      title="De la rama a la versión publicada"
+      kind="Escenario encadenado"
+      goal="seguir la lista de deseos desde el primer push hasta un defecto en producción (entradas 32, 32a, 33a, 33b, 34b y 35a)."
+      done={isDone('releasepath')}
+      consigna="Vas a seguir la lista de deseos en cinco decisiones, desde el primer push hasta un defecto reportado en la versión publicada. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al final."
+    >
+      <DecisionPath
+        startId={RELEASE_PATH_START}
+        nodes={RELEASE_PATH_NODES}
+        explanation={RELEASE_PATH_EXPLANATION}
+        alreadyDone={isDone('releasepath')}
+        onSolved={() => markDone('releasepath')}
+      />
+    </Activity>
+  );
+}
+
+export function ReleaseCloseActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['releaseclose']);
+  return (
+    <Activity
+      title="Cerrá la versión"
+      kind="Completar huecos"
+      goal="cerrar el trabajo de la lista de deseos después del merge: actualizar main, borrar la rama, etiquetar la versión y compartir la etiqueta (entradas 30, 32, 33a y 35)."
+      done={isDone('releaseclose')}
+      consigna="El Pull Request de la lista de deseos ya se integró. Completá los cuatro huecos con las fichas (cada ficha se usa una vez y sobran varias); clickeá un hueco para vaciarlo. La actividad se completa cuando los cuatro quedan bien."
+    >
+      <FillBlank
+        template={RELEASE_TEMPLATE}
+        slots={RELEASE_SLOTS}
+        bank={RELEASE_BANK}
+        explanation={RELEASE_EXPLANATION}
+        alreadyDone={isDone('releaseclose')}
+        onSolved={() => markDone('releaseclose')}
+      />
+    </Activity>
+  );
+}
+
+Ya viste, una por una, las 15 entradas de Git y GitHub: qué es el control
 de versiones, cómo funciona Git por dentro, el primer commit, el
-historial, ramas, merge y conflictos, el remoto, cómo deshacer cambios,
-rebase y Pull Requests. En el día a día, un problema de Git casi nunca
+historial, ramas, merge y conflictos, el remoto y sus ramas, cómo deshacer
+cambios, etiquetas y versiones, cómo encontrar el commit de un defecto,
+rebase, issues y forks, Pull Requests y flujos de trabajo. En el día a día, un problema de Git casi nunca
 aparece aislado — un conflicto de merge, por ejemplo, solo tiene sentido
 si entendés ramas, remoto y commits al mismo tiempo.
 
+## El proyecto de la lista de deseos
+
+Varios de los ejercicios de abajo usan el mismo proyecto: estás agregando
+una **lista de deseos** a la tienda online, en tu rama
+`feature/lista-deseos`, mientras el resto del equipo sigue subiendo cambios
+a `main`. Los ejercicios de diagnóstico y de comandos sueltos traen sus
+propios casos.
+
 ## Práctica
 
-Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Son 8 ejercicios y entre todos cubren las 15 entradas del bloque: cada uno
+dice en su objetivo qué entradas repasa. Son independientes entre sí y cada
+bloque avisa cuándo está resuelto.
+
+<WhereMatchActivity />
 
 <DiagnosisActivity />
+
+<IntegrateActivity />
+
+<WordActivity />
+
+<ReleaseCloseActivity />
+
+<IgnoreActivity />
+
+<ReleasePathActivity />
 
 <IntegrativeQuizActivity />
 

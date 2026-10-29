@@ -1,0 +1,235 @@
+---
+title: "Ramas remotas: trabajar sobre la rama de otra persona"
+sidebar_position: 32.5
+---
+
+import Activity from '@site/src/components/Activity';
+import Terminal from '@site/src/components/Terminal';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import MultiSelect from '@site/src/components/MultiSelect';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  PR_BRANCH_STEPS,
+  PR_BRANCH_EXPLANATION,
+  BRANCH_VV_ACCEPTED,
+  BRANCH_VV_HINTS,
+  BRANCH_VV_EXPLANATION,
+  BRANCH_VV_OUTPUT,
+  REMOTE_BRANCH_QUESTIONS,
+} from '@site/src/content/lessons/32a-ramas-remotas';
+
+export const LESSON_SLUG = 'foundations-ramas-remotas';
+
+export function PrBranchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['prbranch']);
+  return (
+    <Activity
+      title="Probá la rama de un Pull Request"
+      kind="Terminal"
+      goal="bajar la rama de otra persona, mantenerla actualizada mientras se prueba y limpiarla al terminar."
+      done={isDone('prbranch')}
+      consigna="Son 5 pasos en una terminal simulada, desde que te piden probar el PR hasta que se integra. La instrucción de cada uno aparece como comentario arriba del prompt: escribí el comando y confirmá con Enter. Si el comando no es el esperado, la terminal te avisa y podés corregirlo. La actividad se completa al terminar los 5 pasos."
+    >
+      <Terminal
+        steps={PR_BRANCH_STEPS}
+        explanation={PR_BRANCH_EXPLANATION}
+        alreadyDone={isDone('prbranch')}
+        onSolved={() => markDone('prbranch')}
+      />
+    </Activity>
+  );
+}
+
+export function BranchVvActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['branchvv']);
+  return (
+    <Activity
+      title="Leé el estado de las ramas"
+      kind="Respuesta escrita"
+      goal="interpretar la salida de `git branch -vv` para saber qué rama está desactualizada respecto del remoto."
+      done={isDone('branchvv')}
+      consigna="Te piden probar una funcionalidad y antes revisás tus ramas. Leé la salida y escribí el nombre de la rama que, si la probaras ahora, te haría probar una versión vieja. Si te equivocás, recibís una pista y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="text">{BRANCH_VV_OUTPUT}</CodeBlock>
+      <TypeAnswer
+        accepted={BRANCH_VV_ACCEPTED}
+        hints={BRANCH_VV_HINTS}
+        explanation={BRANCH_VV_EXPLANATION}
+        placeholder="nombre de la rama"
+        alreadyDone={isDone('branchvv')}
+        onSolved={() => markDone('branchvv')}
+      />
+    </Activity>
+  );
+}
+
+export function RemoteRefActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['remoteref']);
+  return (
+    <Activity
+      title="Qué es y qué no es origin/rama"
+      kind="Marcar todas"
+      goal="distinguir una rama de seguimiento remoto de una rama local y saber cuándo se actualiza."
+      done={isDone('remoteref')}
+      consigna="Es 1 pregunta con 5 afirmaciones. Marcá todas las que son ciertas. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={REMOTE_BRANCH_QUESTIONS}
+        alreadyDone={isDone('remoteref')}
+        onSolved={() => markDone('remoteref')}
+      />
+    </Activity>
+  );
+}
+
+Ya sabés subir tus commits y traer los del equipo. Falta un caso que aparece todos los días: trabajar sobre una rama que creó otra persona, por ejemplo para probar su Pull Request antes de que se integre.
+
+## Conceptos
+
+La lección anterior mostró cómo subir una rama propia y cómo traer los
+cambios de `main`. En un equipo también hace falta lo inverso: trabajar
+sobre una rama que creó otra persona. Para quien testea es una situación
+diaria, porque probar un cambio antes de que se integre significa bajar la
+rama de su Pull Request y ejecutarla en la propia computadora.
+
+### Ramas de seguimiento remoto
+
+Cuando se hace `git fetch`, Git guarda localmente el estado de cada rama
+del remoto en una referencia con la forma `origin/<rama>`: `origin/main`,
+`origin/feature/exportar-agenda`. Se llaman **ramas de seguimiento remoto**
+(*remote-tracking branches*). No se trabaja sobre ellas directamente: son
+una foto de cómo estaba el remoto en el último `fetch`, y Git las actualiza
+solo cada vez que se comunica con el servidor.
+
+Para verlas:
+
+```bash
+$ git branch -r
+  origin/HEAD -> origin/main
+  origin/feature/exportar-agenda
+  origin/fix/horario-de-atencion
+  origin/main
+```
+
+`-r` lista solo las ramas remotas; `-a` lista las locales y las remotas
+juntas. La primera línea indica cuál es la rama principal del remoto.
+
+### Trabajar sobre la rama de otra persona
+
+Supongamos que Lucía abrió un Pull Request desde la rama
+`feature/exportar-agenda` y hay que probarla. El primer paso es traer el
+estado actual del remoto, para que esa rama exista localmente como
+`origin/feature/exportar-agenda`:
+
+```bash
+$ git fetch
+From https://github.com/empresa/turnos
+ * [new branch]      feature/exportar-agenda -> origin/feature/exportar-agenda
+```
+
+Después, se cambia a esa rama con su nombre, sin `origin/`. Como no existe
+una rama local con ese nombre pero sí una remota, Git crea la rama local y
+la deja vinculada con la remota:
+
+```bash
+$ git switch feature/exportar-agenda
+branch 'feature/exportar-agenda' set up to track 'origin/feature/exportar-agenda'.
+Switched to a new branch 'feature/exportar-agenda'
+```
+
+La rama local creada así se llama **rama de seguimiento** (*tracking
+branch*): tiene un vínculo directo con su par remota, y por eso `git pull`
+y `git push` sin argumentos saben con qué rama trabajar. A partir de acá,
+el working directory tiene el código de Lucía, y se puede ejecutar la
+aplicación y probar el cambio.
+
+Si se prefiere un nombre local distinto, se indica las dos cosas: el nombre
+nuevo y la rama remota de origen.
+
+```bash
+$ git switch -c prueba-exportacion origin/feature/exportar-agenda
+```
+
+La forma clásica, todavía muy usada, es `git checkout feature/exportar-agenda`
+o `git checkout --track origin/feature/exportar-agenda`; el resultado es el
+mismo.
+
+Si Lucía corrige algo después de la revisión y vuelve a subir la rama, la
+copia local se actualiza con `git pull`, estando en esa rama.
+
+### Ver el estado de cada rama respecto del remoto
+
+`git branch -vv` lista las ramas locales con su último commit y, entre
+corchetes, la rama remota que siguen y si están adelante o atrás de ella:
+
+```bash
+$ git branch -vv
+  feature/exportar-agenda  8c41d2e [origin/feature/exportar-agenda: behind 2] Exportar agenda a PDF
+* main                     e41b7c2 [origin/main] Ordenar los turnos por fecha
+  fix/telefono             3a9f0b1 [origin/fix/telefono: ahead 1] Aceptar guiones en el teléfono
+  prueba-local             5d77a10 Probar estilos del calendario
+```
+
+Cada línea se lee así. `feature/exportar-agenda` está 2 commits detrás de
+su remota: Lucía subió cambios que todavía no se trajeron, y probar ahora
+sería probar una versión vieja. `main` está al día: los corchetes no dicen
+ni *ahead* ni *behind*. `fix/telefono` tiene 1 commit local que no se subió.
+Y `prueba-local` no tiene corchetes: no está vinculada a ninguna rama
+remota. Como siempre que se compara con el remoto, la información es la
+del último `fetch`: conviene hacer uno antes de leerla.
+
+### Limpiar ramas que ya no existen en el remoto
+
+Cuando un Pull Request se integra y su rama se borra en GitHub, la
+referencia `origin/<rama>` sigue apareciendo localmente hasta que se le
+pide a Git que la limpie:
+
+```bash
+$ git fetch --prune
+From https://github.com/empresa/turnos
+ - [deleted]         (none)     -> origin/fix/horario-de-atencion
+```
+
+`--prune` elimina las referencias a ramas remotas que ya no existen. La
+rama local, si se había creado, se borra aparte con `git branch -d`.
+
+Para borrar una rama en el remoto desde la terminal, en lugar de hacerlo
+desde GitHub:
+
+```bash
+$ git push origin --delete fix/telefono
+To https://github.com/empresa/turnos.git
+ - [deleted]         fix/telefono
+```
+
+## Cuándo usarlo
+
+Cada vez que hay que probar, revisar o continuar el trabajo de otra
+persona antes de que se integre a `main`: el caso típico es probar la rama
+de un Pull Request en la propia computadora.
+
+## Buenas prácticas
+
+- Hacer `git fetch` antes de cambiar a una rama remota o de leer su estado.
+- Cambiar a la rama remota por su nombre, para que quede vinculada.
+- Revisar con `git branch -vv` que la rama local no esté atrasada antes de
+  probar.
+- Limpiar periódicamente las referencias viejas con `git fetch --prune`.
+
+## Anti-patrones
+
+- **Probar una rama local atrasada** respecto de su remota.
+- **Intentar trabajar directamente sobre `origin/<rama>`**, que es solo una
+  referencia al estado del remoto.
+- **Acumular ramas locales de Pull Requests ya integrados**.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<PrBranchActivity />
+
+<BranchVvActivity />
+
+<RemoteRefActivity />

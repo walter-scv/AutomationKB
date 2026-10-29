@@ -1,5 +1,8 @@
+import type {MatchItem} from '@site/src/components/Match';
+import type {MultiSelectQuestion} from '@site/src/components/MultiSelect';
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {DecisionNode} from '@site/src/components/DecisionPath';
 
 export const ACTIVITY_RULE_LABELS = [
   'Es debugging, no testing',
@@ -57,63 +60,81 @@ export const ACTIVITY_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Mezclar la entrada con el resultado en una frase ambigua',
-  'Adivinar la causa en el reporte de testing',
-  'Reportar sin pasos reproducibles',
-  'Cerrar un defecto sin volver a testearlo',
-];
-
-export const PRACTICE_LINES: CodeLine[] = [
-  {
-    code: 'El reporte dice: "el guardado del pedido falla a veces, sobre todo con muchos ítems".',
-    rule: 3,
-    why: 'No hay un pedido concreto, ni cantidades, ni resultado esperado. Quien debuggea tiene que adivinar con qué datos reproducirlo antes de poder investigar nada.',
-    hint: '¿Con qué datos exactos se podría volver a provocar este fallo siguiendo el reporte?',
+export const REPORT_FLOW_START = 'reporte';
+export const REPORT_FLOW_NODES: Record<string, DecisionNode> = {
+  reporte: {
+    id: 'reporte',
+    situation: 'Probando el checkout con el cupón `VERANO20` sobre un pedido de $1000, el total muestra $1000 en vez de $800. ¿Cómo lo reportás?',
+    options: [
+      {
+        text: '"Probé con el cupón de 20% y el pedido anduvo mal."',
+        correct: false,
+        why: 'Mezcla la entrada con el resultado en una frase ambigua: "anduvo mal" puede ser un total incorrecto, un error en pantalla o un pedido que no se guardó.',
+      },
+      {
+        text: '"El total no aplica el descuento; seguramente la API de cupones devuelve el porcentaje desactualizado."',
+        correct: false,
+        why: 'Agrega una causa que nadie confirmó. Si la API no tiene nada que ver, la investigación arranca en la dirección equivocada.',
+      },
+      {
+        text: 'Pedido de $1000, cupón `VERANO20`, pasos para aplicarlo, total esperado $800, total real $1000, captura adjunta.',
+        correct: true,
+        why: 'Separa entrada, pasos, esperado y real, sin adivinar causas. Cualquiera puede reproducirlo sin preguntar nada.',
+        next: 'confirmar',
+      },
+      {
+        text: 'Anotarlo y esperar al final del sprint para reportarlo junto con otros fallos del checkout.',
+        correct: false,
+        why: 'Un fallo reportado tarde queda escondido detrás de cambios posteriores, y cuesta más encontrar dónde se originó.',
+      },
+    ],
   },
-  {
-    code: 'El reporte incluye el pedido de prueba, el total esperado, el total real y la captura de pantalla.',
-    rule: 0,
-    why: 'Separa la entrada de los resultados y adjunta evidencia. Con eso otra persona puede repetir el caso sin preguntarle nada a quien reportó.',
-    hint: '¿Alguien podría reproducir este caso sin preguntar nada más?',
+  confirmar: {
+    id: 'confirmar',
+    situation: 'Desarrollo encontró un redondeo que se aplicaba dos veces y lo corrigió. Te pregunta qué tiene que pasar para dar el fallo por resuelto. ¿Qué le respondés?',
+    options: [
+      {
+        text: 'Que vuelva a correr exactamente el caso del reporte: pedido de $1000 con `VERANO20`, y que el total dé $800.',
+        correct: true,
+        why: 'Indicar el caso exacto evita que desarrollo tenga que adivinar qué probar para confirmar la corrección.',
+        next: 'cierre',
+      },
+      {
+        text: 'Que pruebe el checkout en general, a ver si anda bien.',
+        correct: false,
+        why: '"En general" deja que cada uno adivine qué probar. Puede probar diez cosas y ninguna ser el caso que falló.',
+      },
+      {
+        text: 'Que no hace falta nada más: si encontró la causa y la corrigió, ya está resuelto.',
+        correct: false,
+        why: 'Encontrar y corregir una causa no confirma que el síntoma reportado desapareció. Eso se confirma volviendo a probar.',
+      },
+    ],
   },
-  {
-    code: 'El reporte de QA dice: "el total sale mal; debe ser que la API de precios devuelve un valor desactualizado".',
-    rule: 2,
-    why: 'Mezcla el síntoma con una causa que nadie confirmó. Si la API no tiene nada que ver, la investigación arranca en la dirección equivocada y el defecto real tarda más en aparecer.',
-    hint: '¿Esa causa se confirmó mirando el código o los logs, o es una suposición de quien reporta?',
+  cierre: {
+    id: 'cierre',
+    situation: 'El commit con la corrección ya está mergeado y el ticket sigue abierto, asignado a vos. ¿Qué hacés antes de cerrarlo?',
+    options: [
+      {
+        text: 'Cerrarlo: el código ya cambió y el commit explica la causa.',
+        correct: false,
+        why: 'Confiar en que "el código cambió" no confirma nada: el cambio pudo corregir otra cosa y dejar el fallo original intacto.',
+      },
+      {
+        text: 'Probar un cupón distinto para ver si el descuento funciona en otro caso.',
+        correct: false,
+        why: 'Puede ser útil después, pero no confirma el fallo reportado: primero hay que volver al caso exacto que falló.',
+      },
+      {
+        text: 'Volver a ejecutar el caso original con los mismos datos y cerrarlo solo si el total da $800.',
+        correct: true,
+        why: 'Re-testear el caso original, con los mismos datos, es lo que confirma que el defecto reportado quedó resuelto.',
+      },
+    ],
   },
-  {
-    code: 'El desarrollador adjunta al ticket el commit que corrige el redondeo y explica por qué el valor se redondeaba dos veces.',
-    rule: 0,
-    why: 'Acá la causa ya fue investigada y confirmada, y se documenta junto con la corrección. No es una causa adivinada en el reporte de testing: es el resultado del debugging.',
-    hint: '¿Esta causa está confirmada, o es una suposición sin investigar?',
-  },
-  {
-    code: 'El reporte dice: "probé con el cupón de 20% y el pedido anduvo mal".',
-    rule: 1,
-    why: 'No se distingue qué se ingresó de qué se observó. "Anduvo mal" puede ser un total incorrecto, un error en pantalla o un pedido que no se guardó, y cada uno lleva a una investigación distinta.',
-    hint: '¿Qué dato se usó y qué resultado concreto se obtuvo?',
-  },
-  {
-    code: 'Antes de cerrar, el tester vuelve a ejecutar el caso original del cupón con los mismos datos y confirma que el total ahora da $800.',
-    rule: 0,
-    why: 'Vuelve al caso exacto que había fallado, con los mismos datos, y comprueba el síntoma original. Eso es lo que confirma que el defecto realmente quedó resuelto.',
-    hint: '¿Se volvió a probar el caso original antes de cerrar?',
-  },
-  {
-    code: 'El desarrollador cambia el redondeo, marca el ticket como resuelto y pasa al siguiente sin volver a correr el caso del total.',
-    rule: 4,
-    why: 'El código cambió, pero nadie confirmó que el síntoma original desapareció. El cambio pudo corregir otra cosa y dejar el fallo reportado intacto.',
-    hint: '¿Alguien volvió a ejecutar el caso que originalmente falló después del cambio?',
-  },
-  {
-    code: 'El reporte dice: "no pude reproducir el fallo en tres intentos con los pasos y datos adjuntos".',
-    rule: 0,
-    why: 'Informar que no se pudo reproducir, junto con los pasos y datos usados, es un reporte útil: permite comparar con el caso original y ajustar la investigación, en vez de dejarla en "a veces falla".',
-    hint: '¿Este reporte incluye pasos y datos, aunque no haya logrado reproducirlo?',
-  },
-];
+};
+export const REPORT_FLOW_EXPLANATION =
+  'El recorrido completo: testing reporta el síntoma con datos reproducibles y sin adivinar la causa; debugging encuentra y corrige la causa; y el cierre se confirma volviendo a testear el caso original. Cada mitad tiene su trabajo, y el ticket se cierra con evidencia, no con confianza.';
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {
@@ -138,3 +159,64 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
     ],
   },
 ];
+
+export const ISOLATION_TABLE = `Fallo: el SMS de confirmación
+de un turno no llega.
+
+Prueba 1: 11 5555-0101
+  Movistar → no llega
+Prueba 2: 11 5555-0102
+  Claro → llega
+Prueba 3: +54 9 11 5555-0101
+  Movistar → llega
+Prueba 4: 11 5555-0103
+  Personal → llega
+Prueba 5: 341 555-0104
+  Movistar → no llega
+Prueba 6: +54 9 341 555-0104
+  Movistar → llega`;
+export const ISOLATION_QUESTIONS: MultiSelectQuestion[] = [
+  {
+    prompt: 'Con las seis pruebas, ¿qué afirmaciones respaldan los resultados? Marcá todas las que correspondan.',
+    options: [
+      {text: 'El fallo ocurre con teléfonos de Movistar cargados sin el prefijo +54 9.', correct: true, why: 'Es la condición mínima: las pruebas 1 y 5 fallan, y el mismo número con prefijo (3 y 6) funciona.'},
+      {text: 'El fallo ocurre con todos los teléfonos de Movistar.', correct: false, why: 'Las pruebas 3 y 6 son de Movistar y el SMS llega: la operadora sola no alcanza para que falle.'},
+      {text: 'El fallo ocurre con cualquier teléfono sin prefijo, de cualquier operadora.', correct: false, why: 'Las pruebas 2 y 4 no tienen prefijo y funcionan: la falta de prefijo sola tampoco alcanza.'},
+      {text: 'No depende del código de área: falla con 11 y con 341.', correct: true, why: 'Las pruebas 1 y 5 tienen códigos de área distintos y fallan igual, así que ese factor quedó descartado.'},
+      {text: 'El servicio de SMS de Movistar está caído.', correct: false, why: 'Es una causa que nadie verificó, y además la contradicen las pruebas 3 y 6, donde Movistar sí recibe el SMS.'},
+    ],
+  },
+  {
+    prompt: 'Desarrollo corrigió el defecto: ahora el sistema agrega +54 9 a todo teléfono que no lo tenga antes de enviar. ¿Qué pruebas entran en la regresión? Marcá todas las que correspondan.',
+    options: [
+      {text: 'Enviar el SMS a un teléfono que ya estaba cargado con +54 9.', correct: true, why: 'El cambio toca justamente el prefijo: hay que confirmar que no lo duplique en los teléfonos que ya lo tenían.'},
+      {text: 'Enviar el SMS a teléfonos de Claro y Personal sin prefijo.', correct: true, why: 'Antes funcionaban, y ahora pasan por la normalización nueva: el cambio los puede afectar.'},
+      {text: 'El recordatorio por WhatsApp, que toma el teléfono del mismo campo y lo normaliza con la misma función.', correct: true, why: 'Usa el mismo código que se cambió, así que puede romperse aunque nadie lo haya tocado directamente.'},
+      {text: 'Repetir la prueba 1, con el teléfono de Movistar sin prefijo.', correct: false, why: 'Hay que hacerla, pero es confirmation testing: comprueba que el fallo reportado ya no ocurre. La regresión revisa lo que antes funcionaba.'},
+      {text: 'El envío del recordatorio por email.', correct: false, why: 'No usa el teléfono ni la función modificada: el cambio no lo puede afectar.'},
+      {text: 'El inicio de sesión con contraseña.', correct: false, why: 'No tiene relación con el envío de mensajes: incluirlo no aporta información sobre este cambio.'},
+    ],
+  },
+];
+
+export const STATE_LEFT: MatchItem[] = [
+  {id: 'reopened', text: 'Desarrollo subió la corrección, pero al repetir los pasos del reporte el turno sigue sin enviar el SMS.'},
+  {id: 'rejected', text: 'El reporte dice que el turno no se puede cancelar a 1 hora del horario; el requisito fija un mínimo de 2 horas.'},
+  {id: 'duplicate', text: 'El mismo fallo de la agenda figura en otro reporte, abierto el martes por otra persona.'},
+  {id: 'resolved', text: 'La corrección ya está integrada y nadie volvió a ejecutar todavía el caso que falló.'},
+  {id: 'notrepro', text: 'Con los pasos y datos del reporte, ni quien lo escribió ni desarrollo logran que el fallo vuelva a aparecer.'},
+];
+export const STATE_RIGHT: MatchItem[] = [
+  {id: 'resolved', text: 'Resuelto'},
+  {id: 'notrepro', text: 'No reproducible'},
+  {id: 'reopened', text: 'Reabierto'},
+  {id: 'duplicate', text: 'Duplicado'},
+  {id: 'rejected', text: 'Rechazado'},
+];
+export const STATE_WHY: Record<string, string> = {
+  reopened: 'El re-test falló: el defecto vuelve al ciclo como Reabierto, no se crea un reporte nuevo.',
+  rejected: 'El sistema se comporta como pide el requisito: no hay defecto, y el reporte se rechaza.',
+  duplicate: 'Ya existe un reporte del mismo fallo: este se marca como Duplicado y se vincula al original.',
+  resolved: 'Hay una corrección, pero falta el re-test. Resuelto no es Cerrado: el cierre llega cuando el re-test confirma que funciona.',
+  notrepro: 'Con la información disponible no se logra provocar el fallo; suele pedirse más información antes de descartarlo del todo.',
+};

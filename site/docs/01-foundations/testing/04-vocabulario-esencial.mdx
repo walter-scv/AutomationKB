@@ -5,10 +5,11 @@ sidebar_position: 4
 
 import Activity from '@site/src/components/Activity';
 import Quiz from '@site/src/components/Quiz';
+import Match from '@site/src/components/Match';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import FindInCode from '@site/src/components/FindInCode';
 import {
-  VOCAB_QUIZ,
+  CHAIN_MATCH_LEFT, CHAIN_MATCH_RIGHT, CHAIN_MATCH_WHY,
   PRACTICE_LINES, PRACTICE_RULE_LABELS,
   CLOSING_QUIZ,
 } from '@site/src/content/lessons/04-vocabulario-esencial';
@@ -16,16 +17,24 @@ import {
 export const LESSON_SLUG = 'foundations-vocabulario-esencial';
 
 export function VocabActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['vocab']);
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['vocabmatch']);
   return (
     <Activity
-      title="¿Error, defecto, fallo o causa raíz?"
-      kind="Elegí la opción"
+      title="Las cuatro piezas de un incidente"
+      kind="Emparejar"
       goal="ubicar cada parte de un mismo incidente en la cadena error → defecto → fallo, e identificar su causa raíz."
-      done={isDone('vocab')}
-      consigna="Son 4 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 4 están bien."
+      done={isDone('vocabmatch')}
+      consigna="Las cuatro descripciones de la derecha son partes de un mismo incidente: un envío que debía ser gratis desde $5000. Emparejá cada término con la parte que le corresponde; son 4 pares, uno por término. Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 4."
     >
-      <Quiz questions={VOCAB_QUIZ} onSolved={() => markDone('vocab')} />
+      <Match
+        left={CHAIN_MATCH_LEFT}
+        right={CHAIN_MATCH_RIGHT}
+        leftLabel="Término"
+        rightLabel="Parte del incidente"
+        why={CHAIN_MATCH_WHY}
+        alreadyDone={isDone('vocabmatch')}
+        onSolved={() => markDone('vocabmatch')}
+      />
     </Activity>
   );
 }
@@ -67,71 +76,135 @@ reportar y diagnosticar problemas.
 
 ## Conceptos
 
-Un mismo incidente se describe con cuatro términos distintos, cada uno en
-un momento distinto de la cadena:
+Cuatro términos describen un mismo problema en momentos distintos: el
+**error** que comete una persona, el **defecto** que ese error deja en
+el producto, el **fallo** que se observa cuando ese defecto se ejecuta,
+y la **causa raíz** que explica por qué se cometió el error. Usarlos con
+precisión importa porque cada uno lo trabaja alguien distinto: el fallo
+lo observa y reporta testing, el defecto lo encuentra y corrige el
+debugging, y la causa raíz se ataca cambiando la forma de trabajar.
 
-1. **Error:** la acción humana que produce un resultado incorrecto — por
-   ejemplo, interpretar mal un requisito.
-2. **Defecto:** la falla que ese error deja en el código o el sistema
-   (también llamado "bug"). Todavía no se manifestó en ningún
-   comportamiento visible.
-3. **Fallo:** la desviación observable entre el comportamiento esperado y
-   el real, que aparece recién cuando el defecto se ejecuta.
-4. **Causa raíz:** el origen subyacente del defecto — si se elimina, se
-   elimina (o reduce) el defecto.
+### La cadena en un ejemplo
 
-Ejemplo: un desarrollador entiende mal un requisito de "mínimo 8
-caracteres" (**error**) y escribe la condición con `>` en vez de `>=`
-(**defecto**). Un usuario ingresa una contraseña de exactamente 8
-caracteres, que debería ser válida, y el sistema la rechaza (**fallo**).
-La **causa raíz** no es el operador en sí — es el malentendido original
-del requisito, que podría repetirse en otra condición parecida si no se
-corrige en origen.
+El requisito de registro de una aplicación dice: "la contraseña debe tener
+al menos 8 caracteres o más". El desarrollador lo lee como "más de 8" y
+escribe la validación así:
+
+```ts
+if (contraseña.length > 8) {
+  aceptar();
+} else {
+  rechazar('La contraseña es demasiado corta');
+}
+```
+
+Una usuaria se registra con `Abcd123!`, que tiene exactamente 8
+caracteres, y el sistema la rechaza con el mensaje «La contraseña es
+demasiado corta». En ese incidente están los cuatro términos:
+
+- El **error** fue la interpretación del desarrollador: entender "más de
+  8" donde el requisito quería decir "8 o más".
+- El **defecto** es lo que quedó en el código: la condición `> 8` en lugar
+  de `>= 8`.
+- El **fallo** es lo que vio la usuaria: una contraseña válida rechazada.
+- La **causa raíz** es la razón de fondo del error: un requisito redactado
+  de forma ambigua ("al menos 8 o más") que nadie revisó antes de
+  programarlo.
+
+### Error
+
+Un error es una equivocación humana que produce un resultado incorrecto.
+Las personas se equivocan por razones conocidas: presión de tiempo,
+complejidad del producto o de la tarea, procesos o herramientas poco
+claros, cansancio o falta de capacitación. El error no se ve en el
+producto; lo que se ve es su consecuencia.
+
+### Defecto
+
+Un defecto (también llamado *bug* o *falla*) es lo que el error deja en un
+producto de trabajo. No está solo en el código: un requisito que exige 8
+caracteres cuando el negocio quería 10 tiene un defecto aunque el código
+lo implemente a la perfección, y un caso de prueba con un resultado
+esperado equivocado también lo tiene, porque va a aprobar algo incorrecto.
+
+Un defecto en un producto temprano, si nadie lo detecta, genera defectos
+en todo lo que se construye a partir de él: la redacción ambigua del
+requisito produjo un código defectuoso, y probablemente también casos de
+prueba que esperan el comportamiento equivocado.
+
+Un defecto no siempre produce un fallo. Algunos fallan cada vez que se
+ejecutan; otros solo en condiciones específicas, como el de la contraseña,
+que se manifiesta únicamente con exactamente 8 caracteres; y otros nunca
+llegan a manifestarse, por ejemplo si están en una parte del código que
+ningún usuario ejecuta.
+
+### Fallo
+
+Un fallo es la diferencia observable entre lo que el sistema debía hacer y
+lo que hizo. Es lo único que el testing dinámico ve directamente: el
+defecto se encuentra después, investigando.
+
+No todo fallo tiene detrás un defecto. También puede deberse al entorno:
+una conexión que se corta, un disco sin espacio, un servidor mal
+configurado. Por eso un reporte describe lo que se observó y en qué
+entorno, sin afirmar todavía la causa. En el ejemplo, el reporte correcto
+dice: "con la contraseña `Abcd123!` (8 caracteres) se esperaba «Cuenta
+creada» y se obtuvo «La contraseña es demasiado corta»". Escribir "hay un
+defecto en la validación" adelanta una conclusión que nadie verificó, y
+escribir "el desarrollador entendió mal el requisito" mezcla en el reporte
+una hipótesis sobre el error.
+
+### Causa raíz
+
+La causa raíz es la razón fundamental por la que ocurrió el problema: la
+situación que llevó a cometer el error. Se identifica con un análisis de
+causa raíz, que suele hacerse cuando aparece un fallo o se encuentra un
+defecto. Una forma habitual de hacerlo es preguntar "¿por qué?" de manera
+sucesiva hasta llegar a algo que se pueda cambiar en el proceso:
+
+```text
+Una contraseña de 8 caracteres se rechaza.
+  ¿Por qué? La condición usa > 8 en lugar de >= 8.                   (defecto)
+  ¿Por qué? El desarrollador interpretó "más de 8".                  (error)
+  ¿Por qué? El requisito decía "al menos 8 o más", y nadie lo
+            revisó antes de programarlo.                             (causa raíz)
+```
+
+La diferencia entre corregir el defecto y atacar la causa raíz es la
+diferencia entre resolver este caso y evitar los próximos. Cambiar `>` por
+`>=` arregla esta validación. Pero si los requisitos con límites se siguen
+redactando de forma ambigua y sin revisión, el mismo error va a reaparecer
+en el largo de un nombre de usuario, en la edad mínima o en el monto de una
+transferencia. Eliminar la causa raíz significa, en este caso, revisar los
+requisitos antes de programarlos y escribir los límites sin ambigüedad ("8
+caracteres o más"), y además buscar si otras validaciones ya programadas
+tienen el mismo problema.
 
 ## Cuándo usarlo
 
-Esta distinción importa al reportar y al corregir. Un reporte de testing
-describe el **fallo** (el síntoma observado), sin necesidad de saber
-todavía cuál es el defecto ni la causa raíz. Identificar la causa raíz
-importa después, durante la corrección: corregir solo el síntoma deja
-abierta la posibilidad de que el mismo error se repita en otro lugar.
+La distinción se aplica en cada etapa del trabajo con un problema. Al
+reportar, se describe el fallo. Durante el debugging, se busca el defecto.
+Al cerrar, se pregunta si el mismo error puede repetirse en otro lugar, y
+si es así, se analiza la causa raíz.
 
 ## Buenas prácticas
 
-- **Reportar el fallo como un hecho observable** ("se esperaba X, pasó
-  Y"), no como una suposición sobre la causa. Quien reporta casi nunca
-  tiene, en ese momento, la evidencia para afirmar cuál es el defecto.
-- **Investigar la causa raíz antes de dar por cerrado un defecto**, no
-  solo corregir el síntoma puntual. Un defecto "corregido" que en
-  realidad solo tapó el síntoma deja la puerta abierta a que el mismo
-  problema vuelva a aparecer en otro lugar.
-- **Usar los cuatro términos con precisión** en reportes y
-  conversaciones, para que el equipo hable del mismo punto de la cadena
-  — confundirlos genera discusiones donde cada persona está hablando de
-  una cosa distinta sin darse cuenta.
-- **Esperar a tener evidencia del código antes de nombrar un defecto
-  específico.** Afirmar "el defecto está en tal función" sin haberla
-  revisado puede mandar a quien investiga en la dirección equivocada.
-- **Preguntar, ante un defecto corregido, si el mismo patrón puede
-  repetirse en otro lugar del sistema** — es la forma práctica de
-  perseguir la causa raíz en vez de quedarse en el síntoma.
+- Reportar el fallo como un hecho observable, con lo esperado y lo real.
+- Nombrar un defecto concreto solo cuando hay evidencia del código o del
+  documento.
+- Antes de cerrar un defecto, preguntar si el mismo patrón puede estar en
+  otro lugar del sistema.
 
 ## Anti-patrones
 
 - **Confundir fallo con defecto** en un reporte ("el código tiene un
-  defecto en la validación" cuando en realidad todavía no se identificó
-  el defecto, solo se observó un fallo) — adelanta una conclusión que
-  todavía no tiene respaldo.
-- **Corregir el síntoma sin investigar la causa raíz**, dejando la puerta
-  abierta a que el mismo error se repita en otra parte del sistema.
-- **Dar por conocido el error humano sin haber investigado el defecto en
-  el código** — salta dos pasos de la cadena basándose en una suposición,
-  no en evidencia.
-- **Mezclar en una sola frase el síntoma observado con la causa
-  sospechada**, sin distinguir cuál es cuál — dificulta que otra persona
-  entienda qué es un hecho y qué es una hipótesis.
-- **Dar por cerrado un reporte apenas se corrige algo**, sin confirmar que
-  lo corregido es realmente la causa raíz y no solo un síntoma parecido.
+  defecto en la validación") antes de que nadie lo haya investigado.
+- **Corregir el síntoma sin investigar la causa raíz**, dejando abierta la
+  posibilidad de que el mismo error se repita.
+- **Dar por conocido el error humano sin haber investigado el defecto**.
+- **Mezclar en una frase el síntoma observado con la causa sospechada**.
+- **Dar por cerrado un problema apenas se corrige algo**, sin confirmar
+  que se atacó la causa y no un síntoma parecido.
 
 ## Práctica
 

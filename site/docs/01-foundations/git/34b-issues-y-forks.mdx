@@ -1,0 +1,234 @@
+---
+title: "Issues y forks"
+sidebar_position: 34.5
+---
+
+import Activity from '@site/src/components/Activity';
+import MultiSelect from '@site/src/components/MultiSelect';
+import Order from '@site/src/components/Order';
+import FillBlank from '@site/src/components/FillBlank';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  ISSUE_QUESTIONS,
+  FORK_ORDER_ITEMS,
+  FORK_ORDER_CORRECT,
+  FORK_ORDER_RULES,
+  SYNC_TEMPLATE,
+  SYNC_SLOTS,
+  SYNC_BANK,
+  SYNC_EXPLANATION,
+} from '@site/src/content/lessons/34b-issues-y-forks';
+
+export const LESSON_SLUG = 'foundations-issues-y-forks';
+
+export function IssueActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['issue']);
+  return (
+    <Activity
+      title="Un issue que se pueda trabajar"
+      kind="Marcar todas"
+      goal="reconocer qué información tiene que tener un issue de defecto para que alguien lo pueda tomar sin preguntar."
+      done={isDone('issue')}
+      consigna="Es 1 pregunta con 6 elementos posibles de un issue. Marcá todos los que tiene que incluir. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={ISSUE_QUESTIONS}
+        alreadyDone={isDone('issue')}
+        onSolved={() => markDone('issue')}
+      />
+    </Activity>
+  );
+}
+
+export function ForkOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['forkorder']);
+  return (
+    <Activity
+      title="Contribuí desde un fork"
+      kind="Ordenar"
+      goal="ordenar el circuito completo para proponer un cambio a un repositorio en el que no se tiene permiso de escritura."
+      done={isDone('forkorder')}
+      consigna="Querés corregir la búsqueda por ISBN de un proyecto abierto en el que no tenés permiso de escritura. Son 6 pasos desordenados: ordenalos del primero al último con las flechas (o arrastrándolos) y usá «Comprobar orden» para verificar. La actividad se completa cuando el orden es correcto."
+    >
+      <Order
+        items={FORK_ORDER_ITEMS}
+        correctOrder={FORK_ORDER_CORRECT}
+        rules={FORK_ORDER_RULES}
+        onSolved={() => markDone('forkorder')}
+      />
+    </Activity>
+  );
+}
+
+export function SyncActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['sync']);
+  return (
+    <Activity
+      title="Actualizá el fork"
+      kind="Completar huecos"
+      goal="completar los comandos que traen al fork los cambios del repositorio original."
+      done={isDone('sync')}
+      consigna="Tu fork está atrasado respecto del repositorio original, que ya configuraste como `upstream`. Completá los tres huecos con las fichas (cada ficha se usa una vez y sobran algunas); clickeá un hueco para vaciarlo. La actividad se completa cuando los tres quedan bien."
+    >
+      <FillBlank
+        template={SYNC_TEMPLATE}
+        slots={SYNC_SLOTS}
+        bank={SYNC_BANK}
+        explanation={SYNC_EXPLANATION}
+        alreadyDone={isDone('sync')}
+        onSolved={() => markDone('sync')}
+      />
+    </Activity>
+  );
+}
+
+Ya sabés integrar cambios con merge y rebase. Antes de ver cómo se revisa un cambio con un Pull Request, faltan dos herramientas de GitHub que lo rodean: los issues, donde se registra qué hay que hacer, y los forks, para proponer cambios donde no se tiene permiso.
+
+## Conceptos
+
+Un Pull Request responde a "este es el cambio, revísenlo". Antes de eso
+hay otra pregunta, "qué hay que hacer y por qué", y GitHub la registra en
+**Issues**. Y cuando no se tiene permiso para escribir en un repositorio,
+la forma de proponer un cambio es un **fork**. Las dos herramientas
+completan el circuito de colaboración en GitHub.
+
+### Issues
+
+Un **issue** es un registro de algo que hay que hacer en el proyecto: un
+defecto, una funcionalidad, una mejora, una duda. Cada issue tiene un
+número (`#57`), un título, una descripción y una conversación donde el
+equipo agrega información. Se organiza con:
+
+- **Labels** (etiquetas): clasifican el issue, por ejemplo `bug`,
+  `enhancement`, `prioridad-alta`.
+- **Assignees** (responsables): quién se ocupa.
+- **Milestones**: a qué versión o entrega pertenece.
+
+Muchos equipos usan los issues para registrar defectos. En ese caso, el
+issue es el reporte de defecto de la lección de testing y debugging,
+escrito en Markdown:
+
+```markdown
+**Título:** El recordatorio por email no llega para turnos de los lunes
+
+**Versión:** v3.2.0 (producción) · **Entorno:** web, Chrome 126
+
+**Pasos**
+1. Reservar un turno para el lunes 3/11 a las 10:00 con la cuenta qa-01.
+2. Esperar el envío del recordatorio (24 horas antes).
+
+**Resultado esperado:** llega el email de recordatorio el domingo 2/11 a las 10:00.
+**Resultado obtenido:** no llega ningún email. Los turnos de otros días sí lo reciben.
+
+**Evidencia:** registro del servicio de emails adjunto.
+```
+
+Muchos repositorios ofrecen **plantillas de issue** que piden estos campos,
+para que ningún reporte llegue incompleto.
+
+### Vincular issues y Pull Requests
+
+Un issue se menciona escribiendo su número con `#` en cualquier comentario,
+commit o PR: `#57` se convierte en un enlace. Si la descripción de un PR
+incluye una palabra clave como `Closes`, `Fixes` o `Resolves` seguida del
+número, GitHub cierra el issue automáticamente cuando el PR se integra:
+
+```markdown
+Corrige el cálculo de la fecha del recordatorio para turnos de los lunes.
+
+Closes #57
+```
+
+Ese vínculo deja registrado qué cambio resolvió qué problema, en las dos
+direcciones: desde el issue se llega al PR, y desde el PR al issue.
+
+### Forks
+
+Para proponer cambios en un repositorio hace falta permiso de escritura,
+y en muchos casos no se tiene: un proyecto de código abierto, o el
+repositorio de otro equipo. Un **fork** es una copia del repositorio en la
+cuenta propia de GitHub, sobre la que sí se tiene permiso. Se crea con el
+botón *Fork* del repositorio original.
+
+El circuito completo para contribuir desde un fork es este. Primero se
+hace el fork en GitHub y se clona **el fork** (no el original) en la
+computadora. Después se crea una rama, se hacen los commits y se sube la
+rama al fork. Y finalmente se abre un Pull Request desde esa rama del fork
+hacia el repositorio original, donde sus responsables lo revisan.
+
+```bash
+$ git clone https://github.com/ana-gomez/turnos.git     # el fork, en la cuenta propia
+$ cd turnos
+$ git switch -c fix/zona-horaria
+# ... cambios y commits ...
+$ git push -u origin fix/zona-horaria                    # se sube al fork
+```
+
+### Mantener el fork actualizado
+
+El fork no recibe solo los cambios que se hacen en el original. Para
+traerlos, se agrega el repositorio original como un segundo remoto,
+llamado por convención **`upstream`**:
+
+```bash
+$ git remote add upstream https://github.com/empresa/turnos.git
+$ git remote -v
+origin    https://github.com/ana-gomez/turnos.git (fetch)
+origin    https://github.com/ana-gomez/turnos.git (push)
+upstream  https://github.com/empresa/turnos.git (fetch)
+upstream  https://github.com/empresa/turnos.git (push)
+```
+
+`origin` es el fork propio; `upstream`, el original. Para actualizar el
+`main` del fork con lo último del original:
+
+```bash
+$ git switch main
+$ git fetch upstream
+$ git merge upstream/main
+$ git push origin main
+```
+
+`fetch upstream` trae los commits del original, `merge upstream/main` los
+incorpora al `main` local, y `push origin main` actualiza el fork en GitHub.
+GitHub ofrece además un botón *Sync fork* que hace lo mismo desde la web.
+
+### Fork o rama
+
+Un fork no reemplaza a las ramas. Dentro de un equipo con acceso de
+escritura al repositorio, se trabaja con ramas en el mismo repositorio,
+como en las lecciones anteriores. El fork se usa cuando no se tiene ese
+acceso: para contribuir a un proyecto ajeno o abierto.
+
+## Cuándo usarlo
+
+Se abre un issue para registrar cualquier defecto o tarea antes de
+trabajarla, y se lo vincula con el PR que la resuelve. Se usa un fork
+cuando se quiere contribuir a un repositorio en el que no se tiene permiso
+de escritura.
+
+## Buenas prácticas
+
+- Escribir cada issue de defecto con pasos, datos y resultados esperado y
+  obtenido, usando la plantilla del repositorio si existe.
+- Clasificar los issues con labels y asignar un responsable.
+- Vincular cada PR con su issue usando `Closes #número`.
+- En un fork, configurar `upstream` y actualizar `main` antes de crear una
+  rama nueva.
+
+## Anti-patrones
+
+- **Issues sin pasos para reproducir** ("no anda el recordatorio").
+- **PRs sin vínculo con el issue que resuelven**.
+- **Clonar el repositorio original** cuando se va a trabajar desde un fork.
+- **Trabajar sobre un fork desactualizado** durante semanas.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<IssueActivity />
+
+<ForkOrderActivity />
+
+<SyncActivity />

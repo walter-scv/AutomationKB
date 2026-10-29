@@ -1,5 +1,8 @@
+import type {MatchItem} from '@site/src/components/Match';
 import type {CodeLine} from '@site/src/components/FindInCode';
+import type {FillBlankSlot} from '@site/src/components/FillBlank';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {SpotTokenRound} from '@site/src/components/SpotToken';
 
 export const DECLARED_RULE_LABELS = [
   'No declara la forma del objeto que recibe',
@@ -48,57 +51,25 @@ export const DECLARED_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Todas las propiedades opcionales sin necesidad',
-  'Nombre de tipo genérico, no dice qué representa',
-  'Usa `any` en vez de declarar el tipo',
-];
-
-export const PRACTICE_LINES: CodeLine[] = [
+export const DECL_TOKEN_PROMPT = '¿Qué palabra de esta línea hay que cambiar para que el tipo sea útil?';
+export const DECL_TOKEN_ROUNDS: SpotTokenRound[] = [
   {
-    code: "interface Pedido {\n  numero: number;\n  total: number;\n  medioDePago: 'tarjeta' | 'efectivo';\n}",
-    rule: 0,
-    why: 'Todas las propiedades son obligatorias y el nombre dice qué entidad representa. La unión de `medioDePago` limita los valores posibles en vez de aceptar cualquier texto.',
+    line: 'interface Data { nombre: string; email: string; }',
+    targetIndex: 1,
+    why: '`Data` no dice qué entidad representa: con varias interfaces en el proyecto, obliga a abrirla para saber de qué se trata. `Contacto` o `Cliente` lo dirían.',
+    hint: 'Si ves este tipo usado en otro archivo, ¿sabés qué representa sin abrirlo?',
   },
   {
-    code: 'function totalizar(pedidos: any[]): number {\n  return pedidos.reduce((acc, pedido) => acc + pedido.total, 0);\n}',
-    rule: 3,
-    why: '`any[]` parece un tipo, pero apaga el chequeo de cada elemento: si un pedido no tiene `total`, TypeScript no avisa y la suma da `NaN` al ejecutar. `Pedido[]` sí permitiría detectarlo.',
-    hint: '¿Qué revisa TypeScript sobre los elementos de un array tipado como `any[]`?',
+    line: 'function totalizar(pedidos: any[]): number {',
+    targetIndex: 2,
+    why: '`any[]` apaga el chequeo justo en el dato que la función usa: si un pedido no tiene `total`, el error aparece en ejecución. `Pedido[]` lo mantiene.',
+    hint: 'Si un elemento de `pedidos` no tiene la propiedad que la función usa, ¿quién avisa antes de ejecutar?',
   },
   {
-    code: "interface DatosDeFactura {\n  cuit?: string;\n  importe?: number;\n  fecha?: string;\n}\nfunction emitir(datos: DatosDeFactura): string {\n  return datos.cuit + '-' + datos.importe + '-' + datos.fecha;\n}",
-    rule: 1,
-    why: 'La función usa las tres propiedades como si siempre estuvieran, pero las tres están marcadas opcionales. TypeScript no va a avisar si falta alguna y el resultado va a incluir `undefined`.',
-    hint: '¿La función puede funcionar si alguna de esas propiedades no viene?',
-  },
-  {
-    code: "type EstadoDePago = 'pendiente' | 'aprobado' | 'rechazado';",
-    rule: 0,
-    why: 'El alias tiene un nombre específico y limita los valores a tres exactos. No hay propiedades opcionales ni `any` que apaguen el chequeo.',
-  },
-  {
-    code: 'interface Data {\n  nombre: string;\n  email: string;\n}',
-    rule: 2,
-    why: '`Data` no dice qué representa: con varias interfaces en el proyecto, quien lo lee tiene que abrir la declaración para saber si son usuarios, pedidos o formularios. `DatosDeContacto` diría qué entidad nombra.',
-    hint: '¿El nombre del tipo alcanza para saber qué entidad describe?',
-  },
-  {
-    code: 'function parsear(texto: string): any {\n  return JSON.parse(texto);\n}',
-    rule: 3,
-    why: 'El parámetro está tipado, pero el retorno es `any`: todo lo que se haga con el resultado queda sin chequeo. Un tipo como `Configuracion` o `Pedido` obligaría a validar la forma antes de usarla.',
-    hint: '¿El tipo del retorno le permite a TypeScript revisar cómo se usa el resultado?',
-  },
-  {
-    code: 'type Direccion = {\n  calle: string;\n  ciudad: string;\n  piso?: string;\n};',
-    rule: 0,
-    why: 'Solo `piso` es opcional, y eso es correcto: una dirección puede no tener piso, pero siempre tiene calle y ciudad. El resto obligatorio permite que TypeScript avise si falta.',
-  },
-  {
-    code: "interface Usuario {\n  id?: string;\n  email?: string;\n}\nfunction buscar(id: string): Usuario {\n  return {id, email: id + '@mail.com'};\n}",
-    rule: 1,
-    why: 'La función siempre devuelve `id` y `email`, y siempre recibe un `id`; marcarlos opcionales hace que TypeScript no avise si alguien construye un `Usuario` sin ellos. Lo opcional tiene que reflejar lo que de verdad puede faltar.',
-    hint: '¿Hay algún caso en el que estos datos puedan no estar?',
+    line: "type Info = 'pendiente' | 'aprobado' | 'rechazado';",
+    targetIndex: 1,
+    why: 'La unión está bien, pero `Info` no dice que son los estados de un pago. `EstadoDePago` lo dice sin tener que leer los valores.',
+    hint: 'Los valores están bien. ¿El nombre dice qué representan?',
   },
 ];
 
@@ -144,3 +115,34 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
       ],
     }
 ];
+
+export const SHIPMENT_TEMPLATE =
+  "type EstadoDeEnvio = 'preparando' | 'en camino' | 'entregado';\n\ninterface Envio {\n  codigo: string;\n  estado: {{estado}};\n  observaciones{{opt}} string;\n  pesoEnKilos: {{peso}};\n}\n\ninterface EnvioInternacional {{ext}} Envio {\n  paisDestino: string;\n}";
+export const SHIPMENT_SLOTS: FillBlankSlot[] = [
+  {id: 'estado', answer: 'EstadoDeEnvio'},
+  {id: 'opt', answer: '?:'},
+  {id: 'peso', answer: 'number'},
+  {id: 'ext', answer: 'extends'},
+];
+export const SHIPMENT_BANK = ['string', ':', 'extends', 'number', 'any', 'EstadoDeEnvio', '|', '?:'];
+export const SHIPMENT_EXPLANATION =
+  '`estado` usa el type alias `EstadoDeEnvio`: con `string` se aceptaría cualquier texto, incluido un typo como `\'entregao\'`. `observaciones` lleva `?:` porque es la única propiedad que puede faltar; con `:` TypeScript obligaría a cargarla siempre. Y el peso es una cantidad, así que es `number` — `any` apagaría el chequeo justo en la propiedad que se usa para hacer cuentas. `EnvioInternacional` extiende a `Envio`: tiene sus cuatro propiedades más `paisDestino`, sin repetirlas.';
+
+export const NARROW_LEFT: MatchItem[] = [
+  {id: 'typeof', text: '`stock` es `number | string` porque un proveedor lo manda como texto, y hay que sumarlo.'},
+  {id: 'null', text: '`supervisor` es `Empleado | null`, y hay que mostrar su nombre.'},
+  {id: 'array', text: '`etiquetas` es `string | string[]`, y hay que recorrer todas.'},
+  {id: 'disc', text: '`envio` es `{ modo: \'retiro\'; sucursal: string } | { modo: \'domicilio\'; direccion: string }`, y hay que mostrar la dirección.'},
+];
+export const NARROW_RIGHT: MatchItem[] = [
+  {id: 'disc', text: "`if (envio.modo === 'domicilio')`"},
+  {id: 'array', text: '`if (Array.isArray(etiquetas))`'},
+  {id: 'typeof', text: "`if (typeof stock === 'string')`"},
+  {id: 'null', text: '`if (supervisor !== null)`'},
+];
+export const NARROW_WHY: Record<string, string> = {
+  typeof: 'Para distinguir tipos básicos se usa `typeof`: si es `\'string\'`, se convierte con `Number(...)` antes de sumar.',
+  null: 'Un valor que puede ser `null` se compara directamente; dentro del `if`, TypeScript sabe que es un `Empleado`.',
+  array: '`typeof` de un array da `\'object\'`; para distinguirlo de un valor suelto se usa `Array.isArray`.',
+  disc: 'La propiedad `modo` distingue las dos formas: solo cuando vale `\'domicilio\'` existe `direccion`.',
+};

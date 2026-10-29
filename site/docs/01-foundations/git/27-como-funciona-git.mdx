@@ -4,14 +4,21 @@ sidebar_position: 27
 ---
 
 import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
 import Order from '@site/src/components/Order';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  FLOW_ORDER_ITEMS, FLOW_ORDER_CORRECT, FLOW_ORDER_RULES,
-  AREA_LINES, AREA_RULE_LABELS,
+  FLOW_ORDER_ITEMS,
+  FLOW_ORDER_CORRECT,
+  FLOW_ORDER_RULES,
+  AREA_LINES,
+  AREA_RULE_LABELS,
   CLOSING_QUIZ,
+  READ_GIT_LEFT,
+  READ_GIT_RIGHT,
+  READ_GIT_WHY,
 } from '@site/src/content/lessons/27-como-funciona-git';
 
 export const LESSON_SLUG = 'foundations-como-funciona-git';
@@ -63,63 +70,200 @@ export function ClosingQuizActivity() {
   );
 }
 
+export function ReadGitActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['readgit']);
+  return (
+    <Activity
+      title="¿Qué te está diciendo Git?"
+      kind="Emparejar"
+      goal="interpretar lo que muestran `git status` y `git log` sobre el estado de cada archivo y sobre HEAD."
+      done={isDone('readgit')}
+      consigna="Son 6 cosas que muestra Git y 6 significados: cada significado corresponde a exactamente una. Elegí una y después su significado (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste las 6."
+    >
+      <Match
+        left={READ_GIT_LEFT}
+        right={READ_GIT_RIGHT}
+        why={READ_GIT_WHY}
+        leftLabel="Lo que muestra Git"
+        rightLabel="Significado"
+        alreadyDone={isDone('readgit')}
+        onSolved={() => markDone('readgit')}
+      />
+    </Activity>
+  );
+}
+
 Ya sabés qué es el control de versiones y por qué importa. Ahora, cómo
 organiza Git el trabajo por dentro.
 
 ## Conceptos
 
-Git organiza el trabajo en tres áreas. El **working directory** es la
-carpeta con los archivos tal como los estás editando ahora mismo. El
-**staging area** (o índice) es donde marcás qué cambios van a entrar en la
-próxima confirmación — te permite elegir, de todo lo que modificaste, qué
-entra junto y qué queda para otro momento. Un **commit** es una foto
-guardada de los cambios que están en el staging area, con un mensaje que
-describe qué se hizo; queda en el historial del repositorio para siempre,
-salvo que alguien lo reescriba a propósito.
+Para usar Git sin sorpresas hace falta un modelo de qué pasa con un
+archivo desde que se edita hasta que queda en el historial. Ese modelo
+tiene tres áreas y cuatro estados posibles para cada archivo.
 
-El flujo básico conecta las tres áreas: editás un archivo en el working
-directory, lo agregás al staging area, y lo confirmás en un commit.
+### Las tres áreas
+
+Git separa el trabajo en tres lugares. El **working directory** (directorio
+de trabajo) es la carpeta del proyecto tal como se ve en el editor:
+cuando se modifica un archivo y se guarda con Ctrl+S, el cambio ocurre
+acá, y en ningún otro lado. El **staging area** (área de preparación,
+también llamada *índice*) es una zona intermedia donde se eligen los
+cambios que van a formar parte del próximo commit. Y el **repositorio**
+es donde se guardan los commits: la carpeta oculta `.git` dentro del
+proyecto, que contiene todo el historial.
+
+```text
+working directory  ──git add──▶  staging area  ──git commit──▶  repositorio
+(lo que se edita)               (lo que va a entrar        (el historial)
+                                 en el próximo commit)
+```
+
+La existencia de un paso intermedio tiene un motivo práctico. Si en una
+tarde se corrigió un defecto en el formulario de perfil y, de paso, se
+ajustaron los estilos de otra pantalla, son dos cambios sin relación. El
+staging area permite confirmar primero solo el arreglo del perfil, con su
+propio mensaje, y después los estilos en otro commit. Cada commit queda
+con un único propósito, y cada uno se puede revisar o deshacer por
+separado.
+
+Dos confusiones habituales derivan de este modelo. Guardar el archivo no
+es confirmarlo: un cambio guardado sigue solo en el working directory
+hasta que se agrega y se confirma. Y el staging area no es un respaldo:
+lo que está ahí todavía no forma parte del historial. Incluso un commit
+es solo local hasta que se sube al remoto: si la computadora se pierde,
+se pierde con ella.
+
+### Los estados de un archivo
+
+Cada archivo del proyecto está, en cada momento, en uno de cuatro estados.
+Un archivo **sin seguimiento** (*untracked*) es uno nuevo que Git ve pero
+nunca se agregó. Un archivo **modificado** (*modified*) cambió desde el
+último commit y todavía no está en el staging area. Un archivo **en
+staging** (*staged*) tiene un cambio preparado para el próximo commit. Y
+un archivo **confirmado** (*committed*) coincide con el último commit: no
+tiene nada pendiente.
+
+El comando `git status` muestra en qué estado está cada archivo:
+
+```bash
+$ git status
+On branch main
+Changes to be committed:
+        modified:   perfil.ts
+
+Changes not staged for commit:
+        modified:   estilos.css
+
+Untracked files:
+        ayuda.md
+```
+
+La salida se lee por bloques. *Changes to be committed* lista lo que está
+en staging: `perfil.ts` va a entrar en el próximo commit. *Changes not
+staged for commit* lista lo modificado que todavía no se agregó:
+`estilos.css` cambió, pero si se confirma ahora, ese cambio queda afuera.
+*Untracked files* lista los archivos que Git no sigue: `ayuda.md` es
+nuevo. Los archivos que no aparecen en ningún bloque están confirmados y
+sin cambios.
+
+Un caso que suele desconcertar al principio: si se agrega `perfil.ts` al
+staging area y después se lo vuelve a editar, `git status` lo muestra
+**en los dos bloques**. La versión que se agregó está en staging; lo que
+se cambió después figura como modificado. Para que el segundo cambio
+también entre en el commit, hay que volver a ejecutar `git add`.
+
+### Qué contiene un commit
+
+Un commit guarda el estado completo de los archivos que Git sigue, junto
+con información sobre ese estado:
+
+```text
+commit 3f2a1c9e8d7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f
+Author: Diego Ruiz <diego@empresa.com>
+Date:   Fri Oct 24 17:40:55 2026 -0300
+
+    Corregir el formato del teléfono en el perfil
+```
+
+El código de la primera línea es el **identificador** del commit (también
+llamado *hash*): 40 caracteres que lo distinguen de cualquier otro. En la
+práctica alcanza con los primeros siete (`3f2a1c9`), y así lo muestran
+muchos comandos. El autor y la fecha salen de la configuración de Git y
+del momento en que se confirmó. El mensaje explica el cambio.
+
+Cada commit, además, guarda una referencia a su **commit padre**, el
+anterior. Esa cadena de referencias es el historial: cada foto sabe de
+qué foto viene, y por eso Git puede recorrerlo hacia atrás y comparar
+cualquier par de commits. Un commit no desaparece por antigüedad ni se
+borra solo: permanece en el historial salvo que alguien lo reescriba a
+propósito. Cuando un commit "no aparece", lo habitual es que se esté
+mirando otra rama o que la consulta tenga un filtro.
+
+### HEAD
+
+**HEAD** es la referencia que indica sobre qué commit se está trabajando en
+este momento. Normalmente apunta al último commit de la rama actual y
+avanza sola con cada commit nuevo. Aparece en salidas de Git como
+`HEAD -> main` y en comandos que se refieren a commits relativos:
+`HEAD` es el último commit y `HEAD~1`, el anterior.
+
+### El recorrido de un cambio
+
+Con el modelo completo, el ciclo de un cambio y lo que `git status` muestra
+en cada paso es este:
+
+```bash
+# Se edita perfil.ts en el editor y se guarda: queda modificado.
+$ git status
+Changes not staged for commit:
+        modified:   perfil.ts
+
+# Se lo pasa al staging area: queda preparado.
+$ git add perfil.ts
+$ git status
+Changes to be committed:
+        modified:   perfil.ts
+
+# Se lo confirma: queda en el historial.
+$ git commit -m "Corregir el formato del teléfono en el perfil"
+$ git status
+nothing to commit, working tree clean
+```
+
+La última línea, *working tree clean*, indica que no hay nada pendiente:
+todo coincide con el último commit. Los tres comandos se ven en detalle
+en la lección siguiente.
 
 ## Cuándo usarlo
 
-Este flujo de tres pasos se repite cada vez que guardás un cambio, sin
-importar qué tan chico sea — desde arreglar un typo hasta terminar una
-feature completa. La granularidad la elegís vos: agrupar varios cambios
-relacionados en un commit, o separarlos en varios commits chicos, según
-qué tan fácil quieras que sea revisar (o revertir) cada uno después.
+Este ciclo se repite con cada cambio, sin importar su tamaño. Lo que se
+decide cada vez es la granularidad: qué cambios van juntos en un commit y
+cuáles conviene separar para que se puedan revisar o deshacer por su
+cuenta.
 
 ## Buenas prácticas
 
-- **Revisar qué hay en el staging area antes de confirmar** (`git
-  status`), para no incluir cambios que no correspondían a ese commit.
-- **Escribir un mensaje de commit que describa qué cambió**, no un
-  genérico como "cambios" — el historial solo es útil si se puede leer
-  después.
-- **Confirmar seguido, no acumular**: un cambio sin confirmar por
-  semanas es más difícil de separar de lo que se le fue agregando encima.
-- **Pensar un commit como "una unidad que tiene sentido revisar junta"**,
-  no como "lo que hice en una hora" — el criterio es el cambio en sí, no
-  el tiempo que llevó.
-- **Usar `git status` seguido**, no solo antes de confirmar — para saber
-  en todo momento qué está pendiente de agregar o confirmar.
+- Consultar `git status` antes de agregar y antes de confirmar.
+- Usar el staging area para separar cambios sin relación en commits
+  distintos.
+- Confirmar seguido, sin dejar cambios pendientes por días.
+- Pensar cada commit como una unidad que tiene sentido revisar junta.
 
 ## Anti-patrones
 
-- **Confirmar sin mirar qué se está incluyendo**, mezclando cambios sin
-  relación entre sí en un mismo commit.
-- **Editar varios archivos sin relación y confirmarlos todos juntos**,
-  cuando en realidad son cambios independientes que convendría separar.
-- **Confundir guardar el archivo con confirmarlo** — un archivo guardado
-  en el editor sigue en el working directory hasta que se agrega y
-  confirma; nada de eso queda en el historial todavía.
-- **Dejar cambios sin agregar ni confirmar por mucho tiempo**, perdiendo
-  de vista qué se cambió y por qué a medida que se acumulan encima.
+- **Confundir guardar el archivo con confirmarlo**.
+- **Tratar el staging area como un respaldo**.
+- **Confirmar sin mirar qué se está incluyendo**.
+- **Dejar cambios sin agregar ni confirmar por mucho tiempo**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <FlowOrderActivity />
+
+<ReadGitActivity />
 
 <AreaActivity />
 

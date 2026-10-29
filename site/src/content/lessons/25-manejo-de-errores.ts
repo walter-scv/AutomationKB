@@ -1,5 +1,7 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
+import type {DecisionNode} from '@site/src/components/DecisionPath';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {BuilderStep} from '@site/src/components/CommandBuilder';
 
 export const TRYCATCH_RULE_LABELS = [
   'Lanza un error nuevo que descarta el original',
@@ -53,59 +55,34 @@ export const TRYCATCH_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Envuelve código que no puede fallar, sin necesidad',
-  'Muestra un mensaje genérico y descarta el error real',
-  'El try abarca demasiadas operaciones, no queda claro cuál falló',
-];
-
-export const PRACTICE_LINES: CodeLine[] = [
+export const SAFE_PREFIX = '// enviar la factura; quien llama necesita saber si falló';
+export const SAFE_STEPS: BuilderStep[] = [
   {
-    code: "try {\n  const perfil = await obtenerPerfil(id);\n  mostrar(perfil);\n} catch (error) {\n  console.log('No se pudo cargar el perfil:', error);\n}",
-    rule: 0,
-    why: '`mostrar(perfil)` depende de lo que devolvió `obtenerPerfil`, así que están relacionados. El `catch` registra el error real: el manejo sirve.',
+    options: [
+      '\ntry {\n  const total = pedido.subtotal * 1.21;\n  await enviarFactura(pedido, total);\n  await guardarHistorial(pedido);\n  actualizarPantalla();',
+      '\nconst total = pedido.subtotal * 1.21;\ntry {\n  await enviarFactura(pedido, total);',
+      '\ntry {\n  const total = pedido.subtotal * 1.21;',
+    ],
+    correct: '\nconst total = pedido.subtotal * 1.21;\ntry {\n  await enviarFactura(pedido, total);',
+    hint: '¿Qué línea puede fallar por un motivo externo? El `try` envuelve solo eso.',
   },
   {
-    code: "try {\n  const usuario = await obtenerUsuario(id);\n  const pedidos = await obtenerPedidosDe(id);\n  const resumen = calcularResumen(pedidos);\n  await guardarResumen(usuario.id, resumen);\n} catch (error) {\n  console.log('Error en el proceso:', error);\n}",
-    rule: 3,
-    why: "Aunque el `catch` registra el error, el `try` mezcla cuatro pasos con causas distintas: si falla, el mensaje 'Error en el proceso' no dice si fue el usuario, los pedidos o el guardado. Envolver cada operación riesgosa por separado daría un diagnóstico claro.",
-    hint: 'Si algo falla, ¿el mensaje alcanza para saber cuál de los cuatro pasos fue?',
+    options: [
+      "\n} catch {\n  console.log('Algo salió mal');",
+      "\n} catch (error) {\n  console.error('No se pudo enviar la factura:', error);",
+      '\n} catch (error) {\n  // TODO: manejar esto después',
+    ],
+    correct: "\n} catch (error) {\n  console.error('No se pudo enviar la factura:', error);",
+    hint: 'Si mañana alguien lee el registro, ¿sabe qué falló y por qué?',
   },
   {
-    code: "try {\n  await enviarFactura(pedido);\n} catch {\n  console.log('No se pudo enviar la factura');\n}",
-    rule: 2,
-    why: 'El mensaje dice qué operación falló, pero descarta el error real: no queda el código HTTP, el mensaje de la excepción ni el stack. Ante el mismo texto, no se puede distinguir un timeout de un rechazo del servidor.',
-    hint: '¿Qué información sobre la causa del fallo queda después de este `catch`?',
-  },
-  {
-    code: "try {\n  const datos = await obtenerDatos();\n} catch (error) {\n  console.log('Falló obtenerDatos:', error);\n}\ntry {\n  const config = JSON.parse(texto);\n} catch (error) {\n  console.log('Falló el parseo de config:', error);\n}",
-    rule: 0,
-    why: 'Cada operación riesgosa tiene su propio `try`/`catch` y su mensaje identifica cuál falló. Los errores se registran completos, así que el diagnóstico es directo.',
-  },
-  {
-    code: "try {\n  const subtotal = precio * cantidad;\n  const total = subtotal * 1.21;\n  return total;\n} catch (error) {\n  console.log('Error al calcular el total:', error);\n}",
-    rule: 1,
-    why: 'Multiplicar números no puede fallar por un motivo externo: no hay red, ni datos con formato inesperado. El `try` sugiere un riesgo que no existe y agrega ruido al código.',
-    hint: '¿Esta operación puede fallar por algo que venga de afuera, o siempre da un resultado?',
-  },
-  {
-    code: "try {\n  return JSON.parse(texto);\n} catch (error) {\n  console.warn('El texto no es JSON válido:', error);\n  return null;\n}",
-    rule: 0,
-    why: '`JSON.parse` sí puede fallar con un texto inesperado, y el `catch` registra el error real antes de devolver un valor de respaldo. El manejo es necesario y específico.',
-  },
-  {
-    code: "try {\n  const usuario = await obtenerUsuario(id);\n  const facturas = await obtenerFacturas(id);\n  await enviarRecordatorio(usuario.email, facturas);\n} catch (error) {\n  console.log('No se pudo enviar el recordatorio:', error);\n}",
-    rule: 3,
-    why: 'Si falla `obtenerUsuario` o `obtenerFacturas`, el mensaje igual culpa al envío del recordatorio. El `try` abarca tres pasos y el texto del `catch` solo describe el último, así que orienta mal el diagnóstico.',
-    hint: '¿El mensaje del `catch` describe todas las operaciones que están adentro del `try`?',
-  },
-  {
-    code: "try {\n  const nombreNormalizado = nombre.trim().toLowerCase();\n} catch (error) {\n  console.log('Error al normalizar el nombre:', error);\n}",
-    rule: 1,
-    why: '`trim` y `toLowerCase` sobre un `string` no fallan por un motivo externo. Envolverlos en `try`/`catch` no protege de nada real y hace parecer que hay un riesgo que no existe.',
-    hint: '¿Qué operación de este bloque puede fallar por algo externo, como la red o un archivo?',
+    options: ['\n  return;\n}', '\n}', '\n  throw error;\n}'],
+    correct: '\n  throw error;\n}',
+    hint: 'Releé el comentario de arriba: ¿qué tiene que enterarse quien llamó a esta función?',
   },
 ];
+export const SAFE_EXPLANATION =
+  'El cálculo con números no puede fallar por algo externo, así que queda afuera; el `try` envuelve solo el envío. El `catch` registra qué falló con el error real, y `throw error` hace que quien llamó se entere: sin eso, la función terminaría como si hubiera funcionado.';
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {
@@ -129,3 +106,100 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
     ],
   },
 ];
+
+export const FLOW_CODE = `async function exportarReporte(): Promise<void> {
+  await abrirArchivo();
+  try {
+    const datos = await obtenerDatos();
+    await escribir(datos);
+  } catch (error) {
+    console.error('Falló la exportación:', error);
+    throw error;
+  } finally {
+    await cerrarArchivo();
+  }
+}`;
+export const FLOW_START = 'falla';
+export const FLOW_NODES: Record<string, DecisionNode> = {
+  falla: {
+    id: 'falla',
+    situation: '`abrirArchivo()` funciona, pero `obtenerDatos()` falla. ¿Qué se ejecuta a continuación?',
+    options: [
+      {
+        text: '`await escribir(datos);`',
+        correct: false,
+        why: 'Cuando una línea del `try` falla, el resto del `try` no se ejecuta: el control salta directo afuera del bloque. Además, `datos` nunca llegó a tener un valor.',
+      },
+      {
+        text: "`console.error('Falló la exportación:', error);`",
+        correct: true,
+        why: 'El fallo dentro del `try` hace saltar el control al `catch`, que recibe el error en `error`.',
+        next: 'relanza',
+      },
+      {
+        text: '`await cerrarArchivo();`',
+        correct: false,
+        why: 'El `finally` se ejecuta siempre, pero después del `catch`, no en su lugar. Si hay un `catch`, primero se maneja el error ahí.',
+      },
+    ],
+  },
+  relanza: {
+    id: 'relanza',
+    situation: 'Ya se registró el error y se llega a `throw error;`. ¿Qué pasa ahora?',
+    options: [
+      {
+        text: 'Se ejecuta `cerrarArchivo()` y después el error sigue hacia quien llamó a la función.',
+        correct: true,
+        why: 'El `finally` corre siempre, incluso cuando el `catch` relanza: primero cierra el archivo y recién después el error sale de la función.',
+        next: 'llamador',
+      },
+      {
+        text: 'La función se corta en el `throw` y `cerrarArchivo()` no llega a ejecutarse.',
+        correct: false,
+        why: 'Eso pasaría si no hubiera `finally`. Justamente para esto existe: se ejecuta haya error o no, aunque el `catch` vuelva a lanzar.',
+      },
+      {
+        text: 'El error ya quedó manejado en el `catch`, así que la función termina normalmente.',
+        correct: false,
+        why: '`throw error` vuelve a lanzar el mismo error: el `catch` lo registró, pero no lo "resolvió". Sigue viaje hacia arriba.',
+      },
+    ],
+  },
+  llamador: {
+    id: 'llamador',
+    situation: 'Otra función hizo `await exportarReporte()`. ¿Qué recibe?',
+    options: [
+      {
+        text: 'Nada, porque la función declara `Promise<void>`.',
+        correct: false,
+        why: '`void` describe lo que devuelve cuando termina bien. Si la función termina con un error, la Promise se rechaza con ese error, sin importar el tipo de retorno.',
+      },
+      {
+        text: 'Un mensaje genérico, porque el `catch` ya escribió en la consola.',
+        correct: false,
+        why: 'El `console.error` solo deja registro; no cambia el error. Lo que sale de la función es lo que se lanzó con `throw`.',
+      },
+      {
+        text: 'El mismo error que lanzó `obtenerDatos()`, que puede atrapar con su propio `try/catch`.',
+        correct: true,
+        why: '`throw error` relanza el error original sin perder la causa, así que quien llamó recibe exactamente ese error.',
+      },
+    ],
+  },
+};
+export const FLOW_EXPLANATION =
+  'El recorrido completo: el fallo corta el `try` y salta al `catch`; el `catch` registra y relanza; el `finally` se ejecuta igual (el archivo queda cerrado); y el error original llega a quien llamó. Así la función limpia lo que abrió sin esconder que falló.';
+
+export const TRACE_CODE = `Error: El monto de la cuota tiene que ser mayor a 0
+    at validarMonto (src/pagos/validar.ts:6:11)
+    at registrarPago (src/pagos/registrar.ts:23:5)
+    at procesarCuota (src/cuotas/procesar.ts:41:9)
+    at procesarVencimientos (src/cuotas/vencimientos.ts:12:7)`;
+export const STACK_ACCEPTED = ['registrarPago', 'registrarPago()'];
+export const STACK_HINTS = [
+  'La primera línea «at» es donde ocurrió el error. ¿En qué función está?',
+  'El error ocurrió en validarMonto. La traza va de lo más reciente a lo más antiguo: la línea de abajo es quien la llamó.',
+  'Escribí solo el nombre de la función de la segunda línea «at».',
+];
+export const STACK_EXPLANATION =
+  'El `throw` ocurrió en `validarMonto` (`validar.ts`, línea 6), y a esa función la llamó `registrarPago` desde la línea 23 de `registrar.ts`. Leída de abajo hacia arriba, la traza cuenta el recorrido: `procesarVencimientos` → `procesarCuota` → `registrarPago` → `validarMonto`. Para debuggear, lo útil es mirar qué monto le pasó `registrarPago`.';

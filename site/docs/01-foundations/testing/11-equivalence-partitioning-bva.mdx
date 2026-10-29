@@ -7,13 +7,14 @@ import Activity from '@site/src/components/Activity';
 import FindInCode from '@site/src/components/FindInCode';
 import Order from '@site/src/components/Order';
 import Quiz from '@site/src/components/Quiz';
+import FillBlank from '@site/src/components/FillBlank';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
   BOUNDARY_LINES, BOUNDARY_RULE_LABELS,
   BOUNDARY_ORDER_ITEMS, BOUNDARY_ORDER_CORRECT, BOUNDARY_ORDER_RULES,
   APPLIES_QUIZ,
   PRACTICE_LINES, PRACTICE_RULE_LABELS,
-  CLOSING_QUIZ,
+  UPDATE_TEMPLATE, UPDATE_SLOTS, UPDATE_BANK, UPDATE_EXPLANATION,
 } from '@site/src/content/lessons/11-equivalence-partitioning-bva';
 
 export const LESSON_SLUG = 'foundations-test-design';
@@ -83,104 +84,193 @@ export function PracticeActivity() {
   );
 }
 
-export function ClosingQuizActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['quiz']);
+export function UpdateActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['update']);
   return (
     <Activity
-      title="Límites completos y vigentes"
-      kind="Elegí la opción"
-      goal="aplicar EP y BVA para decidir si un conjunto de valores cubre los límites y las particiones."
-      done={isDone('quiz')}
-      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+      title="Actualizá los límites"
+      kind="Completar huecos"
+      goal="recalcular los cuatro valores límite cuando cambia la regla, sin arrastrar los del plan viejo."
+      done={isDone('update')}
+      consigna="La reserva de vuelos aceptaba entre 1 y 9 pasajeros, y el plan probaba 0, 1, 9 y 10. La regla cambió: ahora el máximo es 6. Completá los cuatro huecos con los valores límite vigentes (cada ficha se usa una vez y sobran algunas); clickeá un hueco para vaciarlo. La actividad se completa cuando los cuatro quedan bien."
     >
-      <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+      <FillBlank
+        template={UPDATE_TEMPLATE}
+        slots={UPDATE_SLOTS}
+        bank={UPDATE_BANK}
+        explanation={UPDATE_EXPLANATION}
+        alreadyDone={isDone('update')}
+        onSolved={() => markDone('update')}
+      />
     </Activity>
   );
 }
 
 ## Conceptos
 
-**Equivalence partitioning (EP)** divide los valores posibles de una entrada en
-particiones: grupos que el sistema debería tratar de la misma forma. La idea
-detrás de la técnica es que, si un valor de una partición revela un defecto,
-cualquier otro valor de la misma partición también lo revelaría. Por eso
-alcanza con probar un representante de cada partición, en vez de agotar
-todos los valores posibles.
+El principio de que el testing exhaustivo es imposible plantea una
+pregunta práctica: si no se pueden probar todos los valores, ¿cuáles se
+eligen? Equivalence partitioning y boundary value analysis son las dos
+técnicas de caja negra que responden esa pregunta para cualquier dato de
+entrada, y casi siempre se usan juntas.
 
-Para el campo contraseña de un formulario, con la regla "entre 8 y 64
-caracteres", hay tres particiones:
+### Equivalence partitioning
 
-| Partición | Ejemplo | ¿Válida? |
+**Equivalence partitioning** (EP, partición de equivalencia) divide los
+valores posibles de un dato en **particiones**: grupos de valores que el
+sistema debería procesar de la misma manera. La idea en la que se apoya
+es que, si un valor de una partición revela un defecto, cualquier otro
+valor de esa misma partición lo revelaría también. Por eso alcanza con
+probar un valor de cada partición.
+
+Tomemos el monto de una transferencia, con esta regla: debe estar entre
+$100 y $250.000, admite hasta dos decimales y es obligatorio. El primer
+paso es identificar las particiones, válidas e inválidas:
+
+- **Válida:** montos entre $100 y $250.000 con hasta dos decimales.
+- **Inválida, por debajo del mínimo:** montos menores a $100.
+- **Inválida, por encima del máximo:** montos mayores a $250.000.
+- **Inválida, con más de dos decimales:** por ejemplo, $150,505.
+- **Inválida, no numérica:** por ejemplo, «cien».
+- **Inválida, vacía:** el campo sin completar.
+
+Las particiones no se superponen y ninguna está vacía: cada valor posible
+cae en exactamente una. Las inválidas se separan porque el sistema las
+rechaza por motivos distintos, y cada motivo puede tener su propio
+defecto: que rechace los montos bajos no dice nada sobre si rechaza las
+letras. La partición vacía merece atención aparte, porque los sistemas
+suelen tratar la ausencia de valor con una lógica distinta («Ingresá un
+monto» en lugar de «El monto mínimo es $100»).
+
+Con un valor por partición, el set queda así:
+
+| Partición | Valor elegido | Resultado esperado |
 |---|---|---|
-| Muy corta | 3 caracteres | No |
-| Rango válido | 8 a 64 caracteres | Sí |
-| Muy larga | 70 caracteres | No |
+| Válida | $5.000 | Se acepta |
+| Debajo del mínimo | $50 | «El monto mínimo es $100» |
+| Encima del máximo | $300.000 | «El monto máximo es $250.000» |
+| Más de dos decimales | $150,505 | «Ingresá hasta dos decimales» |
+| No numérica | «cien» | «Ingresá un monto válido» |
+| Vacía | (sin dato) | «Ingresá un monto» |
 
-**Boundary value analysis (BVA)** se aplica sobre esas mismas particiones,
-pero en vez de un representante cualquiera, prueba específicamente los
-límites: el último valor válido y el primer valor inválido de cada lado.
-Se usa junto con equivalence partitioning porque un error en la condición
-que separa dos particiones (un `<` donde debería ir un `<=`) casi nunca se
-nota en el medio de una partición — solo en el valor exacto del límite.
+En EP, los elementos a cubrir son las particiones. La **cobertura** se
+calcula como particiones probadas sobre particiones identificadas: este
+set cubre 6 de 6, el 100%. Agregar $10.000 o $80.000 no suma cobertura,
+porque están en la misma partición que $5.000.
 
-Para el ejemplo de arriba, los límites a probar son 7 y 8 (el borde de
-abajo) y 64 y 65 (el borde de arriba).
+Las particiones no tienen que ser rangos de números. La misma técnica se
+aplica a un conjunto de opciones. Si la transferencia permite pagar en 1,
+3, 6 o 12 cuotas, cada valor es una partición válida si el sistema lo
+trata distinto (por ejemplo, porque cada uno tiene otro interés), y
+cualquier otro valor, como 2 o 24 cuotas, forma una partición inválida.
+
+#### Varios datos a la vez
+
+Cuando una funcionalidad tiene varios datos de entrada, cada uno tiene
+sus propias particiones. El criterio más simple para cubrirlas se llama
+**Each Choice**: cada partición de cada dato tiene que aparecer en al
+menos un caso. No hace falta combinar todas las particiones de un dato
+con todas las del otro. Para el monto (seis particiones) y las cuotas
+(cuatro válidas y una inválida), un caso puede cubrir a la vez una
+partición de cada uno: el monto $5.000 con 3 cuotas cubre dos particiones
+de una sola vez. Con seis casos bien elegidos se recorren todas.
+
+Lo que Each Choice no cubre son las combinaciones. Si el banco no permite
+financiar en 12 cuotas montos menores a $20.000, la regla depende de la
+combinación de dos datos, y eso requiere otra técnica: las decision
+tables, en la lección siguiente.
+
+### Boundary value analysis
+
+EP elige un valor cualquiera dentro de cada partición. **Boundary value
+analysis** (BVA, análisis de valores límite) apunta a los **bordes** de
+las particiones, porque ahí es donde se concentran los errores de
+implementación: una condición escrita con `<` en lugar de `<=`, un límite
+desplazado en uno, un borde que directamente no se programó. Por la misma
+razón, BVA solo se aplica a particiones **ordenadas**, donde tiene
+sentido hablar de un valor "anterior" y uno "siguiente".
+
+En el monto de la transferencia hay dos bordes. Como el dato admite dos
+decimales, el valor vecino de cada borde está a un centavo de distancia:
+
+- Borde inferior: $100 es el mínimo válido, y su vecino inválido es
+  $99,99.
+- Borde superior: $250.000 es el máximo válido, y su vecino inválido es
+  $250.000,01.
+
+Estos cuatro valores corresponden a la versión de **dos valores** de BVA:
+por cada borde, el borde mismo y su vecino más cercano en la partición de
+al lado. Un error en el operador aparece al instante: si alguien
+programó `monto > 100` en lugar de `monto >= 100`, $100 se rechaza y el
+caso falla.
+
+La versión de **tres valores** agrega, por cada borde, también el vecino
+del lado de adentro: en el borde inferior se prueban $99,99, $100 y
+$100,01; en el superior, $249.999,99, $250.000 y $250.000,01. Es más
+rigurosa porque detecta defectos que la versión de dos valores deja pasar.
+Si una condición que debía ser `x <= 10` quedó escrita como `x == 10`, los
+valores 10 y 11 dan exactamente el resultado esperado (10 se acepta y 11
+se rechaza), y el defecto pasa inadvertido. El 9, que solo aparece en la
+versión de tres valores, se rechaza cuando debería aceptarse, y lo
+revela.
+
+La elección entre las dos versiones depende del riesgo: la de tres valores
+duplica casi el trabajo, y se justifica en reglas donde un error en el
+borde es caro, como un monto de dinero.
+
+### EP y BVA juntas
+
+En la práctica, las dos técnicas se aplican juntas sobre el mismo dato.
+BVA reemplaza a los representantes de EP en las particiones ordenadas,
+porque un borde también pertenece a su partición: $99,99 cubre la
+partición "debajo del mínimo" y además prueba su borde. EP sigue aportando
+las particiones que no tienen bordes, como la no numérica y la vacía.
+Para el monto, con BVA de dos valores, el set queda en ocho casos:
+
+```text
+$99,99        borde inferior, lado inválido
+$100          borde inferior, lado válido
+$5.000        representante de la partición válida
+$250.000      borde superior, lado válido
+$250.000,01   borde superior, lado inválido
+$150,505      más de dos decimales
+«cien»        no numérico
+(vacío)       sin dato
+```
+
+### Cuando la regla cambia
+
+Los valores elegidos dependen de la regla vigente. Si el monto mínimo pasa
+de $100 a $500, los bordes pasan a ser $499,99 y $500. Un set que sigue
+probando $99,99 y $100 da una falsa sensación de cobertura: los dos
+valores ahora caen en la partición inválida, y el borde real queda sin
+probar. Por eso cada caso documenta qué partición o qué borde representa,
+y cuando cambia una regla se revisan los casos que trazan a ella.
 
 ## Cuándo usarlo
 
-Equivalence partitioning aplica a cualquier campo o condición que acepte
-un rango o un conjunto de valores posibles. Boundary value analysis, en
-cambio, solo tiene sentido sobre particiones **ordenadas** (rangos
-numéricos, longitudes, fechas): necesita un límite entre un valor y el
-siguiente, y eso solo existe cuando hay un orden. Una condición sin orden,
-como un checkbox tildado o destildado, no tiene un límite que analizar.
-
-Usar BVA no reemplaza a EP — se suma. Primero se definen las particiones;
-después se decide cuáles de ellas están ordenadas y tienen límites para
-analizar.
+EP se aplica a cualquier dato que el sistema reciba o produzca: campos de
+formularios, parámetros, opciones de configuración, valores de tiempo.
+BVA se suma siempre que las particiones estén ordenadas (números, fechas,
+largos de texto) y es la técnica que más rinde cuando el tiempo es
+limitado, porque los errores en los bordes son de los más frecuentes.
 
 ## Buenas prácticas
 
-- **Un representante por partición alcanza.** Si un valor de una partición
-  revela un defecto, cualquier otro valor de esa misma partición también
-  lo revelaría — agregar un segundo valor "por las dudas" no suma
-  información nueva, solo tiempo de ejecución.
-- **Para cada límite, probar los dos lados**: el último valor válido y el
-  primer valor inválido. Un error de operador (`<` en vez de `<=`) solo se
-  nota comparando ambos lados — probar uno solo deja pasar la mitad de los
-  defectos posibles ahí.
-- **Documentar qué partición representa cada valor elegido**, no solo el
-  valor en sí. Un caso que dice "probar con 8 caracteres" sin explicar que
-  es el límite inferior obliga a quien lo lea después a reconstruir esa
-  razón, o directamente a no entenderla.
-- **Revisar las particiones cada vez que cambie la regla de negocio.** Si
-  el mínimo de caracteres pasa de 8 a 10, los valores límite viejos (7 y
-  8) dejan de ser los límites reales — un caso que sigue probando esos
-  números da una falsa sensación de cobertura sin probar nada del límite
-  actual.
-- **Priorizar boundary value analysis cuando el tiempo es limitado.** Un
-  defecto de límite (un operador de comparación mal escrito) es más común
-  y más fácil de introducir sin querer que un defecto que afecte a una
-  partición completa — por eso rinde más por el mismo esfuerzo.
+- Separar las particiones inválidas por motivo de rechazo.
+- Incluir siempre la partición de ausencia de valor.
+- Probar los dos lados de cada borde.
+- Usar la precisión real del dato para elegir el vecino (un centavo, un
+  día, un carácter).
+- Documentar qué partición o borde representa cada valor.
 
 ## Anti-patrones
 
-- **Probar varios valores de la misma partición** "por las dudas" — no
-  agrega cobertura nueva, solo tiempo de ejecución, porque la técnica
-  asume que todos los valores de una partición se comportan igual.
-- **Probar el límite de un solo lado.** Confirmar que 8 caracteres es
-  válido pero no confirmar que 7 es inválido deja pasar un error de
-  operador que afecte solo a ese lado.
-- **Aplicar boundary value analysis sobre una condición sin orden**, como
-  un checkbox — ahí no existe un límite que analizar, porque no hay un
-  "antes" ni un "después".
-- **Olvidarse de la partición de ausencia de valor** (vacío, `null`, campo
-  sin completar). Es una clase inválida distinta de "muy corto", y un
-  sistema real suele manejarla con una lógica separada (un mensaje de
-  "campo obligatorio" en vez de "demasiado corto").
-- **Elegir un límite "redondo" en vez del límite real.** Probar 10 y 100
-  porque son números cómodos, cuando la regla real dice 8 y 64, no prueba
-  nada sobre el límite que el sistema realmente usa.
+- **Probar varios valores de la misma partición** "por las dudas".
+- **Probar un borde de un solo lado**.
+- **Aplicar BVA a datos sin orden**, como un checkbox.
+- **Olvidar la partición vacía**.
+- **Elegir valores "redondos"** en lugar de los bordes reales de la regla.
 
 ## Práctica
 
@@ -194,4 +284,4 @@ Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es ind
 
 <PracticeActivity />
 
-<ClosingQuizActivity />
+<UpdateActivity />

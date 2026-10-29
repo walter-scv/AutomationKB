@@ -1,3 +1,4 @@
+import type {MatchItem} from '@site/src/components/Match';
 import type {QuizQuestion} from '@site/src/components/Quiz';
 import type {OrderItem, OrderRule} from '@site/src/components/Order';
 import type {CodeLine} from '@site/src/components/FindInCode';
@@ -83,3 +84,28 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
     ],
   },
 ];
+
+export const READ_GIT_LEFT: MatchItem[] = [
+  {id: 'staged', text: '`git status` lista `turnos.ts` solo bajo «Changes to be committed».'},
+  {id: 'modified', text: '`git status` lista `README.md` solo bajo «Changes not staged for commit».'},
+  {id: 'untracked', text: '`git status` lista `borrador.txt` bajo «Untracked files».'},
+  {id: 'both', text: '`git status` lista `agenda.ts` en «Changes to be committed» y también en «Changes not staged for commit».'},
+  {id: 'head', text: '`git log` muestra `commit 9c41e07... (HEAD -> main)` en la primera entrada.'},
+  {id: 'headprev', text: 'Un comando se refiere a `HEAD~1`.'},
+];
+export const READ_GIT_RIGHT: MatchItem[] = [
+  {id: 'both', text: 'Se agregó con `git add` y después se volvió a editar: el último cambio queda afuera si no se agrega otra vez.'},
+  {id: 'headprev', text: 'El commit anterior al actual.'},
+  {id: 'untracked', text: 'Es nuevo y Git nunca lo agregó: no entra en ningún commit hasta que se lo agregue.'},
+  {id: 'head', text: 'Es el commit sobre el que se está trabajando: el último de la rama main.'},
+  {id: 'staged', text: 'Tiene un cambio preparado: entra completo en el próximo commit.'},
+  {id: 'modified', text: 'Cambió desde el último commit, pero si se confirma ahora, ese cambio queda afuera.'},
+];
+export const READ_GIT_WHY: Record<string, string> = {
+  staged: '«Changes to be committed» es el staging area: lo que va a entrar en el próximo commit.',
+  modified: '«Changes not staged for commit» son cambios en el working directory que todavía no se agregaron.',
+  untracked: '«Untracked files» son archivos que Git ve pero no sigue.',
+  both: 'Aparecer en los dos bloques significa que hay una versión en staging y otra más nueva sin agregar.',
+  head: '`HEAD -> main` indica que HEAD apunta a la rama main, y main a ese commit.',
+  headprev: '`HEAD~1` es el padre del commit actual; `HEAD~2`, el anterior a ese.',
+};

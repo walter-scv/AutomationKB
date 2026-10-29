@@ -1,0 +1,72 @@
+.trail {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trailDone,
+.trailCurrent {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  border-left: 3px solid var(--akb-line);
+}
+
+.trailDone {
+  color: var(--akb-muted);
+  background: var(--akb-panel);
+}
+
+.trailCurrent {
+  color: var(--akb-ink);
+  background: var(--ifm-background-surface-color);
+  border-left-color: var(--akb-accent);
+  font-weight: 600;
+}
+
+.options {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.option {
+  text-align: left;
+  background: var(--ifm-background-surface-color);
+  color: var(--akb-ink);
+  border: 1px solid var(--akb-line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.option:hover {
+  border-color: var(--akb-accent);
+  box-shadow: var(--akb-glow-accent);
+}
+
+.reset {
+  border: 1px solid var(--akb-line);
+  background: transparent;
+  color: var(--akb-muted);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.reset:hover {
+  border-color: var(--akb-accent);
+  color: var(--akb-ink);
+}
+
+.counter {
+  font-size: 0.9rem;
+  color: var(--akb-muted);
+  margin-top: 4px;
+}

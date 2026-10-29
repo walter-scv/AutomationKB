@@ -5,11 +5,13 @@ sidebar_position: 14
 
 import Activity from '@site/src/components/Activity';
 import Quiz from '@site/src/components/Quiz';
+import Match from '@site/src/components/Match';
+import MultiSelect from '@site/src/components/MultiSelect';
 import FindInCode from '@site/src/components/FindInCode';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  TECHNIQUE_QUIZ,
-  USAGE_QUIZ,
+  TECHNIQUE_MATCH_LEFT, TECHNIQUE_MATCH_RIGHT, TECHNIQUE_MATCH_WHY,
+  USAGE_QUESTIONS,
   PRACTICE_LINES, PRACTICE_RULE_LABELS,
   CLOSING_QUIZ,
 } from '@site/src/content/lessons/14-tecnicas-basadas-en-experiencia';
@@ -17,16 +19,24 @@ import {
 export const LESSON_SLUG = 'foundations-tecnicas-basadas-en-experiencia';
 
 export function TechniqueActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['technique']);
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['techniquematch']);
   return (
     <Activity
       title="¿Qué técnica es esta?"
-      kind="Elegí la opción"
-      goal="reconocer error guessing, testing exploratorio y testing basado en checklists a partir de una situación concreta."
-      done={isDone('technique')}
-      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+      kind="Emparejar"
+      goal="distinguir error guessing, testing exploratorio y testing basado en checklists entre sí, y de una técnica formal."
+      done={isDone('techniquematch')}
+      consigna="Son 4 situaciones y 4 técnicas: cada técnica corresponde a exactamente una situación, y una de las cuatro no es basada en experiencia. Elegí una situación y después su técnica (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste las 4."
     >
-      <Quiz questions={TECHNIQUE_QUIZ} onSolved={() => markDone('technique')} />
+      <Match
+        left={TECHNIQUE_MATCH_LEFT}
+        right={TECHNIQUE_MATCH_RIGHT}
+        leftLabel="Situación"
+        rightLabel="Técnica"
+        why={TECHNIQUE_MATCH_WHY}
+        alreadyDone={isDone('techniquematch')}
+        onSolved={() => markDone('techniquematch')}
+      />
     </Activity>
   );
 }
@@ -36,12 +46,16 @@ export function UsageActivity() {
   return (
     <Activity
       title="¿Tiene sentido acá?"
-      kind="Elegí la opción"
-      goal="distinguir cuándo una técnica basada en experiencia alcanza y cuándo hace falta combinarla con una técnica formal."
+      kind="Marcar todas"
+      goal="reconocer en qué contextos rinden las técnicas basadas en experiencia y en cuáles no alcanzan solas."
       done={isDone('usage')}
-      consigna="Son 3 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 3 están bien."
+      consigna="Es 1 pregunta con 5 situaciones. Marcá todas en las que tiene sentido apoyarse en técnicas basadas en experiencia; dejá sin marcar las que las usan donde no alcanzan o sin lo que necesitan. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
     >
-      <Quiz questions={USAGE_QUIZ} onSolved={() => markDone('usage')} />
+      <MultiSelect
+        questions={USAGE_QUESTIONS}
+        alreadyDone={isDone('usage')}
+        onSolved={() => markDone('usage')}
+      />
     </Activity>
   );
 }
@@ -80,77 +94,163 @@ export function ClosingQuizActivity() {
 
 ## Conceptos
 
-Las técnicas anteriores (equivalence partitioning, boundary value
-analysis, decision tables, state transition testing) son formales y
-sistemáticas: parten de una especificación y derivan los casos de ella.
-Pero no siempre hay tiempo, ni documentación completa, para aplicarlas al
-pie de la letra. Para eso existen tres técnicas basadas en la experiencia
-de quien testea:
+Las técnicas de caja negra vistas hasta acá derivan los casos de una
+especificación. Pero las especificaciones nunca anticipan todo, a veces
+están incompletas y no siempre hay tiempo para aplicar una técnica formal
+a cada funcionalidad. Las **técnicas basadas en la experiencia** usan el
+conocimiento de quien prueba (cómo falló el sistema antes, qué errores
+suele cometer un equipo, qué falla en aplicaciones parecidas) para
+encontrar defectos que las técnicas sistemáticas no buscan. Las tres
+principales son error guessing, testing exploratorio y testing basado en
+checklists.
 
-**Error guessing** usa la experiencia previa (defectos típicos, historial
-de bugs en sistemas parecidos) para anticipar dónde es más probable que
-haya un defecto, y diseña casos puntuales para esas sospechas — en vez de
-derivarlos de una especificación. Un campo de "cantidad" en un carrito de
-compras suele fallar con `0` o con números negativos, aunque la
-especificación nunca lo mencione.
+Los ejemplos de esta lección usan la misma funcionalidad: la carga de
+documentos adjuntos en un trámite online, que acepta archivos PDF o JPG de
+hasta 5 MB.
 
-**Testing exploratorio** hace el diseño y la ejecución al mismo tiempo: se
-aprende del sistema mientras se prueba, y lo que se va encontrando guía la
-siguiente acción, en vez de seguir un script fijo definido de antemano. No
-es "probar sin ningún criterio": tiene un objetivo (un área o un riesgo a
-explorar), pero no pasos predefinidos.
+### Error guessing
 
-**Testing basado en checklists** usa una lista de alto nivel de
-condiciones a cubrir — por ejemplo, una checklist de accesibilidad básica
-o de campos obligatorios — sin que cada ítem tenga un caso de test
-detallado escrito de antemano.
+**Error guessing** consiste en anticipar dónde es probable que haya
+errores, defectos o fallos, y diseñar pruebas específicamente para esas
+sospechas. Se apoya en cómo funcionó la aplicación en el pasado, en los
+tipos de error que tienden a cometer los desarrolladores y en los fallos
+vistos en aplicaciones similares.
+
+Para no depender solo de la memoria, conviene recorrer las categorías en
+las que suelen aparecer los problemas. Aplicadas a la carga de
+documentos:
+
+- **Entrada:** un archivo de 0 bytes; uno de exactamente 5 MB y otro de
+  5,01 MB; la extensión en mayúsculas (`.PDF`); un nombre con tildes,
+  espacios o 200 caracteres; un ejecutable renombrado como `.pdf`.
+- **Salida:** ¿el nombre del archivo se muestra igual que como se subió,
+  o con caracteres extraños?
+- **Lógica:** subir el mismo archivo dos veces; eliminar un adjunto y
+  volver a subirlo; enviar el trámite sin ningún adjunto.
+- **Interfaces:** cortar la conexión a mitad de la carga; subir desde el
+  celular con la cámara en lugar de un archivo.
+- **Datos:** ¿qué queda guardado si la carga se interrumpe: un archivo
+  incompleto, o nada?
+
+Cuando esta lista se arma de forma deliberada y se usa para diseñar
+pruebas que provoquen esos fallos, se la llama **ataque de fallos**
+(*fault attack*). Las listas más útiles salen del historial real: si en
+el último año hubo tres incidentes con nombres de archivo con tildes en
+este sistema, esa prueba va primero. La experiencia sirve para saber
+dónde mirar, no para dar por hecho qué va a fallar: los defectos típicos
+de una tienda online no tienen por qué repetirse en un sistema de
+trámites.
+
+### Testing exploratorio
+
+En el **testing exploratorio**, las pruebas se diseñan, se ejecutan y se
+evalúan al mismo tiempo, mientras quien prueba aprende sobre el sistema:
+lo que se observa en una prueba decide la siguiente. No es probar sin
+criterio. Para que tenga dirección y se pueda evaluar, se organiza en
+**sesiones**, cada una con un tiempo definido (*timebox*) y un **charter**
+que fija el objetivo:
+
+```text
+Charter:   Explorar la carga de adjuntos con archivos límite y conexiones
+           inestables, para encontrar casos en que el trámite quede con
+           documentos incompletos.
+Timebox:   60 minutos
+```
+
+Durante la sesión se registra lo que se hace y lo que se encuentra, en una
+hoja de sesión:
+
+```text
+Hoja de sesión — 12/11, 10:00 a 11:00
+10:05  PDF de 4,9 MB: se carga bien.
+10:12  PDF de 5,2 MB: mensaje «El archivo supera el máximo». OK.
+10:20  Corto el wifi al 50% de un PDF de 4 MB: la barra queda detenida,
+       sin mensaje. Al volver la conexión, el adjunto figura como cargado.
+       → Descargarlo: el archivo está incompleto (2 MB). DEF-501.
+10:38  Siguiendo lo anterior: cierro la pestaña a mitad de carga. Mismo
+       resultado: queda un adjunto incompleto. Se agrega a DEF-501.
+10:50  Ideas para otra sesión: cargas en paralelo de varios archivos.
+```
+
+La sesión termina con un **debriefing**: una conversación breve con quien
+necesita los resultados, en la que se repasa qué se cubrió, qué se
+encontró y qué conviene explorar después. Registrar a medida que se
+avanza no es un detalle: sin casos escritos de antemano, la hoja de sesión
+es la única evidencia de qué se probó.
+
+El testing exploratorio rinde especialmente cuando la especificación es
+escasa, cuando hay poco tiempo y como complemento de las técnicas
+formales. Dentro de una sesión se pueden usar otras técnicas: el PDF de
+4,9 MB y el de 5,2 MB son, en el fondo, un boundary value analysis
+improvisado.
+
+### Testing basado en checklists
+
+En el **testing basado en checklists**, las pruebas se diseñan y ejecutan
+para cubrir una lista de condiciones de alto nivel. A diferencia de un
+caso de prueba, cada ítem dice **qué revisar**, no con qué datos ni qué
+resultado exacto esperar. Los ítems se suelen escribir como preguntas, y
+cada uno tiene que poder comprobarse por separado y de forma directa:
+
+```text
+Checklist — Carga de archivos
+¿Se rechaza un archivo con un formato no permitido, con un mensaje que indica los permitidos?
+¿Se rechaza un archivo que supera el tamaño máximo, indicando cuál es el máximo?
+¿Se puede eliminar un adjunto antes de enviar?
+¿Si la carga se interrumpe, el adjunto queda descartado y no como cargado?
+¿El nombre del archivo se muestra igual que como se subió?
+```
+
+Una checklist útil no incluye ítems demasiado generales ("¿funciona bien
+la carga?"), ni cosas que se pueden verificar automáticamente, ni
+condiciones que en realidad son criterios para empezar o terminar el
+testing. Y se mantiene viva: el cuarto ítem se agregó después de DEF-501,
+y los ítems que ya nunca encuentran nada, porque el equipo aprendió a
+evitar ese error, se pueden retirar, cuidando que la lista no crezca sin
+control. Una checklist armada con los defectos reales del propio sistema
+es mucho más efectiva que una lista genérica copiada de otro proyecto.
+
+Como los ítems son de alto nivel, dos personas pueden ejecutar la misma
+checklist de formas algo distintas: eso puede ampliar la cobertura, pero
+reduce la repetibilidad. Por eso una checklist da consistencia cuando no
+hay casos detallados, pero no reemplaza a un caso formal donde hace falta
+un resultado exacto.
+
+### Cómo se combinan con las técnicas formales
+
+Las técnicas basadas en la experiencia complementan a las formales; no las
+reemplazan. En la carga de documentos, los casos de boundary value
+analysis sobre el tamaño máximo confirman la regla especificada; el error
+guessing y la sesión exploratoria encontraron el adjunto incompleto, que
+ninguna regla mencionaba. En un sistema crítico, depender solo de la
+experiencia de una persona deja sin cubrir sus puntos ciegos: la
+cobertura formal es el respaldo.
 
 ## Cuándo usarlo
 
-Estas tres técnicas rinden más cuando quien testea ya tiene experiencia en
-el dominio o en el tipo de sistema, cuando falta tiempo o documentación
-para diseñar casos formales, o como complemento de la cobertura formal:
-encuentran lo que las técnicas sistemáticas no anticiparon. No reemplazan
-a las técnicas formales en sistemas críticos — ahí, la experiencia de una
-sola persona no garantiza cobertura completa.
+Estas técnicas rinden más cuando quien prueba conoce el dominio o el tipo
+de sistema, cuando falta tiempo o documentación para diseñar casos
+formales y como complemento de la cobertura formal, para encontrar lo que
+la especificación no anticipó.
 
 ## Buenas prácticas
 
-- **Documentar los hallazgos del testing exploratorio a medida que
-  aparecen**, para no perder trazabilidad de qué se probó — al final de
-  una sesión larga es fácil olvidar lo primero que se encontró.
-- **Usar una checklist como punto de partida**, no como reemplazo total de
-  casos formales en áreas críticas — marca qué revisar, pero no decide
-  por sí sola con qué datos ni qué resultado exacto esperar.
-- **Combinar error guessing con las técnicas formales, no en su lugar**:
-  sirve para sumar casos que la especificación no cubre, no para
-  reemplazarla.
-- **Armar la checklist a partir de defectos reales encontrados antes**
-  (post-mortems, bugs recurrentes), no de una lista genérica copiada de
-  otro proyecto — una lista genérica cubre lo obvio, no los puntos débiles
-  específicos de este sistema.
-- **Darle un objetivo y un timebox a cada sesión de testing
-  exploratorio.** Sin un límite de tiempo, es difícil saber cuándo la
-  sesión "terminó" o comparar qué tan productiva fue una sesión contra
-  otra.
+- Armar las listas de error guessing y las checklists a partir de los
+  defectos reales del sistema.
+- Dar a cada sesión exploratoria un charter y un timebox.
+- Registrar los hallazgos durante la sesión, no al final.
+- Revisar periódicamente las checklists: agregar lo nuevo y retirar lo
+  que ya no aporta.
 
 ## Anti-patrones
 
-- **Depender solo de técnicas basadas en experiencia** para un sistema
-  crítico, sin ninguna cobertura formal — la experiencia de una persona
-  tiene puntos ciegos.
-- **No documentar el testing exploratorio**: sin registro, nadie (ni quien
-  lo hizo) puede reconstruir después qué se cubrió.
-- **Confundir una checklist con un caso de test formal** y asumir que
-  cubre lo mismo — una checklist dice qué revisar, no con qué datos ni qué
-  resultado exacto esperar.
-- **Dejar que el testing exploratorio reemplace por completo la
-  planificación de testing** — sin ningún objetivo ni timebox, una sesión
-  puede terminar cubriendo lo mismo una y otra vez, sin que nadie note qué
-  quedó sin tocar.
-- **Aplicar a ciegas la experiencia de un sistema completamente
-  distinto**, asumiendo que los mismos defectos van a aparecer acá — la
-  experiencia sugiere dónde mirar, no garantiza qué va a fallar.
+- **Depender solo de técnicas basadas en experiencia** en un sistema
+  crítico.
+- **No documentar el testing exploratorio**.
+- **Confundir una checklist con un caso de test formal**.
+- **Reemplazar la planificación por exploración sin objetivo ni
+  timebox**.
+- **Aplicar a ciegas la experiencia de un sistema distinto**.
 
 ## Práctica
 

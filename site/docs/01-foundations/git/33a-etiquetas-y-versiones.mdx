@@ -1,0 +1,241 @@
+---
+title: "Etiquetas y versiones"
+sidebar_position: 33.5
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import DecisionPath from '@site/src/components/DecisionPath';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  SEMVER_LEFT,
+  SEMVER_RIGHT,
+  SEMVER_WHY,
+  TAG_PREFIX,
+  TAG_STEPS,
+  TAG_EXPLANATION,
+  HOTFIX_START,
+  HOTFIX_NODES,
+  HOTFIX_EXPLANATION,
+} from '@site/src/content/lessons/33a-etiquetas-y-versiones';
+
+export const LESSON_SLUG = 'foundations-etiquetas-y-versiones';
+
+export function SemverActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['semver']);
+  return (
+    <Activity
+      title="Qué número sube"
+      kind="Emparejar"
+      goal="relacionar cada tipo de cambio con el número de versión que corresponde según el versionado semántico."
+      done={isDone('semver')}
+      consigna="Son 4 pares: cada cambio corresponde a exactamente una versión. Elegí un cambio y después su versión (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste los 4."
+    >
+      <Match
+        left={SEMVER_LEFT}
+        right={SEMVER_RIGHT}
+        why={SEMVER_WHY}
+        leftLabel="Cambio"
+        rightLabel="Versión"
+        alreadyDone={isDone('semver')}
+        onSolved={() => markDone('semver')}
+      />
+    </Activity>
+  );
+}
+
+export function TagBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['tagbuilder']);
+  return (
+    <Activity
+      title="Etiquetá la versión"
+      kind="Armar"
+      goal="armar el comando que crea una etiqueta anotada con nombre semántico y mensaje."
+      done={isDone('tagbuilder')}
+      consigna="El equipo terminó de probar la versión que agrega los turnos online, la primera funcionalidad nueva desde la v3.0.3. Armá el comando para etiquetarla, eligiendo un fragmento por paso; el siguiente aparece recién al acertar el anterior. La actividad se completa cuando el comando queda armado."
+    >
+      <CommandBuilder
+        prefix={TAG_PREFIX}
+        steps={TAG_STEPS}
+        explanation={TAG_EXPLANATION}
+        alreadyDone={isDone('tagbuilder')}
+        onSolved={() => markDone('tagbuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function HotfixActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['hotfix']);
+  return (
+    <Activity
+      title="Un defecto en la versión de producción"
+      kind="Escenario encadenado"
+      goal="reproducir un defecto sobre la versión publicada y preparar su corrección sin arrastrar lo nuevo de main."
+      done={isDone('hotfix')}
+      consigna="Vas a tomar tres decisiones seguidas sobre un mismo defecto reportado en producción: dónde reproducirlo, desde dónde corregirlo y qué versión liberar. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al final."
+    >
+      <DecisionPath
+        startId={HOTFIX_START}
+        nodes={HOTFIX_NODES}
+        explanation={HOTFIX_EXPLANATION}
+        alreadyDone={isDone('hotfix')}
+        onSolved={() => markDone('hotfix')}
+      />
+    </Activity>
+  );
+}
+
+Ya sabés deshacer cambios y moverte por el historial. Falta poder nombrar los puntos del historial que importan: las versiones que se liberan, para volver a ellas cuando aparece un defecto.
+
+## Conceptos
+
+Los commits se identifican con códigos como `e41b7c2`, que sirven para
+Git pero no para conversar. Cuando el equipo dice "la versión 2.4 está en
+producción" o "el defecto aparece desde la 2.5", necesita una forma de
+asociar ese nombre con un commit exacto. Para eso existen las
+**etiquetas** (*tags*): nombres fijos que señalan un commit puntual del
+historial, normalmente el de cada versión que se libera.
+
+A diferencia de una rama, una etiqueta no avanza: `v2.4.0` apunta siempre
+al mismo commit, aunque después se sigan sumando commits a `main`. Por eso
+permite volver, meses más tarde, exactamente al código que se liberó.
+
+### Cómo se numeran las versiones
+
+La convención más extendida para los nombres de versión es el
+**versionado semántico** (*semantic versioning*): tres números separados
+por puntos, `MAYOR.MENOR.PARCHE`, normalmente con una `v` adelante. Cada
+número sube por un tipo de cambio distinto:
+
+- **PARCHE** (`v2.4.0` → `v2.4.1`) cuando se corrigen defectos sin agregar
+  funcionalidad.
+- **MENOR** (`v2.4.1` → `v2.5.0`) cuando se agrega funcionalidad que sigue
+  siendo compatible con lo anterior. El parche vuelve a cero.
+- **MAYOR** (`v2.5.0` → `v3.0.0`) cuando hay cambios incompatibles: algo
+  que funcionaba deja de funcionar igual. Los otros dos vuelven a cero.
+
+Además, una versión puede llevar un sufijo de **pre-release**, como
+`v3.0.0-rc.1` (*release candidate*): una versión candidata que todavía se
+está probando antes de la definitiva. Para quien testea, el número dice
+qué esperar: una versión de parche no debería traer comportamiento nuevo,
+y una mayor exige revisar todo lo que pudo cambiar.
+
+### Ver y crear etiquetas
+
+```bash
+$ git tag
+v2.3.0
+v2.4.0
+v2.4.1
+```
+
+`git tag` lista las etiquetas en orden alfabético. Con un patrón se
+filtran: `git tag -l "v2.4*"` muestra solo las de la versión 2.4.
+
+Hay dos tipos de etiqueta. Una **etiqueta ligera** es solo un nombre que
+apunta a un commit. Una **etiqueta anotada** guarda además quién la creó,
+cuándo y un mensaje, y es la que se recomienda para versiones. Se crea con
+`-a` y `-m`, sobre el commit actual:
+
+```bash
+$ git tag -a v2.5.0 -m "Versión 2.5.0: exportación de la agenda a PDF"
+```
+
+Para ver los datos de una etiqueta y el commit al que apunta:
+
+```bash
+$ git show v2.5.0
+tag v2.5.0
+Tagger: Lucía Pérez <lucia@empresa.com>
+Date:   Wed Oct 29 18:02:44 2026 -0300
+
+Versión 2.5.0: exportación de la agenda a PDF
+
+commit 8c41d2e5b9a0f3d7e1c2b4a6d8f0e2c4a6b8d0f2
+Author: Lucía Pérez <lucia@empresa.com>
+...
+```
+
+También se puede etiquetar un commit anterior, indicando su
+identificador al final:
+
+```bash
+$ git tag -a v2.4.2 -m "Versión 2.4.2" 3a9f0b1
+```
+
+### Compartir etiquetas
+
+Un detalle que suele olvidarse: `git push` **no sube las etiquetas**. Hay
+que subirlas de forma explícita, de a una o todas juntas:
+
+```bash
+$ git push origin v2.5.0         # una etiqueta
+$ git push origin --tags         # todas las etiquetas locales
+```
+
+En GitHub, las etiquetas aparecen en la sección *Tags* del repositorio, y
+sobre ellas se publican las *Releases*, con notas de la versión y archivos
+descargables. Para borrar una etiqueta mal creada, `git tag -d v2.5.0`
+la elimina localmente y `git push origin --delete v2.5.0`, del remoto.
+
+### Probar una versión puntual
+
+La utilidad principal de una etiqueta para testing es poder reproducir
+exactamente el código de una versión. Si producción tiene la `v2.4.1` y un
+usuario reporta un fallo, lo primero es comprobar si ocurre en esa
+versión, no en el `main` actual, que ya puede tener otros cambios:
+
+```bash
+$ git switch --detach v2.4.1
+HEAD is now at 3a9f0b1 Aceptar guiones en el teléfono
+```
+
+Igual que al revisar un commit con `checkout`, el repositorio queda en
+estado detached HEAD: se puede ejecutar y probar, pero no conviene
+commitear. (`git checkout v2.4.1` hace lo mismo.) Si hay que corregir algo
+sobre esa versión, por ejemplo para liberar una `v2.4.2` sin incluir lo que
+se agregó después en `main`, se crea una rama desde la etiqueta:
+
+```bash
+$ git switch -c hotfix/v2.4.2 v2.4.1
+Switched to a new branch 'hotfix/v2.4.2'
+```
+
+Para volver al trabajo habitual, `git switch main`.
+
+## Cuándo usarlo
+
+Se crea una etiqueta anotada cada vez que se libera una versión, y se la
+sube al remoto. Se usa una etiqueta para reproducir un defecto en la
+versión exacta en que se reportó, para comparar dos versiones (`git diff
+v2.4.1 v2.5.0`) o para corregir una versión publicada sin arrastrar lo
+nuevo de `main`.
+
+## Buenas prácticas
+
+- Usar etiquetas anotadas para las versiones.
+- Seguir el versionado semántico para que el número informe el tipo de
+  cambio.
+- Subir las etiquetas explícitamente después de crearlas.
+- Reproducir los defectos de producción sobre la etiqueta de esa versión.
+
+## Anti-patrones
+
+- **Crear la etiqueta y olvidarse de subirla**.
+- **Mover una etiqueta ya publicada** a otro commit.
+- **Reproducir un defecto de producción sobre `main`**, que puede tener
+  cambios que la versión publicada no tiene.
+- **Commitear en detached HEAD sobre una etiqueta** en lugar de crear una
+  rama.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<SemverActivity />
+
+<TagBuilderActivity />
+
+<HotfixActivity />

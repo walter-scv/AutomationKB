@@ -1,21 +1,35 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
-import type {OrderItem, OrderRule} from '@site/src/components/Order';
+import type {TerminalStep} from '@site/src/components/Terminal';
 
-export const FIRST_COMMIT_ORDER_ITEMS: OrderItem[] = [
-  {id: 'add', what: 'Paso', code: 'git add validarContraseña.ts'},
-  {id: 'init', what: 'Paso', code: 'git init'},
-  {id: 'commit', what: 'Paso', code: 'git commit -m "Agregar validación de longitud de contraseña"'},
-  {id: 'edit', what: 'Paso', code: '// Crear validarContraseña.ts\nexport function validarLongitud(valor: string): boolean {\n  return valor.length >= 8;\n}'},
+export const FIRST_COMMIT_STEPS: TerminalStep[] = [
+  {
+    instruction: 'Estás en la carpeta tienda/, con registro.ts y un debug.log que generó tu editor. Convertí la carpeta en un repositorio.',
+    accepted: ['git init'],
+    hint: 'Es el comando que se ejecuta una sola vez por proyecto, para empezar a llevar historial.',
+    output: 'Initialized empty Git repository in /home/vos/tienda/.git/',
+  },
+  {
+    instruction: 'Mirá qué archivos hay y en qué estado están, sin cambiar nada.',
+    accepted: ['git status'],
+    hint: 'Es el comando que solo informa: qué cambió, qué está en staging y qué no.',
+    output: 'On branch main\nNo commits yet\nUntracked files:\n  debug.log\n  registro.ts',
+  },
+  {
+    instruction: 'Pasá al staging area solo el archivo del cambio: el log es local y no tiene que entrar al historial.',
+    accepted: ['git add registro.ts'],
+    hint: 'Nombrá el archivo exacto: con `git add .` también entraría el debug.log.',
+    output: 'Changes to be committed:\n  new file:   registro.ts\nUntracked files:\n  debug.log',
+  },
+  {
+    instruction: 'Confirmá lo que está en staging con un mensaje que describa el cambio.',
+    accepted: ['git commit -m *'],
+    hint: 'Es `git commit -m` seguido del mensaje entre comillas.',
+    output: '[main (root-commit) 3f2a1c9] (tu mensaje)\n 1 file changed, 24 insertions(+)\n create mode 100644 registro.ts',
+  },
 ];
-
-export const FIRST_COMMIT_ORDER_CORRECT = ['init', 'edit', 'add', 'commit'];
-
-export const FIRST_COMMIT_ORDER_RULES: OrderRule[] = [
-  {before: 'init', after: 'edit', why: 'la carpeta tiene que ser un repositorio antes de que Git pueda empezar a llevar historial de lo que se edita en ella.'},
-  {before: 'edit', after: 'add', why: 'no se puede pasar al staging area un cambio que todavía no se hizo.'},
-  {before: 'add', after: 'commit', why: 'el cambio tiene que estar en el staging area antes de poder confirmarlo.'},
-];
+export const FIRST_COMMIT_EXPLANATION =
+  '`git init` crea el repositorio, `git status` muestra qué hay sin tocar nada, `git add` con el nombre del archivo elige exactamente qué entra, y `git commit -m` lo guarda en el historial. El `debug.log` quedó sin seguimiento, como tenía que ser.';
 
 export const COMMIT_MESSAGE_RULE_LABELS = [
   'Se agregó sin revisar qué se estaba incluyendo',

@@ -1,5 +1,5 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
-import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {DecisionNode} from '@site/src/components/DecisionPath';
 import type {OrderItem, OrderRule} from '@site/src/components/Order';
 
 export const TRANSITION_RULE_LABELS = ['Transición inválida (no está permitida)'];
@@ -63,32 +63,54 @@ export const BUILD_ORDER_RULES: OrderRule[] = [
   {before: 'valid-cases', after: 'invalid-cases', why: 'si una transición válida ya falla, el problema está en el flujo y no en el rechazo: por eso primero se prueba el camino que debería funcionar.'},
 ];
 
-export const CLOSING_QUIZ: QuizQuestion[] = [
-  {
-    question: '¿Por qué state transition testing no alcanza con mirar solo el dato de entrada, como equivalence partitioning?',
-    options: [
-      {text: 'Porque los estados son más difíciles de programar que los datos de entrada.', correct: false, why: 'La dificultad de programación no define la técnica. Lo que cambia es que el comportamiento depende de la historia del sistema.'},
-      {text: 'Porque el resultado depende también del estado previo del sistema, no solo del dato actual.', correct: true, why: 'La misma acción, como cancelar, puede ser válida o inválida según el estado en el que esté el pedido. Eso no lo captura mirar solo el dato.'},
-      {text: 'Porque las técnicas de datos no admiten más de un campo por caso.', correct: false, why: 'No es una limitación de cantidad de campos. Incluso con un solo dato, el resultado puede depender del estado en que llegó el sistema.'},
-    ],
-  },
-  {
-    question: 'Un plan cubre Creado → Pagado → Enviado → Entregado, sin probar cancelaciones ni transiciones inválidas. ¿Qué le falta?',
-    options: [
-      {text: 'Probar al menos una rama alternativa y confirmar que una transición inválida se rechaza.', correct: true, why: 'Cubrir solo el camino feliz deja afuera las cancelaciones y los intentos que deberían fallar. Ambos son casos reales.'},
-      {text: 'Nada: el camino principal es el que más usuarios recorre.', correct: false, why: 'El camino principal es solo una parte del diagrama. Las ramas alternativas y los rechazos también son comportamiento que hay que cubrir.'},
-      {text: 'Probar dos veces el camino principal para confirmar que es estable.', correct: false, why: 'Repetir el mismo camino no agrega cobertura nueva: da el mismo resultado. Lo que falta son transiciones que el plan todavía no toca.'},
-    ],
-  },
-  {
-    question: 'En un pedido Enviado, el botón Cancelar no aparece en la pantalla. ¿Eso alcanza para dar por cubierta la transición inválida?',
-    options: [
-      {text: 'Sí: la ausencia del botón ya demuestra que la transición está bloqueada.', correct: false, why: 'La ausencia del botón es una forma de bloquearla, pero el caso no dice si además se espera un rechazo explícito. Queda ambiguo qué se verificó.'},
-      {text: 'No: primero hay que volver a probar todas las transiciones válidas otra vez.', correct: false, why: 'Repetir las válidas no resuelve la ambigüedad del caso inválido. El problema es qué se espera exactamente en este caso.'},
-      {text: 'No: conviene definir si se espera un rechazo con mensaje o la opción directamente no disponible, y probar ese comportamiento.', correct: true, why: 'Son dos formas válidas de prevenir la transición, pero distintas de verificar. Sin definirlo, dos personas pueden interpretar el mismo resultado de forma opuesta.'},
-    ],
-  },
+/** Tabla de estados del ticket de soporte: [estado actual, evento, estado siguiente]. */
+export const TICKET_TABLE: [string, string, string][] = [
+  ['Abierto', 'Tomar', 'En progreso'],
+  ['En progreso', 'Resolver', 'Resuelto'],
+  ['Resuelto', 'Confirmar', 'Cerrado'],
+  ['Resuelto', 'Reabrir', 'En progreso'],
 ];
+export const TICKET_START = 'tomar';
+export const TICKET_NODES: Record<string, DecisionNode> = {
+  tomar: {
+    id: 'tomar',
+    situation: 'El ticket está Abierto y llega el evento Tomar. ¿En qué estado queda?',
+    options: [
+      {text: 'Resuelto', correct: false, why: 'Desde Abierto, la única flecha es Tomar → En progreso. Resolver es otro evento, que todavía no ocurrió.'},
+      {text: 'En progreso', correct: true, why: 'La tabla tiene la flecha Abierto + Tomar → En progreso.', next: 'confirmar'},
+      {text: 'Sigue Abierto: el evento se rechaza', correct: false, why: 'Tomar sí es válido en Abierto: está en la tabla.'},
+    ],
+  },
+  confirmar: {
+    id: 'confirmar',
+    situation: 'Está En progreso y llega el evento Confirmar. ¿Qué pasa?',
+    options: [
+      {text: 'Pasa a Cerrado', correct: false, why: 'Confirmar → Cerrado existe, pero solo desde Resuelto. En este estado esa flecha no está.'},
+      {text: 'Pasa a Resuelto', correct: false, why: 'Para llegar a Resuelto el evento tiene que ser Resolver, no Confirmar.'},
+      {text: 'Se rechaza: sigue En progreso', correct: true, why: 'No hay ninguna flecha En progreso + Confirmar: es una transición inválida y el estado no cambia. Es justo el tipo de caso que esta técnica obliga a probar.', next: 'reabrir'},
+    ],
+  },
+  reabrir: {
+    id: 'reabrir',
+    situation: 'Llega Resolver (queda Resuelto), pero el cliente responde que el problema sigue: llega Reabrir. ¿En qué estado queda?',
+    options: [
+      {text: 'En progreso', correct: true, why: 'La tabla dice Resuelto + Reabrir → En progreso: vuelve a trabajarse.', next: 'final'},
+      {text: 'Abierto, porque "reabrir" suena a volver al principio', correct: false, why: 'Eso es asumir la transición por el nombre del evento. La tabla es la que manda: Reabrir lleva a En progreso.'},
+      {text: 'Se rechaza: un ticket resuelto no se puede tocar', correct: false, why: 'Desde Resuelto hay dos flechas válidas: Confirmar y Reabrir.'},
+    ],
+  },
+  final: {
+    id: 'final',
+    situation: 'Más tarde se resuelve y se confirma: queda Cerrado. Una semana después, alguien intenta Reabrir. ¿Qué pasa?',
+    options: [
+      {text: 'Pasa a En progreso, igual que desde Resuelto', correct: false, why: 'Que Reabrir funcione desde Resuelto no dice nada sobre Cerrado. Suponerlo por analogía es justo el error de asumir una transición que la tabla no tiene.'},
+      {text: 'Pasa a Abierto', correct: false, why: 'No hay ninguna flecha que salga de Cerrado, y ninguna que vuelva a Abierto.'},
+      {text: 'Se rechaza: Cerrado no tiene transiciones de salida', correct: true, why: 'Cerrado es un estado final: ningún evento lo saca de ahí. Intentarlo es una transición inválida que el sistema tiene que rechazar.'},
+    ],
+  },
+};
+export const TICKET_EXPLANATION =
+  'Cada respuesta salió de la tabla, no del nombre del evento ni de la intuición: la misma acción (Reabrir, Confirmar) es válida en un estado e inválida en otro. Por eso un buen plan prueba las flechas que existen y también intenta las que no existen, incluidas las que salen de un estado final.';
 
 export const PRACTICE_RULE_LABELS = [
   'No distingue entre «rechazo explícito» y «opción no disponible»',

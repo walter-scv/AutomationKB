@@ -1,56 +1,41 @@
+import type {OrderRule} from '@site/src/components/Order';
+import type {OrderItem} from '@site/src/components/Order';
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {BuilderStep} from '@site/src/components/CommandBuilder';
 
-export const PR_RULE_LABELS = [
-  'Mezcla varios cambios sin relación entre sí',
-  'Abre para revisión un PR que todavía no está listo (debía ser draft)',
-  'Abre el PR sin descripción',
-];
-
-export const PR_LINES: CodeLine[] = [
+export const PR_BUILD_PREFIX = 'Pull Request: fix/redondeo-cupon → main';
+export const PR_BUILD_STEPS: BuilderStep[] = [
   {
-    code: 'Un PR titulado "ajustes" cambia el cálculo de envío y no tiene descripción; el diff toca cuatro archivos.',
-    rule: 3,
-    why: 'Quien revisa tiene que reconstruir desde el código qué se cambió y por qué. Un título y una descripción explican el motivo sin abrir cada archivo.',
-    hint: '¿Quien revisa puede saber por qué cambió el cálculo sin abrir cada archivo?',
+    options: [
+      '\nTítulo: Ajustes',
+      '\nTítulo: Corregir el redondeo del total cuando se aplica un cupón',
+      '\nTítulo: Redondeo del cupón, README actualizado y nueva versión de la librería de fechas',
+    ],
+    correct: '\nTítulo: Corregir el redondeo del total cuando se aplica un cupón',
+    hint: '¿El título deja claro qué cambia, y es un solo cambio que se pueda revisar y revertir por su cuenta?',
   },
   {
-    code: 'Un PR de doce archivos agrega la misma feature en pantalla, servicio y tests, con una descripción de tres líneas.',
-    rule: 0,
-    why: 'Doce archivos pueden ser un PR enfocado si todos responden al mismo cambio: la feature y sus tests. Revisar una sola idea de punta a punta es manejable.',
-    hint: '¿Estos doce archivos responden a un solo cambio, o a varios sin relación?',
+    options: [
+      '\nDescripción: El total redondeaba dos veces con cupón (pedido de $1000 con 15% daba $849). Se corrige en calcularTotal y se agrega un test. Para verificar: aplicar VERANO15 a un pedido de $1000; el total debe ser $850.',
+      '\nDescripción: (vacía; el diff ya muestra todo)',
+      '\nDescripción: Ver los commits.',
+    ],
+    correct: '\nDescripción: El total redondeaba dos veces con cupón (pedido de $1000 con 15% daba $849). Se corrige en calcularTotal y se agrega un test. Para verificar: aplicar VERANO15 a un pedido de $1000; el total debe ser $850.',
+    hint: '¿Quien revisa sabe, sin preguntarte, qué problema se resolvió y cómo comprobarlo?',
   },
   {
-    code: 'Un PR actualiza la versión de una librería y, en el mismo commit, cambia el texto del botón de login.',
-    rule: 1,
-    why: 'Son dos cambios sin relación: quien revisa no puede evaluar la actualización de la librería sin arrastrar el cambio de copy, y revertir uno obliga a tocar el otro.',
-    hint: '¿Los dos cambios se pueden revisar o revertir por separado?',
-  },
-  {
-    code: 'Alguien abre un PR como listo para revisión mientras todavía está escribiendo los tests que faltan.',
-    rule: 2,
-    why: 'Pedir revisión sobre algo incompleto hace que el equipo gaste tiempo en un diff que va a cambiar. Mientras faltan tests, corresponde draft.',
-    hint: '¿Este PR está listo para que alguien invierta tiempo en revisarlo?',
-  },
-  {
-    code: 'Un PR que corrige un solo bug incluye el test que lo reproduce y una descripción con los pasos para verificarlo.',
-    rule: 0,
-    why: 'Cambio, test y contexto en una sola unidad: quien revisa puede entender el problema y comprobar la solución sin adivinar.',
-    hint: '¿Falta algo de lo que necesita quien revisa: enfoque, descripción o estar listo?',
-  },
-  {
-    code: 'Un PR agrega dos validaciones al mismo formulario, en archivos distintos, con una descripción que explica ambas.',
-    rule: 0,
-    why: 'Las dos validaciones son el mismo cambio funcional sobre la misma pantalla: se pueden revisar juntas sin mezclar temas ajenos.',
-    hint: '¿Las dos validaciones son el mismo cambio funcional, o temas sin relación?',
-  },
-  {
-    code: 'Se abre como PR listo, para que el equipo vaya viendo el diff, un cambio que todavía no compila.',
-    rule: 2,
-    why: 'Un diff que no compila no se puede evaluar en serio y va a cambiar; abrirlo como draft deja claro que es un avance, no una versión para aprobar.',
-    hint: '¿Qué tipo de PR corresponde cuando el trabajo todavía no está terminado?',
+    options: [
+      '\nEstado: listo para revisión, aunque todavía falta terminar el test.',
+      '\nEstado: draft mientras falta el test; se marca listo y se pide revisión cuando pasa la suite.',
+      '\nEstado: listo para revisión y mergeado apenas pasan los tests, sin esperar aprobación.',
+    ],
+    correct: '\nEstado: draft mientras falta el test; se marca listo y se pide revisión cuando pasa la suite.',
+    hint: '¿Tiene sentido pedirle a alguien que revise algo que todavía no está terminado? ¿Y mergear sin que nadie lo revise?',
   },
 ];
+export const PR_BUILD_EXPLANATION =
+  'Un buen PR tiene un solo cambio con un título que lo dice, una descripción con el problema, la solución y cómo verificarla, y se abre como draft hasta que está listo: recién ahí se pide revisión, y se mergea con aprobación.';
 
 export const PRACTICE_RULE_LABELS = [
   'Mergeó sin que nadie revisara',
@@ -121,4 +106,26 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
       {text: 'Una copia del repositorio para probar cambios sin afectar el original.', correct: false, why: 'Eso describe un fork o un clon, no un PR. El PR no duplica el repositorio: propone integrar una rama existente.'},
     ],
   },
+];
+
+export const PR_LIFE_ITEMS: OrderItem[] = [
+  {id: 'merge', what: 'Paso', code: 'Con la aprobación y las verificaciones en verde, integrar con «Squash and merge».'},
+  {id: 'ready', what: 'Paso', code: 'Terminadas las pruebas, marcar el PR como «Ready for review».'},
+  {id: 'fix', what: 'Paso', code: 'Subir un commit con las correcciones a la misma rama y marcar cada conversación como resuelta.'},
+  {id: 'clean', what: 'Paso', code: 'git switch main, git pull y git branch -d fix/recargo-cuotas.'},
+  {id: 'draft', what: 'Paso', code: 'Abrir el PR como draft para mostrar el avance, con las pruebas todavía pendientes.'},
+  {id: 'update', what: 'Paso', code: 'Con el PR ya aprobado, GitHub avisa que main cambió en los mismos archivos: git merge origin/main, resolver, probar y git push.'},
+  {id: 'changes', what: 'Paso', code: 'La revisora deja «Request changes» con dos comentarios.'},
+  {id: 'approve', what: 'Paso', code: 'La revisora revisa las correcciones y deja «Approve».'},
+];
+export const PR_LIFE_CORRECT = ['draft', 'ready', 'changes', 'fix', 'approve', 'update', 'merge', 'clean'];
+export const PR_LIFE_RULES: OrderRule[] = [
+  {before: 'draft', after: 'ready', why: 'un PR se marca como listo después de haberse abierto como borrador.'},
+  {before: 'ready', after: 'changes', why: 'la revisión se pide recién cuando el PR está listo.'},
+  {before: 'changes', after: 'fix', why: 'las correcciones responden a los comentarios de la revisión.'},
+  {before: 'fix', after: 'approve', why: 'la aprobación llega después de revisar las correcciones.'},
+  {before: 'approve', after: 'update', why: 'el aviso de conflictos llega cuando el PR ya estaba aprobado.'},
+  {before: 'update', after: 'merge', why: 'una rama con conflictos con main no se puede integrar: primero se actualiza.'},
+  {before: 'approve', after: 'merge', why: 'sin aprobación, la protección de main no deja integrar.'},
+  {before: 'merge', after: 'clean', why: 'la rama local se borra cuando su trabajo ya está en main.'},
 ];

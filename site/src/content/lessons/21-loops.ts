@@ -1,4 +1,7 @@
 import type {CodeLine} from '@site/src/components/FindInCode';
+import type {MatchItem} from '@site/src/components/Match';
+import type {OrderItem} from '@site/src/components/Order';
+import type {OrderRule} from '@site/src/components/Order';
 
 export const LOOP_RULE_LABELS = [
   'La condición ya es falsa al empezar, y el cuerpo no se ejecuta nunca',
@@ -46,58 +49,65 @@ export const LOOP_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Usa un índice manual donde `for...of` alcanza',
-  'Modifica el array mientras lo recorre con `for...of`',
-  'Es un loop infinito: la condición nunca se vuelve falsa',
+export const SKIP_ORDER_ITEMS: OrderItem[] = [
+  {id: 'work', what: 'Línea', code: '  procesar(i);'},
+  {id: 'open', what: 'Línea', code: 'while (i < 5) {'},
+  {id: 'skip', what: 'Línea', code: '  if (i === 3) continue;'},
+  {id: 'close', what: 'Línea', code: '}'},
+  {id: 'init', what: 'Línea', code: 'let i = 0;'},
+  {id: 'inc', what: 'Línea', code: '  i = i + 1;'},
+];
+export const SKIP_ORDER_CORRECT = ['init', 'open', 'inc', 'skip', 'work', 'close'];
+export const SKIP_ORDER_RULES: OrderRule[] = [
+  {before: 'init', after: 'open', why: '`i` tiene que existir antes de que el `while` evalúe `i < 5`.'},
+  {before: 'open', after: 'inc', why: 'el incremento es parte del cuerpo: va adentro del `while`.'},
+  {before: 'inc', after: 'skip', why: 'si el `continue` va antes del incremento, cuando `i` vale 3 salta la vuelta sin cambiar `i`, y el loop no termina nunca.'},
+  {before: 'skip', after: 'work', why: 'si `procesar(i)` va antes del `if`, el 3 se procesa igual: el `continue` tiene que cortar la vuelta antes.'},
+  {before: 'work', after: 'close', why: 'la llave cierra el cuerpo del `while`: todo lo que se repite va antes.'},
 ];
 
-export const PRACTICE_LINES: CodeLine[] = [
-  {
-    code: 'let intentos = 0;\nwhile (intentos <= 3) {\n  if (intentos === 2) {\n    continue;\n  }\n  intentos++;\n}',
-    rule: 3,
-    why: 'Cuando `intentos` llega a 2, el `continue` salta al inicio del `while` sin ejecutar el incremento; la condición sigue verdadera con el mismo valor y el loop queda girando para siempre.',
-    hint: '¿Qué instrucción deja de ejecutarse en la vuelta en la que `intentos` vale 2?',
-  },
-  {
-    code: 'for (let i = 0; i < nombres.length; i++) {\n  console.log(nombres[i]);\n}',
-    rule: 1,
-    why: 'El índice se usa solo para llegar al valor, y `for...of` hace ese trabajo sin que haya que escribir el límite ni el incremento. Menos piezas significa menos lugar para un error de uno de más o de menos.',
-    hint: '¿El índice se usa para algo además de acceder al elemento?',
-  },
-  {
-    code: 'for (const [indice, nombre] of nombres.entries()) {\n  console.log(indice, nombre);\n}',
-    rule: 0,
-    why: 'Acá sí hace falta la posición además del valor, y `entries()` entrega las dos cosas juntas sin mantener un contador a mano.',
-  },
-  {
-    code: 'for (const pedido of pedidos) {\n  if (pedido.cancelado) {\n    pedidos.splice(pedidos.indexOf(pedido), 1);\n  }\n}',
-    rule: 2,
-    why: 'Sacar un elemento del mismo array que se está recorriendo corre las posiciones: el elemento que seguía pasa al lugar del eliminado y `for...of` avanza, así que puede saltearse pedidos.',
-    hint: 'Después de sacar un elemento, ¿en qué posición queda el que estaba justo después?',
-  },
-  {
-    code: 'let reintentos = 0;\nwhile (reintentos < 5) {\n  reintentos = reintentos + 1;\n}',
-    rule: 0,
-    why: 'El contador aumenta en cada vuelta y la condición se vuelve falsa cuando llega a 5. El loop termina aunque el cuerpo solo actualice el contador.',
-  },
-  {
-    code: 'for (let i = 0; i < usuarios.length; i++) {\n  enviarEmail(usuarios[i].email);\n}',
-    rule: 1,
-    why: 'Igual que el caso de `nombres`: el índice no aporta nada que `for...of` no dé. `for (const usuario of usuarios)` evita el límite y el incremento manuales.',
-    hint: '¿El índice se usa para algo además de acceder al elemento?',
-  },
-  {
-    code: 'const pendientes = [...pedidos];\nfor (const pedido of pendientes) {\n  if (pedido.cancelado) {\n    pendientes.splice(pendientes.indexOf(pedido), 1);\n  }\n}',
-    rule: 2,
-    why: 'La copia evita tocar `pedidos`, pero el loop recorre `pendientes`, que es justamente el array que se está modificando: el salto de posiciones sigue pasando.',
-    hint: '¿El array que se recorre es el mismo que se modifica, aunque sea una copia?',
-  },
-  {
-    code: 'for (const pedido of pedidos) {\n  if (!pedido.pagado) {\n    continue;\n  }\n  await test.step(\'2. despachar pedido\', async () => {\n    await despachar(pedido);\n  });\n}',
-    rule: 0,
-    why: 'El `continue` solo saltea un elemento sin modificar la lista ni la cantidad de vueltas; el loop termina cuando se acaban los pedidos, y el `test.step` no altera ese recorrido.',
-  },
+export const TRACE_CODE = `const usuarios = ['ana', '', 'beto', 'carla', 'x'.repeat(40), 'dario'];
+let revisados = 0;
+
+for (const usuario of usuarios) {
+  if (usuario === '') {
+    continue;
+  }
+  if (usuario.length > 30) {
+    break;
+  }
+  revisados = revisados + 1;
+}`;
+export const TRACE_ACCEPTED = ['3'];
+export const TRACE_HINTS = [
+  'Recorré el array elemento por elemento y anotá qué pasa con cada uno: ¿llega a la línea que suma, se saltea, o corta el loop?',
+  'Fijate en la diferencia entre `continue` y `break`: con uno el loop sigue con el próximo elemento, con el otro los elementos que quedan ni se miran.',
+  'Contá solo las vueltas que llegan hasta `revisados = revisados + 1`. El string vacío no llega, y después del elemento de 40 caracteres no hay más vueltas.',
 ];
+export const TRACE_EXPLANATION =
+  "`'ana'` suma (1). `''` entra en el primer `if` y `continue` salta a la siguiente vuelta sin sumar. `'beto'` (2) y `'carla'` (3) suman. El de 40 caracteres entra en el segundo `if` y `break` corta el loop entero: `'dario'` nunca se revisa. Resultado: `3`. Si respondiste 4, contaste a `'dario'` como si `break` fuera `continue`; si respondiste 5 o 6, el string vacío o el largo también llegaron a sumar.";
 
-
+export const LOOP_MATCH_LEFT: MatchItem[] = [
+  {id: 'forof', text: '`for (const x of lista)`'},
+  {id: 'while', text: '`while (condición)`'},
+  {id: 'dowhile', text: '`do { ... } while (condición)`'},
+  {id: 'entries', text: '`for (const [i, x] of lista.entries())`'},
+  {id: 'break', text: '`break`'},
+  {id: 'continue', text: '`continue`'},
+];
+export const LOOP_MATCH_RIGHT: MatchItem[] = [
+  {id: 'continue', text: 'Saltear el elemento actual y seguir con el próximo.'},
+  {id: 'dowhile', text: 'Pedir un dato al menos una vez, y repetir mientras no sea válido.'},
+  {id: 'forof', text: 'Revisar cada elemento de una lista, sin importar en qué posición está.'},
+  {id: 'break', text: 'Dejar de revisar en cuanto se encontró lo que se buscaba.'},
+  {id: 'while', text: 'Reintentar algo sin saber de antemano cuántas veces va a hacer falta.'},
+  {id: 'entries', text: 'Mostrar cada elemento de una lista junto con su número de posición.'},
+];
+export const LOOP_MATCH_WHY: Record<string, string> = {
+  forof: '`for...of` da cada elemento de la lista, uno por vuelta, sin manejar índices.',
+  while: '`while` repite mientras la condición sea verdadera: sirve cuando la cantidad de vueltas se descubre durante la ejecución.',
+  dowhile: '`do...while` ejecuta el cuerpo antes de evaluar la condición, así que corre al menos una vez.',
+  entries: '`entries()` devuelve pares `[posición, valor]`: hace falta cuando además del elemento se necesita su índice.',
+  break: '`break` corta el loop entero: los elementos que quedan ni se miran.',
+  continue: '`continue` termina solo la vuelta actual y el loop sigue con el próximo elemento.',
+};

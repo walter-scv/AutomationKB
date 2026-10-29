@@ -4,28 +4,46 @@ sidebar_position: 32
 ---
 
 import Activity from '@site/src/components/Activity';
+import MultiSelect from '@site/src/components/MultiSelect';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import Match from '@site/src/components/Match';
 import FindInCode from '@site/src/components/FindInCode';
+import CodeBlock from '@theme/CodeBlock';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  COMMAND_LINES,
-  COMMAND_RULE_LABELS,
   PRACTICE_LINES,
   PRACTICE_RULE_LABELS,
+  REMOTE_MATCH_LEFT,
+  REMOTE_MATCH_RIGHT,
+  REMOTE_MATCH_WHY,
+  STATUS_OUTPUT,
+  STATUS_ACCEPTED,
+  STATUS_HINTS,
+  STATUS_EXPLANATION,
+  AUTH_QUESTIONS,
 } from '@site/src/content/lessons/32-repositorio-remoto-github';
 
 export const LESSON_SLUG = 'foundations-repositorio-remoto-github';
 
-export function CommandActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['command']);
+export function RemoteMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['remotematch']);
   return (
     <Activity
-      title="¿Qué comando es?"
-      kind="Clasificar"
-      goal="distinguir push, fetch y pull según la dirección, el efecto y el momento en que se usan."
-      done={isDone('command')}
-      consigna="Son 7 escenarios con un comando en contexto. Elegí qué problema tiene el comando según lo que pedía la situación; si es el correcto, elegí «Es el comando correcto». La actividad se completa cuando encontraste los 4 con problema. («origin/main» es la copia del remoto que guarda tu repo.)"
+      title="¿Qué comando para cada situación?"
+      kind="Emparejar"
+      goal="distinguir push, fetch y pull según lo que pide cada situación, y saber revisar lo que trajo un fetch."
+      done={isDone('remotematch')}
+      consigna="Son 4 situaciones y 4 comandos: cada comando corresponde a exactamente una situación. Elegí una situación y después su comando (o al revés). Si el par no corresponde, se puede reintentar. La actividad se completa cuando emparejaste las 4. («origin/main» es la copia del remoto que guarda tu repo después de un fetch.)"
     >
-      <FindInCode lines={COMMAND_LINES} ruleLabels={COMMAND_RULE_LABELS} okLabel="Es el comando correcto" prompt="¿Qué problema tiene este escenario, o es el comando correcto?" itemLabel="Escenario" alreadyDone={isDone('command')} onSolved={() => markDone('command')} />
+      <Match
+        left={REMOTE_MATCH_LEFT}
+        right={REMOTE_MATCH_RIGHT}
+        leftLabel="Situación"
+        rightLabel="Comando"
+        why={REMOTE_MATCH_WHY}
+        alreadyDone={isDone('remotematch')}
+        onSolved={() => markDone('remotematch')}
+      />
     </Activity>
   );
 }
@@ -47,68 +65,271 @@ export function PracticeActivity() {
   );
 }
 
+export function StatusReadActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['statusread']);
+  return (
+    <Activity
+      title="Leé el estado y actuá"
+      kind="Respuesta escrita"
+      goal="interpretar lo que `git status` dice sobre el remoto y elegir el comando que corresponde."
+      done={isDone('statusread')}
+      consigna="Arrancás el día y corrés `git status`. En la salida, «ahead» quiere decir que tu rama tiene commits que el remoto no tiene, y «behind», que el remoto tiene commits que tu rama no tiene. Escribí el comando que deja tu `main` igual al remoto. Si te equivocás, recibís una pista y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="text">{STATUS_OUTPUT}</CodeBlock>
+      <TypeAnswer
+        accepted={STATUS_ACCEPTED}
+        hints={STATUS_HINTS}
+        explanation={STATUS_EXPLANATION}
+        placeholder="git ..."
+        alreadyDone={isDone('statusread')}
+        onSolved={() => markDone('statusread')}
+      />
+    </Activity>
+  );
+}
+
+export function AuthActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['auth']);
+  return (
+    <Activity
+      title="¿Cómo te autenticás?"
+      kind="Marcar todas"
+      goal="reconocer las formas válidas y seguras de autenticarse con GitHub desde la terminal."
+      done={isDone('auth')}
+      consigna="Es 1 pregunta con 6 formas de autenticarse. Marcá todas las que funcionan y son seguras. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
+    >
+      <MultiSelect
+        questions={AUTH_QUESTIONS}
+        alreadyDone={isDone('auth')}
+        onSolved={() => markDone('auth')}
+      />
+    </Activity>
+  );
+}
+
 ## Conceptos
 
-Todo lo visto hasta ahora (commits, ramas, merges) pasa en tu máquina. Un
-**repositorio remoto** es una copia del mismo repositorio alojada en un
-servidor — en este caso, GitHub — que permite que el equipo comparta el
-mismo historial.
+Todo lo visto hasta acá ocurre en la computadora de cada persona. Para que
+un equipo trabaje sobre el mismo historial hace falta un **repositorio
+remoto**: una copia del repositorio alojada en un servidor, en esta guía
+GitHub, con la que cada repositorio local se sincroniza. La sincronización
+no es automática: se sube con `git push` y se trae con `git fetch` o `git
+pull`.
 
-Tres comandos conectan el repositorio local con el remoto:
+### `origin`
 
-- **`git push`** sube tus commits locales al remoto, para que el resto del
-  equipo los vea.
-- **`git fetch`** trae los commits nuevos que hay en el remoto, pero no
-  los mezcla todavía con tu trabajo local — solo los descarga, para que
-  los puedas revisar antes de decidir qué hacer.
-- **`git pull`** es `fetch` y `merge` en un solo paso: trae los cambios
-  del remoto y los mezcla directo con tu rama local.
+Un repositorio local conoce a su remoto por un nombre corto y una
+dirección. Al clonar un proyecto, Git configura el remoto con el nombre
+**`origin`**, que es la convención:
 
-La diferencia entre `fetch` y `pull` es la que más confunde al empezar:
-`fetch` es seguro para revisar antes de decidir; `pull` mezcla
-automáticamente, sin pausa para revisar.
+```bash
+$ git remote -v
+origin  https://github.com/empresa/turnos.git (fetch)
+origin  https://github.com/empresa/turnos.git (push)
+```
+
+Las dos líneas indican la dirección desde la que se trae (*fetch*) y a la
+que se sube (*push*), que normalmente es la misma. Un repositorio creado
+con `git init` no tiene remoto; después de crear el repositorio vacío en
+GitHub, se lo conecta una sola vez:
+
+```bash
+$ git remote add origin https://github.com/empresa/turnos.git
+```
+
+### Autenticarse con GitHub
+
+La primera operación contra el remoto (un `clone` de un repositorio
+privado, o el primer `push`) pide credenciales. GitHub **no acepta la
+contraseña de la cuenta** para operaciones de Git desde agosto de 2021. Si
+se la escribe, la operación falla con este mensaje:
+
+```text
+remote: Support for password authentication was removed on August 13, 2021.
+fatal: Authentication failed for 'https://github.com/empresa/turnos.git/'
+```
+
+Hay dos formas válidas de autenticarse, y cuál se usa depende de la
+dirección del remoto.
+
+Con una dirección **HTTPS** (`https://github.com/...`), la credencial es un
+**token de acceso personal** (*personal access token*), que se genera en
+GitHub, en *Settings → Developer settings → Personal access tokens*. Se
+configura con un vencimiento y con permisos limitados al repositorio que
+hace falta. Cuando Git pide la contraseña, se pega el token. Para no
+escribirlo en cada operación, Git puede guardarlo en el administrador de
+credenciales del sistema: en Windows y macOS, el instalador de Git suele
+incluir *Git Credential Manager*, que además permite iniciar sesión desde
+el navegador en lugar de pegar el token.
+
+Con una dirección **SSH** (`git@github.com:empresa/turnos.git`), la
+credencial es un par de claves. Se genera una vez por computadora:
+
+```bash
+$ ssh-keygen -t ed25519 -C "ana.gomez@empresa.com"
+```
+
+El comando crea dos archivos en la carpeta `~/.ssh`: la clave privada
+(`id_ed25519`), que no se comparte nunca, y la pública (`id_ed25519.pub`),
+cuyo contenido se pega en GitHub, en *Settings → SSH and GPG keys*. Para
+verificar que funciona:
+
+```bash
+$ ssh -T git@github.com
+Hi ana-gomez! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+La dirección SSH de un repositorio se copia desde el botón *Code* de
+GitHub, en la pestaña *SSH*. Cualquiera de las dos formas sirve; lo que no
+sirve es la contraseña. Y tanto el token como la clave privada son
+credenciales: no se escriben en archivos del repositorio, no se comparten
+por chat y, si se exponen, se revocan desde GitHub.
+
+### `git push`: subir commits
+
+`git push` envía al remoto los commits locales que el remoto todavía no
+tiene:
+
+```bash
+$ git push origin main
+```
+
+Hasta que se hace push, esos commits existen únicamente en la computadora
+de quien los hizo: el equipo no los ve, y si la computadora se pierde, se
+pierden con ella. Confirmar un cambio y compartirlo son dos pasos
+distintos.
+
+La primera vez que se sube una rama nueva conviene agregar `-u`, que la
+vincula con su copia en el remoto (su *upstream*):
+
+```bash
+$ git push -u origin feature/recordatorio-por-email
+To https://github.com/empresa/turnos.git
+ * [new branch]      feature/recordatorio-por-email -> feature/recordatorio-por-email
+branch 'feature/recordatorio-por-email' set up to track 'origin/feature/recordatorio-por-email'.
+```
+
+La última línea confirma el vínculo. Desde entonces, en esa rama alcanza
+con `git push` y `git pull` sin argumentos: Git ya sabe con qué rama del
+remoto se corresponde.
+
+### `git fetch`: traer sin mezclar
+
+```bash
+$ git fetch
+From https://github.com/empresa/turnos
+   4d5e6f7..e41b7c2  main       -> origin/main
+```
+
+`git fetch` descarga los commits nuevos del remoto pero no modifica la
+rama local ni los archivos del working directory. Lo descargado queda en
+**`origin/main`**, que es la copia local de cómo está `main` en el remoto.
+La salida indica que `origin/main` avanzó del commit `4d5e6f7` al
+`e41b7c2`. Para ver qué commits llegaron y todavía no están en el `main`
+local:
+
+```bash
+$ git log main..origin/main --oneline
+e41b7c2 Ordenar los turnos por fecha en la agenda
+c08d1f5 Permitir cancelar un turno hasta 2 horas antes
+```
+
+La notación `main..origin/main` pide los commits que están en
+`origin/main` y no en `main`. Con esa información se decide qué hacer: si
+se quieren incorporar, se mergean con `git merge origin/main`. `fetch` es,
+por eso, la forma segura de mirar antes de mezclar.
+
+### `git pull`: traer y mezclar
+
+`git pull` hace las dos cosas en un paso: un `fetch` y, a continuación, un
+merge de lo descargado en la rama actual.
+
+```bash
+$ git pull
+Updating 4d5e6f7..e41b7c2
+Fast-forward
+ agenda.ts  | 4 ++--
+ turnos.ts  | 2 +-
+```
+
+Es lo habitual al empezar a trabajar, para partir del estado más reciente.
+La diferencia con `fetch` es que no hay pausa para revisar: lo que llega
+se mezcla directamente, y si hay conflictos, aparecen en ese momento y se
+resuelven como en cualquier merge. Resumido: `fetch` descarga sin tocar la
+rama; `pull` descarga y mezcla; `push` sube.
+
+### Lo que `git status` dice sobre el remoto
+
+En una rama vinculada, `git status` compara la rama local con su copia del
+remoto, según el último `fetch`. La primera parte de la salida puede
+indicar cuatro situaciones. *Your branch is up to date with
+'origin/main'* significa que están iguales. *Your branch is ahead of
+'origin/main' by 3 commits* significa que hay tres commits locales que el
+remoto no tiene: falta un push. *Your branch is behind 'origin/main' by 2
+commits* significa lo contrario: el remoto tiene dos commits que la rama
+local no tiene, y hay que traerlos. Y *have diverged* significa que las dos
+avanzaron por separado: hay que traer lo del remoto (lo que genera un
+merge) antes de poder subir.
+
+Como esa comparación usa la información del último `fetch`, un `git
+status` que dice *up to date* sin un `fetch` reciente puede estar
+desactualizado.
+
+### Cuando el remoto rechaza un push
+
+Si alguien subió commits a la misma rama después del último `pull`, el
+remoto rechaza el push:
+
+```text
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/empresa/turnos.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally.
+```
+
+No es un error: Git impide que el push borre trabajo de otra persona. La
+solución es incorporar primero lo que está en el remoto y después subir:
+
+```bash
+$ git pull                 # trae y mezcla lo que subió el compañero
+                           # (si hay conflictos: resolver, probar, add y commit)
+$ git push                 # ahora el historial local incluye el del remoto
+```
+
+La alternativa equivocada es forzar el push con `git push --force`. Eso
+reemplaza el historial del remoto por el local, y los commits que había
+subido el compañero desaparecen del remoto.
 
 ## Cuándo usarlo
 
-Usá `git pull` (o al menos `git fetch`) antes de empezar a trabajar, para
-partir de la versión más reciente del remoto. Usá `git fetch` en vez de
-`git pull` cuando quieras ver qué cambió antes de mezclarlo con tu
-trabajo — por ejemplo, si sospechás que puede haber un conflicto. Usá
-`git push` cada vez que quieras compartir tus commits con el equipo.
+`git pull` (o al menos `git fetch`) al empezar a trabajar, para partir del
+estado actual del equipo. `git push` cada vez que hay commits listos para
+compartir, sin acumularlos por días. Y `git fetch` cuando se quiere
+revisar qué cambió en el remoto antes de mezclarlo.
 
 ## Buenas prácticas
 
-- **Traer los cambios del remoto (`pull` o al menos `fetch`) al empezar el
-  día**, antes de seguir trabajando — evita partir de una versión vieja y
-  descubrir recién al hacer push que alguien más ya avanzó.
-- **Usar `fetch` para revisar cambios grandes antes de mezclarlos**, en vez
-  de `pull` directo — te da la chance de mirar qué trae el remoto antes de
-  que se mezcle solo con tu trabajo.
-- **Subir (`push`) seguido, en commits chicos**, en vez de acumular muchos
-  cambios sin compartir — si tu máquina falla, todo lo que no llegó al
-  remoto se pierde, y mientras tanto nadie más ve tu progreso.
-- **Si un push es rechazado, traer los cambios primero (`pull`)** y
-  resolver cualquier conflicto, en vez de forzarlo.
-- **Tratar un commit como "guardado en tu máquina"**, no como "compartido
-  con el equipo" — recién lo segundo pasa cuando hacés `push`.
+- Traer los cambios del remoto al empezar el día.
+- Subir con frecuencia, en commits chicos.
+- Usar `fetch` para revisar antes de mezclar cambios grandes.
+- Ante un push rechazado, traer los cambios y volver a subir.
+- Autenticarse con un token o una clave SSH, y no compartir nunca ninguno de los dos.
 
 ## Anti-patrones
 
-- **Forzar un push rechazado con `--force`** en vez de entender por qué lo
-  rechazó: sobrescribe el historial remoto y puede borrar commits de otra
-  persona que todavía no bajaste.
-- **Acumular muchos commits sin compartirlos (`push`)** durante días: ese
-  trabajo vive solo en tu máquina — si falla, se pierde, y el equipo no ve
-  ningún progreso mientras tanto.
-- **Confundir "hice commit" con "ya lo compartí"**: un commit local no
-  existe para el resto del equipo hasta que llega al remoto con `push`.
-- **No traer los cambios del remoto durante días** y encontrarse después
-  con un `push` rechazado o un conflicto grande para resolver de una vez.
+- **Forzar un push rechazado con `--force`**.
+- **Acumular commits sin subirlos durante días**.
+- **Confundir "hice commit" con "ya lo compartí"**.
+- **Pasar días sin traer los cambios del remoto**.
 
 ## Práctica
 
-Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
-<CommandActivity />
+<RemoteMatchActivity />
+
+<AuthActivity />
 
 <PracticeActivity />
+
+<StatusReadActivity />

@@ -4,10 +4,29 @@ sidebar_position: 25
 ---
 
 import Activity from '@site/src/components/Activity';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import DecisionPath from '@site/src/components/DecisionPath';
+import CodeBlock from '@theme/CodeBlock';
 import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
-import {TRYCATCH_LINES, TRYCATCH_RULE_LABELS, PRACTICE_LINES, PRACTICE_RULE_LABELS, CLOSING_QUIZ} from '@site/src/content/lessons/25-manejo-de-errores';
+import {
+  TRYCATCH_LINES,
+  TRYCATCH_RULE_LABELS,
+  CLOSING_QUIZ,
+  FLOW_CODE,
+  FLOW_START,
+  FLOW_NODES,
+  FLOW_EXPLANATION,
+  SAFE_PREFIX,
+  SAFE_STEPS,
+  SAFE_EXPLANATION,
+  STACK_ACCEPTED,
+  STACK_HINTS,
+  STACK_EXPLANATION,
+  TRACE_CODE,
+} from '@site/src/content/lessons/25-manejo-de-errores';
 
 export const LESSON_SLUG = 'foundations-manejo-de-errores';
 
@@ -33,17 +52,23 @@ export function TryCatchActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function SafeSendActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['safesend']);
   return (
     <Activity
-      title="¿Este try/catch está bien armado?"
-      kind="Buscar en el código"
-      goal="reconocer un try/catch innecesario, uno que abarca demasiado, y un mensaje de error que descarta la información real."
-      done={isDone('practice')}
-      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+      title="Armá el try/catch del envío"
+      kind="Armar"
+      goal="armar un `try/catch` que envuelva solo lo que puede fallar, registre el error real y avise a quien llamó."
+      done={isDone('safesend')}
+      consigna="Vas a armar el manejo de errores del envío de una factura en 3 pasos: qué envolver, qué hacer en el `catch` y cómo termina. En cada paso elegí un fragmento; el siguiente aparece recién al acertar el anterior. La actividad se completa cuando el bloque queda armado."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <CommandBuilder
+        prefix={SAFE_PREFIX}
+        steps={SAFE_STEPS}
+        explanation={SAFE_EXPLANATION}
+        alreadyDone={isDone('safesend')}
+        onSolved={() => markDone('safesend')}
+      />
     </Activity>
   );
 }
@@ -59,6 +84,51 @@ export function ClosingQuizActivity() {
       consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
     >
       <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
+    </Activity>
+  );
+}
+
+export function FlowActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['flow']);
+  return (
+    <Activity
+      title="Seguí el error"
+      kind="Escenario encadenado"
+      goal="seguir, paso a paso, por dónde pasa el control cuando falla una línea dentro de un `try` con `catch` y `finally`."
+      done={isDone('flow')}
+      consigna="Leé la función y respondé tres preguntas seguidas sobre qué pasa cuando `obtenerDatos()` falla: cada una arranca donde terminó la anterior. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al responder las tres."
+    >
+      <CodeBlock language="ts">{FLOW_CODE}</CodeBlock>
+      <DecisionPath
+        startId={FLOW_START}
+        nodes={FLOW_NODES}
+        explanation={FLOW_EXPLANATION}
+        alreadyDone={isDone('flow')}
+        onSolved={() => markDone('flow')}
+      />
+    </Activity>
+  );
+}
+
+export function StackTraceActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['stacktrace']);
+  return (
+    <Activity
+      title="Leé la traza"
+      kind="Respuesta escrita"
+      goal="leer un stack trace para ubicar dónde ocurrió un error y qué función llamó a la que falló."
+      done={isDone('stacktrace')}
+      consigna="Un proceso nocturno se detuvo con este error. Escribí el nombre de la función que llamó a la función donde ocurrió el error. Si te equivocás, recibís una pista, cada vez más concreta, y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="text">{TRACE_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={STACK_ACCEPTED}
+        hints={STACK_HINTS}
+        explanation={STACK_EXPLANATION}
+        placeholder="Nombre de la función"
+        alreadyDone={isDone('stacktrace')}
+        onSolved={() => markDone('stacktrace')}
+      />
     </Activity>
   );
 }
@@ -98,6 +168,50 @@ try {
   console.warn('Configuración inválida:', error);
 }
 ```
+
+### Leer un error
+
+Un error no capturado detiene el programa y deja en la consola dos datos:
+el **mensaje**, que dice qué pasó, y la **traza** (*stack trace*), que dice
+dónde pasó:
+
+```text
+TypeError: Cannot read properties of undefined (reading 'precio')
+    at calcularSubtotal (src/carrito/subtotal.ts:14:28)
+    at confirmarCompra (src/checkout/confirmar.ts:42:17)
+    at HTMLButtonElement.onClick (src/checkout/boton.ts:8:5)
+```
+
+La primera línea tiene el tipo de error (`TypeError`) y el mensaje: se
+intentó leer `precio` de algo que era `undefined`. Las líneas que empiezan
+con `at` son la traza, de la más reciente a la más antigua: el error
+ocurrió en la función `calcularSubtotal`, en la línea 14, columna 28 del
+archivo `subtotal.ts`; esa función la llamó `confirmarCompra`, y a esta, el
+clic en un botón. Leída de abajo hacia arriba, la traza cuenta el camino
+que llevó al error. Para un reporte de defecto es información de primer
+nivel: le dice a quien debuggea exactamente por dónde empezar.
+
+### El error dentro del `catch`
+
+Como cualquier cosa se puede lanzar con `throw`, TypeScript no sabe de
+antemano qué llega al `catch`, y lo trata como `unknown`. Para usar sus
+propiedades, primero hay que confirmar que es un `Error`:
+
+```ts
+try {
+  await cargarPerfil();
+} catch (error) {
+  if (error instanceof Error) {
+    console.error('Falló la carga del perfil:', error.message);
+  } else {
+    console.error('Falló la carga del perfil:', error);
+  }
+}
+```
+
+`error.message` es el texto del error, y `error.name` su tipo
+(`TypeError`, `Error`, etc.). Pasar el error completo a `console.error`,
+como en los ejemplos anteriores, muestra además la traza.
 
 ### El error es un objeto
 
@@ -157,6 +271,20 @@ original:
 ```ts
 throw new Error('No se pudo sincronizar: ' + String(error));
 ```
+
+Para agregar contexto sin perder la información original, `Error` acepta
+una opción `cause` que conserva el error que lo provocó:
+
+```ts
+try {
+  await sincronizarInventario();
+} catch (error) {
+  throw new Error('No se pudo sincronizar el inventario', {cause: error});
+}
+```
+
+Quien reciba el error nuevo tiene el mensaje con contexto y, en
+`error.cause`, el error original con su mensaje y su traza.
 
 ### Un `catch` que no maneja nada
 
@@ -236,6 +364,11 @@ try {
 }
 ```
 
+"Siempre" incluye el caso en el que el `catch` vuelve a lanzar el error con
+`throw`: primero se ejecuta el `finally`, y recién después el error sigue
+viaje hacia quien llamó a la función. Por eso es el lugar para cerrar o
+liberar algo, pase lo que pase.
+
 ### Errores con `await`
 
 En una operación asíncrona, el `try/catch` solo atrapa el rechazo si se
@@ -270,43 +403,30 @@ falla de verdad.
 
 ## Buenas prácticas
 
-- **Envolver en `try`/`catch` específicamente la operación que puede
-  fallar**, no bloques enteros de código sin relación. Si el `try` abarca
-  cuatro operaciones distintas, un fallo no deja saber cuál de las cuatro
-  fue sin investigar más.
-- **Hacer algo con el error en el `catch`**: registrarlo con el detalle
-  real, mostrarlo, o reintentar — nunca dejarlo pasar en silencio ni
-  taparlo con un mensaje genérico que no dice qué pasó.
-- **Incluir el error real en el mensaje que se registra** (`console.log(
-  '...', error)`), no solo un texto fijo como "algo salió mal" — sin el
-  error real, el registro no sirve para diagnosticar nada después.
-- **No envolver código que no puede fallar.** Un cálculo aritmético entre
-  números no necesita try/catch — hacerlo igual sugiere, equivocadamente,
-  que ahí hay un riesgo real.
-- **Separar operaciones riesgosas sin relación en sus propios try/catch**,
-  en vez de agruparlas en uno solo — así, si una falla, el mensaje deja
-  claro cuál fue.
+- Envolver en `try`/`catch` específicamente la operación que puede fallar.
+- Hacer algo con el error en el `catch`.
+- Incluir el error real en el mensaje que se registra.
+- No envolver código que no puede fallar.
+- Separar operaciones riesgosas sin relación en sus propios try/catch.
 
 ## Anti-patrones
 
-- **Un `catch` vacío.** El programa sigue como si nada hubiera fallado,
-  pero el problema real queda oculto y nadie se entera.
-- **Un comentario en vez de manejo real** (`// TODO: manejar esto
-  después`). El error se sigue perdiendo igual que con un `catch` vacío.
-- **Un mensaje genérico que descarta el error real** ("algo salió mal",
-  sin imprimir `error`) — es casi tan inútil como no registrar nada.
-- **Un `try` que agrupa varias operaciones sin relación.** Si falla,
-  no hay forma de saber cuál de todas fue sin agregar más instrumentación
-  después del hecho.
-- **Envolver en try/catch código que nunca puede fallar** "por las dudas"
-  — agrega ruido y hace parecer riesgoso algo que no lo es.
+- **Un `catch` vacío**.
+- **Un comentario en vez de manejo real**.
+- **Un mensaje genérico que descarta el error real**.
+- **Un `try` que agrupa varias operaciones sin relación**.
+- **Envolver en try/catch código que nunca puede fallar**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <TryCatchActivity />
 
-<PracticeActivity />
+<StackTraceActivity />
+
+<FlowActivity />
+
+<SafeSendActivity />
 
 <ClosingQuizActivity />

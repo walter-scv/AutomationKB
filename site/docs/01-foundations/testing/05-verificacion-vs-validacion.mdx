@@ -5,12 +5,12 @@ sidebar_position: 5
 
 import Activity from '@site/src/components/Activity';
 import Classify from '@site/src/components/Classify';
-import FindInCode from '@site/src/components/FindInCode';
+import DecisionPath from '@site/src/components/DecisionPath';
 import Quiz from '@site/src/components/Quiz';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
   CLASSIFY_LINES, CLASSIFY_RULE_LABELS,
-  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  PLAN_START, PLAN_NODES, PLAN_EXPLANATION,
   CLOSING_QUIZ,
 } from '@site/src/content/lessons/05-verificacion-vs-validacion';
 
@@ -40,17 +40,23 @@ export function ClassifyActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function PlanActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['plan']);
   return (
     <Activity
-      title="¿Esto verifica, valida, o se saltea una de las dos?"
-      kind="Clasificar"
-      goal="reconocer cuándo un equipo saltea la verificación, valida con la persona equivocada, asume que una pregunta responde a la otra o deja la validación para el final."
-      done={isDone('practice')}
-      consigna="Son 8 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+      title="Planificá las dos preguntas"
+      kind="Escenario encadenado"
+      goal="decidir cómo se encaran la verificación y la validación de un mismo producto: por separado, con quién y en qué momento."
+      done={isDone('plan')}
+      consigna="Vas a tomar tres decisiones seguidas sobre el mismo panel de reportes: cómo encarar las dos preguntas, con quién validar y cuándo. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al final."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <DecisionPath
+        startId={PLAN_START}
+        nodes={PLAN_NODES}
+        explanation={PLAN_EXPLANATION}
+        alreadyDone={isDone('plan')}
+        onSolved={() => markDone('plan')}
+      />
     </Activity>
   );
 }
@@ -63,7 +69,7 @@ export function ClosingQuizActivity() {
       kind="Elegí la opción"
       goal="aplicar la diferencia entre verificación y validación a situaciones nuevas."
       done={isDone('quiz')}
-      consigna="Son 2 preguntas. En cada una elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando las 2 están bien."
+      consigna="Es 1 pregunta. Elegí la opción que responde la situación; podés cambiarla hasta acertar. La actividad se completa cuando está bien."
     >
       <Quiz questions={CLOSING_QUIZ} onSolved={() => markDone('quiz')} />
     </Activity>
@@ -72,63 +78,135 @@ export function ClosingQuizActivity() {
 
 ## Conceptos
 
-**Verificación** responde una pregunta: ¿estamos construyendo el producto
-correctamente? Compara el sistema contra lo que dicen los requisitos o la
-especificación documentada. **Validación** responde una pregunta distinta:
-¿estamos construyendo el producto correcto? Confirma que el sistema
-satisface la necesidad real del usuario, más allá de lo que diga la
+Verificación y validación responden dos preguntas distintas sobre un
+mismo sistema. La **verificación** pregunta si se está construyendo el
+producto correctamente: compara el sistema con lo que dicen sus
+requisitos y su especificación. La **validación** pregunta si se está
+construyendo el producto correcto: comprueba que el sistema satisface las
+necesidades de quienes lo van a usar, en las condiciones en que lo van a
+usar.
+
+Las dos preguntas son independientes. Un sistema puede cumplir su
+especificación al pie de la letra y no servirle a nadie, porque la
+especificación no capturó lo que hacía falta. Y puede resolver bien la
+necesidad real y no cumplir lo especificado, porque alguien se apartó del
+documento. Por eso una no reemplaza a la otra.
+
+### Un ejemplo de las dos
+
+Una empresa encarga un sistema para reservar salas de reunión. La
+especificación incluye, entre otros, estos requisitos:
+
+> 1. El usuario elige fecha, hora de inicio, duración (30, 60 o 90
+>    minutos) y sala.
+> 2. Una sala no puede tener dos reservas que se superpongan.
+> 3. Al confirmar, se muestra «Reserva confirmada» y se envía un email al
+>    organizador.
+
+**Verificarlo** es comprobar cada requisito contra el documento: que la
+duración solo admita los tres valores definidos, que una reserva de 10:00
+a 11:00 impida otra de 10:30 a 11:30 en la misma sala, que el mensaje y
+el email sean los especificados. El equipo ejecuta esos casos y los 18
+requisitos del documento quedan verificados.
+
+**Validarlo** es poner el sistema frente a quienes lo van a usar. En una
+sesión con seis empleados de distintas áreas, se les pide una tarea real
+("reservá una sala para el comité del jueves, con ocho personas y el
+proyector") sin explicarles nada. Tres resultados aparecen en la primera
+hora:
+
+- Nadie sabe qué capacidad tiene cada sala ni cuál tiene proyector: el
+  sistema no lo muestra, porque la especificación no lo pedía.
+- Las reuniones recurrentes (todos los lunes a las 9) hay que cargarlas
+  una por una, durante semanas.
+- La duración de 90 minutos no alcanza para los talleres de medio día,
+  que son una de las razones por las que se reservan salas.
+
+Ninguno de los tres es un defecto contra la especificación: el sistema
+hace exactamente lo que se escribió. Son defectos de la especificación,
+que solo aparecen cuando se compara el sistema con la necesidad real.
+
+### Cómo se verifica
+
+La verificación toma como base de prueba los documentos: requisitos,
+criterios de aceptación, diseños, normas. Se hace con testing estático
+(revisar que el diseño cubra cada requisito) y dinámico (ejecutar casos
+derivados de cada requisito y comparar el resultado real con el
+esperado). El criterio de éxito es objetivo: el sistema hace o no hace lo
+que dice el documento.
+
+Si la especificación es ambigua o está incompleta, la verificación sola
+no alcanza para confiar en el sistema. Verificar que el sistema cumple un
+documento incompleto solo confirma que cumple la parte que se escribió.
+
+### Cómo se valida
+
+La validación necesita a las personas que van a usar el sistema, o a
+quienes representan sus necesidades de negocio, y no a quien escribió la
+especificación. Quien escribió el documento solo puede confirmar que el
+sistema coincide con lo que imaginó; no puede detectar que lo que imaginó
+era incompleto.
+
+Las formas habituales de validar son las sesiones con usuarios sobre
+prototipos o versiones parciales, como la del ejemplo, y las pruebas de
+aceptación de usuario (UAT), en las que los usuarios previstos confirman,
+antes de la puesta en producción, que el sistema les sirve para su
+trabajo. Una sesión de validación útil define de antemano la tarea, con
+quién se hace y qué se observa, y deja un registro:
+
+```text
+Sesión de validación — Reserva de salas, versión 0.6
+Participantes:  6 empleados (administración, ventas, RR.HH., sistemas),
+                ninguno participó en la especificación
+Tarea:          Reservar una sala para 8 personas con proyector, el jueves de 10 a 12
+Resultado:      2 de 6 completaron la tarea; tiempo promedio 7 minutos
+Hallazgos:      No se muestra capacidad ni equipamiento de las salas (6 de 6)
+                No hay reservas recurrentes (comentado por 4)
+                La duración máxima de 90 minutos no cubre talleres (3)
+Próximo paso:   Revisar la especificación con el responsable del producto
+```
+
+El registro permite distinguir una validación real de una conversación
+informal, y convierte las observaciones en cambios concretos de la
 especificación.
 
-Un formulario de registro puede cumplir exactamente lo que pide el
-documento de requisitos — campos correctos, validaciones correctas — y
-estar **verificado**. Si, aun así, los usuarios reales se confunden al
-completarlo, el sistema no está **validado**: la especificación no
-capturó bien lo que el usuario necesitaba. Las dos preguntas son
-independientes: un sistema puede cumplir una y fallar la otra.
+### Cuándo se hace cada una
+
+Las dos preguntas se hacen en paralelo durante todo el desarrollo, no una
+después de la otra. Validar recién al final, con el sistema terminado,
+significa descubrir que la especificación estaba incompleta cuando cada
+corrección implica rehacer trabajo dado por terminado. En el ejemplo, la
+sesión se hizo con la versión 0.6: agregar la capacidad de cada sala en
+ese momento es un cambio chico; hacerlo después del lanzamiento, con
+reservas ya cargadas, no lo es.
 
 ## Cuándo usarlo
 
-Las dos preguntas se hacen en paralelo durante todo el desarrollo, no son
-pasos separados en el tiempo. La verificación se apoya en documentos:
-requisitos, especificaciones, casos de test derivados de ellos. La
-validación necesita contacto con usuarios reales o representantes del
-negocio — no alcanza con releer el mismo documento que ya se usó para
-verificar.
+La verificación acompaña cada entrega, porque cada requisito implementado
+se compara con su documento. La validación conviene en varios momentos:
+sobre prototipos, antes de dar por cerrada una funcionalidad importante y
+en las pruebas de aceptación previas a la puesta en producción.
 
 ## Buenas prácticas
 
-- **Chequear las dos preguntas por separado** — nunca asumir que
-  responder una ya responde la otra. Un sistema puede cumplir la
-  especificación al pie de la letra y, aun así, no servirle a nadie.
-- **Validar con usuarios reales o representantes del negocio**, no solo
-  con quien escribió la especificación — esa persona solo puede confirmar
-  que el sistema coincide con lo que ella imaginó, no con lo que el
-  usuario real necesita.
-- **Si la especificación es ambigua o está incompleta, la verificación
-  sola no alcanza para confiar en el sistema** — cumplir al pie de la
-  letra un documento incompleto no dice nada sobre si el resultado sirve.
-- **Programar la validación en paralelo con el desarrollo**, no como un
-  paso final — encontrar tarde que la especificación no capturaba la
-  necesidad real obliga a rehacer trabajo que ya se dio por terminado.
-- **Documentar con qué usuarios o representantes se validó**, para poder
-  distinguir después una validación real de una conversación informal con
-  quien ya estaba convencido de antemano.
+- Plantear siempre las dos preguntas por separado, sin asumir que
+  responder una responde la otra.
+- Validar con usuarios reales o representantes del negocio que no
+  participaron de la especificación.
+- Definir para cada sesión de validación una tarea concreta y registrar
+  quiénes participaron y qué se observó.
+- Validar sobre versiones parciales, mientras los cambios todavía son
+  baratos.
 
 ## Anti-patrones
 
 - **Confundir "pasa todos los casos documentados" con "el producto sirve
-  al usuario"** — son preguntas distintas, y una especificación mal
-  pensada hace que la primera no diga nada sobre la segunda.
-- **Validar solo con quien escribió el requisito**, nunca con un usuario
-  real — esa persona tiende a confirmar su propia idea, no a detectar que
-  la idea estaba equivocada.
-- **Saltear la verificación** asumiendo que "el usuario lo va a probar
-  igual" y dejando toda la responsabilidad en la validación — deja sin
-  chequear si el sistema realmente cumple lo acordado con el negocio.
-- **Asumir que pasar la verificación ya garantiza la validación** — son
-  preguntas independientes, y ninguna implica la otra automáticamente.
-- **Validar una sola vez, al final del desarrollo**, en vez de ir
-  confirmando con usuarios reales a medida que el producto toma forma.
+  al usuario"**.
+- **Validar solo con quien escribió el requisito**.
+- **Saltear la verificación** confiando en que "el usuario lo va a probar
+  igual".
+- **Asumir que pasar la verificación ya garantiza la validación**.
+- **Validar una sola vez, al final del desarrollo**.
 
 ## Práctica
 
@@ -136,6 +214,6 @@ Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es ind
 
 <ClassifyActivity />
 
-<PracticeActivity />
+<PlanActivity />
 
 <ClosingQuizActivity />

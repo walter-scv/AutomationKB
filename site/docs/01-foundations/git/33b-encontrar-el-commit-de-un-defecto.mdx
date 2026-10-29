@@ -1,0 +1,241 @@
+---
+title: "Encontrar el commit que introdujo un defecto"
+sidebar_position: 33.7
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import Terminal from '@site/src/components/Terminal';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  TOOL_ITEMS,
+  TOOL_COLUMNS,
+  PICKAXE_ACCEPTED,
+  PICKAXE_HINTS,
+  PICKAXE_EXPLANATION,
+  PICKAXE_OUTPUT,
+  BISECT_STEPS,
+  BISECT_EXPLANATION,
+} from '@site/src/content/lessons/33b-encontrar-el-commit-de-un-defecto';
+
+export const LESSON_SLUG = 'foundations-encontrar-commit-defecto';
+
+export function ToolChoiceActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['toolchoice']);
+  return (
+    <Activity
+      title="¿Qué herramienta usarías?"
+      kind="Clasificar"
+      goal="elegir entre `log -S`, `blame -L` y `bisect` según qué información se tiene sobre el defecto."
+      done={isDone('toolchoice')}
+      consigna="Son 6 situaciones y tres herramientas. Arrastrá cada situación a la herramienta que conviene usar. Regla de decisión: si tenés un texto concreto del código, `log -S`; si ya tenés la línea, `blame -L`; si solo sabés en qué versión funcionaba, `bisect`. La actividad se completa cuando ubicaste las 6."
+    >
+      <Classify
+        items={TOOL_ITEMS}
+        columns={TOOL_COLUMNS}
+        itemLabel="Situación"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('toolchoice')}
+        onSolved={() => markDone('toolchoice')}
+      />
+    </Activity>
+  );
+}
+
+export function PickaxeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['pickaxe']);
+  return (
+    <Activity
+      title="Leé la búsqueda por contenido"
+      kind="Respuesta escrita"
+      goal="interpretar la salida de `git log -S` para encontrar el commit en que apareció un texto del código."
+      done={isDone('pickaxe')}
+      consigna="Querés saber cuándo se agregó la constante `MAX_REINTENTOS` al cobro. Leé la salida y escribí el id del commit en el que apareció por primera vez. Si te equivocás, recibís una pista y podés volver a intentar. La actividad se completa al acertar."
+    >
+      <CodeBlock language="text">{PICKAXE_OUTPUT}</CodeBlock>
+      <TypeAnswer
+        accepted={PICKAXE_ACCEPTED}
+        hints={PICKAXE_HINTS}
+        explanation={PICKAXE_EXPLANATION}
+        placeholder="id del commit"
+        alreadyDone={isDone('pickaxe')}
+        onSolved={() => markDone('pickaxe')}
+      />
+    </Activity>
+  );
+}
+
+export function BisectActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['bisect']);
+  return (
+    <Activity
+      title="Encontrá el commit con bisect"
+      kind="Terminal"
+      goal="hacer una búsqueda binaria completa con `git bisect` para encontrar el commit que introdujo una regresión."
+      done={isDone('bisect')}
+      consigna="Son 6 pasos en una terminal simulada. La instrucción de cada uno aparece como comentario arriba del prompt, junto con el resultado de cada prueba que hiciste: escribí el comando y confirmá con Enter. Si el comando no es el esperado, la terminal te avisa y podés corregirlo. La actividad se completa al terminar los 6 pasos."
+    >
+      <Terminal
+        steps={BISECT_STEPS}
+        explanation={BISECT_EXPLANATION}
+        alreadyDone={isDone('bisect')}
+        onSolved={() => markDone('bisect')}
+      />
+    </Activity>
+  );
+}
+
+Con las etiquetas se puede volver a una versión exacta. El paso siguiente es usar el historial para investigar: encontrar en qué commit apareció un defecto que antes no estaba.
+
+## Conceptos
+
+Cuando aparece un defecto que antes no estaba, una de las preguntas más
+útiles para resolverlo es **qué cambio lo introdujo**. Conocer ese commit
+dice qué se modificó, quién lo hizo y con qué intención, y acota la
+búsqueda de la causa a unas pocas líneas. Git tiene herramientas para
+responder esa pregunta sin revisar el historial a mano. Para quien testea,
+además, convierten un reporte de "el envío gratis dejó de funcionar" en "el
+envío gratis dejó de funcionar a partir del commit `5b2a8c1`", que es
+mucho más fácil de investigar.
+
+### Buscar por contenido: `git log -S`
+
+Si se sabe qué texto del código está involucrado, `git log -S` busca los
+commits que **agregaron o quitaron** ese texto:
+
+```bash
+$ git log -S "ENVIO_GRATIS_DESDE" --oneline
+5b2a8c1 Unificar constantes de precios en un archivo
+a71c3e0 Agregar envío gratis para compras grandes
+```
+
+El resultado dice que la constante `ENVIO_GRATIS_DESDE` apareció por
+primera vez en `a71c3e0` y que su línea cambió en `5b2a8c1`. Si el envío
+gratis dejó de funcionar hace poco, `5b2a8c1` es el primer candidato a
+revisar, con `git show 5b2a8c1`.
+
+Otras dos búsquedas habituales: `git log --grep="envío"` busca en los
+**mensajes** de los commits, y `git log --since="2 weeks ago"` limita el
+historial a un período. Las tres se combinan entre sí y con `-- archivo`.
+
+### Quién cambió estas líneas: `git blame -L`
+
+Cuando ya se sabe en qué parte de un archivo está el problema, `git blame`
+muestra el último commit que modificó cada línea. Con `-L` se limita a un
+rango de líneas:
+
+```bash
+$ git blame -L 10,14 precios.ts
+a71c3e0 (Diego Ruiz   2026-09-02 10:15:22 -0300 10) export function costoDeEnvio(total: number) {
+5b2a8c1 (Lucía Pérez  2026-10-20 16:40:03 -0300 11)   if (total > ENVIO_GRATIS_DESDE) {
+a71c3e0 (Diego Ruiz   2026-09-02 10:15:22 -0300 12)     return 0;
+a71c3e0 (Diego Ruiz   2026-09-02 10:15:22 -0300 13)   }
+a71c3e0 (Diego Ruiz   2026-09-02 10:15:22 -0300 14)   return 800;
+```
+
+Cada línea muestra el commit, el autor, la fecha, el número de línea y el
+contenido. La línea 11 se modificó por última vez en `5b2a8c1`, y su
+condición usa `>` donde quizás debía ir `>=`. Que `blame` señale a una
+persona no significa que esa persona causó el problema: dice quién tocó la
+línea por última vez, y es el punto de partida para preguntar, no para
+culpar.
+
+### Búsqueda binaria en el historial: `git bisect`
+
+Cuando no se sabe qué texto ni qué archivo buscar, pero sí que el defecto
+**no existía en una versión anterior** y **sí existe ahora**, `git bisect`
+encuentra el commit culpable probando lo menos posible. Hace una búsqueda
+binaria: toma el commit del medio entre el último bueno y el primer malo,
+pide que se lo pruebe, y según el resultado descarta la mitad del rango.
+Con cien commits de por medio, alcanzan unas siete pruebas.
+
+El procedimiento empieza indicando los dos extremos:
+
+```bash
+$ git bisect start
+$ git bisect bad                    # el commit actual tiene el defecto
+$ git bisect good v2.4.0            # en la versión 2.4.0 funcionaba
+Bisecting: 6 revisions left to test after this (roughly 3 steps)
+[c08d1f5] Permitir cancelar un turno hasta 2 horas antes
+```
+
+Git deja el working directory en un commit intermedio, `c08d1f5`. Se
+ejecuta la aplicación, se prueba el caso que falla, y se informa el
+resultado con `git bisect good` (funciona) o `git bisect bad` (falla):
+
+```bash
+$ git bisect good
+Bisecting: 3 revisions left to test after this (roughly 2 steps)
+[5b2a8c1] Unificar constantes de precios en un archivo
+
+$ git bisect bad
+Bisecting: 1 revision left to test after this (roughly 1 step)
+[9d1e4f7] Mover el cálculo del envío a precios.ts
+
+$ git bisect good
+5b2a8c1 is the first bad commit
+commit 5b2a8c1f4e...
+Author: Lucía Pérez <lucia@empresa.com>
+Date:   Mon Oct 20 16:40:03 2026 -0300
+
+    Unificar constantes de precios en un archivo
+```
+
+La búsqueda terminó: `5b2a8c1` es el primer commit en el que el defecto
+aparece. Al terminar, se vuelve al estado normal:
+
+```bash
+$ git bisect reset
+```
+
+Dos cuidados hacen que el resultado sea confiable. El primero es probar
+**siempre el mismo caso, con los mismos datos**, en cada paso: si la prueba
+cambia, se compara contra cosas distintas. El segundo es responder solo
+por el defecto que se busca: si un commit intermedio tiene otro problema
+que impide probar, se lo saltea con `git bisect skip` en lugar de
+marcarlo como malo.
+
+### Cuál usar
+
+Las tres herramientas responden la misma pregunta desde puntos de partida
+distintos. Si se conoce un texto del código relacionado con el defecto (un
+nombre de constante, un mensaje de error), `git log -S` es lo más directo.
+Si ya se identificó la línea sospechosa, `git blame -L` dice quién la cambió
+y en qué commit. Y si solo se sabe que antes funcionaba y ahora no, sin
+pista sobre el código, `git bisect` encuentra el commit probando el
+comportamiento.
+
+## Cuándo usarlo
+
+Cada vez que un defecto es una **regresión**, es decir, algo que antes
+funcionaba y dejó de funcionar. Incluir en el reporte el commit que lo
+introdujo, o al menos la última versión en que funcionaba, ahorra buena
+parte del debugging.
+
+## Buenas prácticas
+
+- Registrar en el reporte la última versión en que el defecto no ocurría.
+- En `bisect`, probar siempre el mismo caso con los mismos datos.
+- Saltear con `git bisect skip` los commits que no se pueden probar.
+- Terminar siempre con `git bisect reset`.
+- Usar `blame` para saber a quién preguntar, no para señalar culpables.
+
+## Anti-patrones
+
+- **Revisar el historial commit por commit a mano** cuando `bisect` lo
+  resuelve en pocas pruebas.
+- **Marcar como malo un commit que falla por otro motivo**.
+- **Olvidarse de `git bisect reset`** y seguir trabajando en un commit
+  intermedio.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ToolChoiceActivity />
+
+<PickaxeActivity />
+
+<BisectActivity />

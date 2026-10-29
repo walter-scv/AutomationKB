@@ -1,5 +1,7 @@
+import type {TerminalStep} from '@site/src/components/Terminal';
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {MatchItem} from '@site/src/components/Match';
 
 export const GROUPING_RULE_LABELS = ['Son variables sueltas que en realidad describen la misma entidad'];
 
@@ -44,59 +46,24 @@ export const GROUPING_LINES: CodeLine[] = [
   },
 ];
 
-export const PRACTICE_RULE_LABELS = [
-  'Nombre de objeto genérico, no dice qué entidad representa',
-  'Propiedad con nombre genérico, no dice qué contiene',
-  'Mezcla datos sin relación real en un mismo objeto',
+export const NAMING_LEFT: MatchItem[] = [
+  {id: 'domicilio', text: "`const registro = {calle: 'Mitre', numero: 45, piso: '3B'}`"},
+  {id: 'libro', text: "`const obj = {titulo: 'Rayuela', autor: 'Cortázar', paginas: 600}`"},
+  {id: 'sesion', text: "`const info = {usuario: 'ana', token: 'x9f2', expiraEn: '2026-06-30'}`"},
+  {id: 'conexion', text: "`valorSecundario: 'inalámbrico'`, dentro de `const teclado = {modelo: 'K120', precio: 15000, valorSecundario: 'inalámbrico'}`"},
 ];
-
-export const PRACTICE_LINES: CodeLine[] = [
-  {
-    code: "const usuario = {\n  email: 'ana@mail.com',\n  rol: 'editor',\n  ultimoAcceso: '2024-05-02',\n};",
-    rule: 0,
-    why: '`rol` y `ultimoAcceso` parecen datos de otro tipo, pero los tres describen la misma cuenta de usuario. El nombre del objeto y el de cada propiedad dicen qué son.',
-  },
-  {
-    code: "const sesion = {\n  usuario: 'ana',\n  expiraEn: '2024-06-30',\n  visitasDelMes: 4820,\n};",
-    rule: 3,
-    why: 'La sesión y las visitas del mes cambian por motivos distintos: una expira o se renueva, las otras son una métrica del panel. Meterlas en el mismo objeto hace creer que se actualizan juntas.',
-    hint: '¿Todas estas propiedades cambian cuando cambia la sesión?',
-  },
-  {
-    code: "const producto = {\n  nombre: 'Teclado USB',\n  precio: 15000,\n  valorSecundario: 'inalámbrico',\n};",
-    rule: 2,
-    why: '`valorSecundario` no dice qué contiene: podría ser el color, el conector o una observación. El nombre no alcanza para saberlo y obliga a rastrear dónde se usa.',
-    hint: 'Si otro miembro del equipo lee solo el nombre de esa propiedad, ¿puede saber qué dato guarda?',
-  },
-  {
-    code: "const datosDeContacto = {\n  email: 'ana@mail.com',\n  telefono: '+54 341 555-0199',\n};",
-    rule: 0,
-    why: '`datosDeContacto` es un nombre amplio, pero dice qué entidad agrupa y las dos propiedades son claramente parte de ella. No hay mezcla ni nombres que obliguen a adivinar.',
-  },
-  {
-    code: "const registro = {\n  calle: 'Mitre 45',\n  ciudad: 'Rosario',\n  codigoPostal: '2000',\n};",
-    rule: 1,
-    why: '`registro` podría ser un usuario, un pedido o una dirección: no dice qué entidad agrupa. El nombre `direccionDeEnvio` diría lo mismo sin que nadie tenga que abrir las propiedades.',
-    hint: '¿El nombre del objeto alcanza para saber qué entidad representa, o hay que leer las propiedades para descubrirlo?',
-  },
-  {
-    code: "const reclamo = {\n  id: 'R-88',\n  estado: 'abierto',\n  detalle: 'El paquete llegó dañado',\n};",
-    rule: 2,
-    why: '`detalle` no dice qué guarda: podría ser una descripción, un importe o una fecha. En un reclamo, un nombre como `descripcionDelProblema` evita esa ambigüedad.',
-    hint: '¿Ese nombre describe el valor, o podría contener cualquier cosa?',
-  },
-  {
-    code: "const pedido = {\n  numero: 1042,\n  total: 15900,\n  versionDelNavegador: 'Chrome 126',\n};",
-    rule: 3,
-    why: 'El navegador del cliente puede interesar para métricas, pero no describe el pedido: cambia por una razón distinta y no se usa junto con el número y el total. Su lugar es otro objeto o una variable aparte.',
-    hint: '¿Esa propiedad se actualizaría cuando cambia el pedido, o cuando cambia otra cosa?',
-  },
-  {
-    code: "const datosDePago = {\n  titular: 'Ana Gómez',\n  ultimosCuatro: '4242',\n  vencimiento: '08/27',\n};",
-    rule: 0,
-    why: '`datosDePago` dice qué entidad representa y las tres propiedades son parte de la misma tarjeta. El nombre es amplio, pero coherente y sin datos de otra entidad.',
-  },
+export const NAMING_RIGHT: MatchItem[] = [
+  {id: 'sesion', text: '`sesion`'},
+  {id: 'conexion', text: '`conexion`'},
+  {id: 'domicilio', text: '`domicilio`'},
+  {id: 'libro', text: '`libro`'},
 ];
+export const NAMING_WHY: Record<string, string> = {
+  domicilio: 'Calle, número y piso describen un domicilio: `registro` no dice nada de eso.',
+  libro: 'Título, autor y páginas son de un libro: `obj` obliga a leer las propiedades para entenderlo.',
+  sesion: 'Usuario, token y vencimiento son los datos de una sesión: `info` es tan genérico como `datos`.',
+  conexion: 'El nombre de una propiedad también tiene que decir qué guarda: "inalámbrico" es el tipo de conexión del teclado.',
+};
 
 export const CLOSING_QUIZ: QuizQuestion[] = [
   {
@@ -181,3 +148,54 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
       ],
     }
 ];
+
+export const ACCESS_CODE = `const carrito = {
+  cliente: {
+    nombre: 'Ana',
+    email: 'ana@mail.com',
+  },
+  items: [
+    {producto: 'Teclado USB', cantidad: 1},
+    {producto: 'Mouse', cantidad: 2},
+    {producto: 'Monitor', cantidad: 1},
+  ],
+};`;
+export const ACCESS_ACCEPTED = ['carrito.items[1].cantidad', 'carrito.items[1].cantidad;'];
+export const ACCESS_HINTS = [
+  'Leé el camino de afuera hacia adentro: ¿en qué propiedad de `carrito` están los items, y en qué posición de esa lista está el del Mouse?',
+  'Acordate de que los índices de un array empiezan en 0. Una vez que llegás al objeto del item, la propiedad se lee con un punto.',
+];
+export const ACCESS_EXPLANATION =
+  '`carrito.items` es el array de items; el del Mouse es el segundo, así que su índice es `1` (el primero es `0`). `carrito.items[1]` llega a ese objeto, y `.cantidad` lee la propiedad: `2`. El índice lleva al elemento de la lista, y el punto lleva a la propiedad — igual que `pedidos[0].total` en la teoría.';
+
+function exprVariants(...expressions: string[]): string[] {
+  return expressions.flatMap((e) => [e, e + ';', `console.log(${e})`, `console.log(${e});`]);
+}
+export const RESERVA_STEPS: TerminalStep[] = [
+  {
+    instruction: "Existe const reserva = {codigo: 'H-77', noches: 3, cochera: undefined}. Leé reserva.cochera.lugar sin que el programa se detenga si no hay cochera.",
+    accepted: exprVariants('reserva.cochera?.lugar'),
+    hint: 'Hay un operador que, si lo de la izquierda es undefined, devuelve undefined en lugar de fallar.',
+    output: 'undefined',
+  },
+  {
+    instruction: "Ahora lo mismo, pero que devuelva 'Sin cochera' cuando no hay.",
+    accepted: exprVariants("reserva.cochera?.lugar ?? 'Sin cochera'", 'reserva.cochera?.lugar ?? "Sin cochera"'),
+    hint: 'Sumale a la expresión anterior el operador que elige un valor alternativo cuando el de la izquierda es undefined o null.',
+    output: "'Sin cochera'",
+  },
+  {
+    instruction: 'Extraé codigo y noches de reserva en dos variables, en una sola línea.',
+    accepted: ['const {codigo, noches} = reserva', 'const {codigo, noches} = reserva;', 'const { codigo, noches } = reserva', 'const { codigo, noches } = reserva;', 'const {noches, codigo} = reserva', 'const {noches, codigo} = reserva;', 'const { noches, codigo } = reserva', 'const { noches, codigo } = reserva;'],
+    hint: 'Es la desestructuración: const, los nombres de las propiedades entre llaves, igual y el objeto.',
+    output: 'undefined',
+  },
+  {
+    instruction: "Existe const copiaDelSistema = {codigo: 'H-77', noches: 3, cochera: undefined}, con los mismos datos. Comprobá si las dos reservas tienen el mismo código.",
+    accepted: exprVariants('reserva.codigo === copiaDelSistema.codigo', 'copiaDelSistema.codigo === reserva.codigo'),
+    hint: 'Comparar los objetos con === da false aunque tengan los mismos datos: hay que comparar la propiedad.',
+    output: 'true',
+  },
+];
+export const RESERVA_EXPLANATION =
+  '`?.` corta la lectura y devuelve `undefined` cuando falta lo de la izquierda, y `??` le da un valor por defecto. La desestructuración extrae varias propiedades en una línea (en la consola, una declaración muestra `undefined`). Y `reserva === copiaDelSistema` daría `false`: son dos objetos distintos, así que se comparan sus propiedades.';

@@ -1,382 +1,68 @@
-# AutomationKB: guía para Claude Code
+# AutomationKB
 
-AutomationKB es una knowledge base de test automation para QA con experiencia manual que se
-inician en automation. `docs/best-practices/` tiene 20 entradas en markdown; `project/` tiene la
-suite E2E real (Playwright + TypeScript) de la app "Show me the money!", que es la fuente de
-todos los ejemplos. `site/` es el sitio interactivo (Docusaurus + MDX) donde cada entrada combina
-teoría con actividades.
+Currícula interactiva de testing para QA que empiezan de cero (Docusaurus + MDX en `site/`).
+Contenido en español rioplatense con voseo; tono profesional, no amistoso ni narrativo.
 
-## Convenciones generales
+<!-- Mantenimiento: este archivo se carga en todas las sesiones; mantenelo bajo ~100 líneas.
+Las reglas de contenido viven en .claude/rules/ (se cargan al tocar lecciones o componentes) y el
+procedimiento completo para crear o ampliar lecciones, en el skill .claude/skills/leccion/.
+Cada regla nueva va en una o dos líneas, con su motivo, en el archivo que le corresponde. -->
 
-- Stack: Playwright + TypeScript con `@playwright/test`. Nunca asumas otro stack; ante la duda,
-  revisá `project/`.
-- Todo el contenido para lectores va en español rioplatense (voseo), con el tono de los docs.
-  Nombres de archivos, funciones y variables en inglés.
-- El código de las actividades puede ser genérico e inventado si eso ayuda a que se entiendan
-  por sí solas — no hace falta atarlas a la app real. Lo innegociable es que ese código respete
-  las convenciones reales del proyecto: Page Object Model, TypeScript + Playwright, `test.step`
-  numerados, tags, y la convención de data-attributes de la entrada 08 (ver aprendizaje 2).
-- No modifiques `project/` salvo que se pida explícitamente.
+## Mapa
 
-## Aprendizajes de la revisión de actividades
+- `site/docs/<sección>/<track>/NN-slug.mdx`: teoría y funciones de actividad de cada lección.
+  `site/src/content/lessons/NN-slug.ts`: los datos de esas actividades. Una lección insertada
+  entre dos existentes usa un sufijo (`23a`) y un `sidebar_position` decimal (`23.5`).
+- Secciones: I. Foundations (`01-foundations/`, tracks `testing/`, `programming/`, `git/`,
+  cada uno con un integrador: `15b`, `25b`, `35b`), II. Testing Domains (tracks UI, API,
+  Mobile y Performance) y III–VI, todavía sin contenido.
+- `site/src/components/`: los componentes de actividad. `site/scripts/`: verificación y
+  generadores.
+- `project/` y `docs/best-practices/` están congelados: no se editan (lo bloquea
+  `.claude/settings.json`) ni se usan como fuente de contenido.
 
-Cada punto surgió de una corrección durante el diseño de la demo de la entrada 06
-(`site/reference/demo-06-anatomia.html`). Aplicalos a toda actividad nueva o modificada.
+## Comandos (desde `site/`)
 
-### 1. Verificar el stack y el repo antes de proponer
-**Qué pasó:** se propuso Python/pytest y una estructura nueva sin revisar el repo, que ya existía
-y usa TypeScript.
-**Regla:** antes de diseñar o generar algo, leé el README, las entradas involucradas y el código
-real de `project/`. Construí sobre lo que existe.
+- Dev server: `npm start -- --port 3100`. Siempre el puerto 3100; si ya está corriendo,
+  reusalo.
+- Tipos: `npx tsc --noEmit -p .`
+- Build: `npm run build`
+- Patrones adivinables en ejercicios: `node scripts/check-exercises.mjs`. Después de
+  reescribir quizzes o FindInCode: `node scripts/balance-answers.mjs`.
+- Distribución de tipos y mecánicas seguidas: `python3 scripts/activity-stats.py`
+  (`--lessons` muestra el detalle por lección).
+- Mapa teoría → actividades: `python3 scripts/coverage-map.py [filtro]`
+- Índices de SpotToken: `python3 scripts/spot-tokens.py`
+- Pruebas en el navegador: `node scripts/browser/<test>.cjs`, con los helpers de
+  `scripts/browser/lib.cjs` y el dev server levantado. Ejemplo: `example-all-types.cjs`.
 
-### 2. Priorizar que la práctica se entienda, no que use la app real (actualizado 2026-10-16)
-**Qué pasó:** esta regla originalmente pedía usar la app y las Page Objects reales de "Show me
-the money!", porque la primera pantalla de práctica era una app inventada con convenciones que
-contradecían los docs (`data-testid` en lugar de los data-attributes de la entrada 08). Esa regla
-resolvió ese problema puntual, pero aplicada a rajatabla terminó sobrecargando las actividades
-reales con vocabulario de dominio (nombres de activos, formato de moneda, "Mi portfolio") que no
-aporta a lo que se quiere enseñar — las actividades dejaron de entenderse por sí solas.
-**Regla:** las actividades usan ejemplos genéricos e inventados, elegidos por claridad — no hace
-falta atarlos a la app real. Lo innegociable es que ese ejemplo respete las convenciones reales
-del proyecto (Page Object Model, TypeScript + Playwright, `test.step` numerados, tags, y la
-convención de data-attributes de la entrada 08), nunca algo que las contradiga. El código real de
-`project/` queda como referencia opcional al final de la entrada (un link a los archivos reales),
-no como la base del ejercicio.
+## Cómo trabajar
 
-### 3. Pensar en el formato para las 20 entradas, no en una lección suelta
-**Qué pasó:** se construyó una lección puntual cuando el objetivo era un formato aplicable a
-toda la knowledge base.
-**Regla:** cada actividad se construye como componente reutilizable configurado por datos. Si
-algo solo sirve para una entrada, replanteá el diseño.
+- **Leé antes de producir**: la lección, sus vecinas, sus datos `.ts` y el componente que vas
+  a usar. Construí sobre lo que existe.
+- **Fuentes oficiales**: ISTQB CTFL v4.0 (Testing), Pro Git, git-scm.com y GitHub Docs (Git),
+  TypeScript Handbook, MDN y javascript.info (Programming). Compará con cursos establecidos
+  para encontrar temas faltantes. Si falta un tema, se agrega la lección o la sección sin
+  preguntar.
+- **Ejecutá cada salida antes de mostrarla**: un comando de Git, un error de `tsc` o un
+  resultado de JavaScript se corre en un directorio temporal antes de escribirlo. (Había
+  salidas desactualizadas o inventadas.)
+- **Prototipo antes de replicar**: un cambio de formato o de criterio se aplica primero a 1 a
+  3 lecciones y se muestra a Walter; recién con su aprobación se extiende al resto. (Dos
+  reescrituras masivas se rechazaron enteras.)
+- **Un criterio vale para todo el sitio**: una corrección de Walter se aplica a todas las
+  secciones y tracks, aunque la haya ejemplificado con uno solo.
+- **Foundations es testing en general**: todo tiene que ser cierto para un tester 100% manual.
+  La automatización (Playwright + TypeScript, Page Object Model, `test.step` numerados y
+  tags) aparece recién desde la sección II.
+- **Antes de entregar**, corré la verificación completa del skill `leccion` (paso 6). No
+  digas que algo funciona sin haberlo probado en el navegador.
+- Sin commits ni push salvo pedido explícito.
+- Sin tandas de agentes en paralelo: el trabajo grande se hace secuencial. La única excepción
+  es un agente revisor por tanda.
 
-### 4. Interactividad real: el lector hace, no solo marca
-**Qué pasó:** se evaluó H5P y se descartó porque sus actividades se reducen a reaccionar a
-contenido estático y apretar "Check".
-**Regla:** las actividades tienen que hacer pensar y producir algo: ordenar, clasificar,
-escribir o corregir código, buscar información en código o consola. El feedback llega mientras
-el lector trabaja, no solo al final.
+## Decisiones de diseño (no se revierten sin que Walter lo pida)
 
-### 5. Los ejercicios vienen armados; no se ejecuta código
-**Qué pasó:** se propuso cargar los tipos de Playwright y validar compilando, algo innecesario.
-**Regla:** cada ejercicio valida la respuesta del lector contra lo esperado (reglas, respuestas
-aceptadas, alternativas). No compiles ni ejecutes su código, y no agregues dependencias pesadas
-para eso.
-
-### 6. Contexto y teoría antes de la actividad
-**Qué pasó:** los ejercicios pedían escribir código sin explicar cómo es la pantalla ni qué
-ofrece la Page Object, y sin teoría que los respaldara.
-**Regla:** el orden de una entrada es contexto (el caso manual, la pantalla, la Page Object),
-después teoría con ejemplos de "así no" y "así sí", y recién después la actividad. Cada actividad
-incluye:
-- **Qué practicás:** el objetivo en una oración.
-- **Lo que necesitás saber:** los conceptos y reglas que aplica, con referencias a la sección.
-- **Herramientas disponibles:** los métodos y locators de la Page Object que puede usar.
-- **Tu tarea:** la consigna concreta.
-
-Si un hueco o ejercicio necesita conocimiento específico, explicalo junto al ejercicio.
-
-### 7. No regalar la respuesta y obligar a razonar
-**Qué pasó:** en "Encontrá los tres problemas", el recuadro de ayuda decía qué líneas estaban
-bien y dónde estaban los errores, y los errores estaban juntos al final. Se resolvía sin pensar.
-**Regla:**
-- La consigna y los recuadros de ayuda nunca revelan la respuesta ni su ubicación.
-- Los errores se reparten por el código, y hay distractores: líneas correctas que parecen
-  sospechosas. Explicar por qué están bien es parte del aprendizaje.
-- El lector justifica su respuesta, por ejemplo eligiendo qué regla rompe una línea, en lugar de
-  solo marcarla.
-- Si se equivoca, recibe una pista y puede reintentar; si marca como error algo correcto, se le
-  explica por qué está bien.
-- El feedback cita la regla o sección que aplica, y las pistas son progresivas.
-
-### 8. Verificar visualmente cada actividad
-**Qué pasó:** la lista de reglas de "Corregí el test" se veía rota: el código inline quedaba en la
-columna angosta del layout y se mostraba letra por letra en vertical. Los tests de lógica pasaban.
-**Regla:** además de probar la lógica, revisá cada actividad renderizada en escritorio y en
-mobile, con la paleta neón única (ver aprendizaje 18). En layouts de grid o flex, agrupá el texto
-mixto (texto más `<code>`) en un solo elemento.
-
-### 9. Continuidad entre actividades y guiar la atención
-**Qué pasó:** en "Corregí el test" el lector tenía que volver a buscar las líneas que ya había
-encontrado en el ejercicio anterior.
-**Regla:** si una actividad continúa a otra, reutilizá el resultado previo: resaltá lo que hay
-que trabajar, explicá el resaltado en la consigna y hacé que desaparezca cuando el lector lo
-resuelve (detectándolo por contenido, no por número de línea).
-
-### 10. Teoría genérica antes de la actividad, nunca al revés (actualizado 2026-10-16)
-**Qué pasó:** la primera versión de la lección 06 en Docusaurus arrancaba directo con el
-escenario de "Show me the money" (Ternium Argentina, Mi portfolio, etc.) antes de explicar AAA en
-abstracto. Era al revés de cómo está escrita la entrada real en `docs/best-practices/`, que
-arranca con un ejemplo genérico e inventado (`DashboardPage`) y recién después muestra "así se ve
-en el proyecto real". Originalmente esa sección "así se ve en el proyecto real" alimentaba
-directo a la actividad; eso quedó obsoleto con el punto 2 (actualizado): la actividad ahora usa el
-mismo ejemplo genérico de la teoría, no la app real.
-**Regla:** el orden es teoría genérica (con su propio ejemplo inventado) → actividad, usando **el
-mismo** ejemplo inventado de la teoría, para que no haga falta aprender dos vocabularios distintos
-en una sola entrada. La app real de `project/` puede aparecer, si aporta algo, como una mención
-breve o un link al final — nunca como la base de la actividad ni intercalada entre la teoría y la
-práctica.
-
-### 11. Toda la teoría primero; las actividades, juntas al final (actualizado 2026-10-22)
-**Qué pasó:** la versión original de esta regla pedía una actividad después de cada bloque de
-teoría, para no acumular dos conceptos seguidos sin práctica. Con el tiempo eso cortaba la
-lectura y obligaba a resolver antes de haber visto la teoría completa; Walter pidió dejarlas al
-final para que el lector termine de leer antes de que se le pregunte.
-**Regla:** cada entrada expone toda la teoría (Conceptos → Cuándo usarlo → Buenas prácticas →
-Anti-patrones) y después va `## Práctica` con todas las actividades en orden, incluido el quiz de
-cierre. No hay sección `## Repaso` aparte. Las actividades no interrumpen la teoría. La sección
-`## Práctica` arranca con una línea que dice cuántos ejercicios hay, que son independientes y que
-cada bloque avisa cuándo está resuelto.
-
-### 12. Cada sección se conecta explícitamente con la anterior
-**Qué pasó:** AAA, Page Object y las reglas del assert se explicaban como tres mini-lecciones
-independientes — ninguna decía por qué viene después de la otra. Eran ejemplos inconexos, no una
-explicación (ver aprendizaje 6, versión estricta).
-**Regla:** toda sección nueva arranca mostrando el problema que resuelve, nunca una definición
-sin motivo — y si es una aplicación de algo ya visto, lo dice explícitamente ("es la misma idea
-de arriba", "igual que en la sección anterior").
-
-### 13. Ordenar/clasificar tiene que verificar el concepto, no una secuencia tangencial
-**Qué pasó:** "Ordená AAA" pedía ordenar 5 líneas por secuencia lógica de uso de la app — se
-podía resolver bien sin saber qué es Arrange/Act/Assert, porque ninguna regla de feedback
-mencionaba AAA.
-**Regla:** si la sección enseña una categorización, el ejercicio tiene que forzar esa
-categorización explícitamente (por ejemplo, incluyendo las etiquetas de categoría como ítems a
-ordenar), no una secuencia resoluble con sentido común ajeno al concepto.
-
-### 14. No forzar un ejercicio de Ordenar sobre conceptos sin secuencia intuitiva
-**Qué pasó:** "Ordená las capas" (entrada 02) pedía ordenar 4 tarjetas que repetían la definición
-de cada capa, sin ninguna secuencia temporal o causal visible en el contenido mismo. El lector no
-tenía forma de razonar el orden salvo copiar el diagrama que ya había leído arriba — ni la
-sección ni el ejercicio se entendían.
-**Regla:** `<Order>` funciona cuando los ítems son pasos concretos con una secuencia intuitiva
-(líneas de un test, pasos de un proceso con un antes y un después real). Si lo que se enseña es
-una jerarquía o clasificación sin secuencia temporal (como las capas de una arquitectura), no
-fuerces un ejercicio de Ordenar — evaluá primero si ya alcanza con la teoría más otro tipo de
-ejercicio (por ejemplo, uno que detecte una invasión entre capas), en vez de sumar una actividad
-que no se puede resolver razonando. No toda sección necesita una actividad propia si la que sigue
-ya ejercita el mismo concepto.
-
-### 15. No presentar una decisión de un proyecto puntual como regla universal
-**Qué pasó:** una pregunta del quiz de la entrada 02 afirmaba que "Data/Fixture nunca tiene
-carpeta propia" — cierto para el proyecto real de esta base (siembra datos por API, no por
-archivos), pero falso como regla general: hay proyectos donde esa capa sí vive en una carpeta
-(`tests/fixtures/`, `test-data/`). Al generalizar un ejemplo de los docs reales a una lección con
-ejemplos inventados, la afirmación quedó sin el contexto que la hacía cierta. Además, la lección
-nunca había enseñado ese dato — rompía también el aprendizaje 6.
-**Regla:** antes de reusar una afirmación de `docs/best-practices/` o de `project/` en una
-lección con ejemplo genérico, preguntate si es un principio general o una decisión de diseño de
-ese proyecto puntual. Si es lo segundo, no la generalices — elegí otra pregunta/ejemplo que sí
-sea válido en abstracto, o aclará explícitamente que es una decisión posible entre varias.
-
-### 16. No inventar una relación entre capas que la entrada real no afirma
-**Qué pasó:** la lección 02 decía "cada capa le pide cosas a la siguiente — nunca al revés",
-como si Test → Page Object → Helper → Data/Fixture fuera una cadena estricta. La entrada real
-dice lo contrario: "cada test siembra lo puntual que necesita llamando a la API directo, vía
-`helpers/`" — el test llama al Helper **directo**, sin pasar por la Page Object. Cada capa
-individual estaba bien descripta, pero la relación entre ellas era inventada.
-**Regla:** describir cada capa/concepto por separado no alcanza — si la lección afirma además
-*cómo se relacionan* entre sí (quién le puede hablar a quién, en qué orden), esa relación tiene
-que estar explícitamente respaldada por la entrada real, no inferida por parecer razonable. Ante
-la duda, releé la entrada en vez de completar el mecanismo "a ojo".
-
-### 17. Segunda pasada con un agente fresco, desde la perspectiva de un estudiante
-**Qué pasó:** después de auditar manualmente las lecciones 01-06 contra el checklist, se
-spawneó un agente **sin el contexto de la sesión** (para que no estuviera "contaminado" por mis
-propias justificaciones) con la consigna de recorrerlas en orden como un QA manual sin experiencia
-en automation, interactuando de verdad con cada actividad en el navegador (mal primero, bien
-después). Encontró 6 problemas reales que la revisión manual no había visto, de tipos nuevos:
-- Una actividad marcada "Completada" al recargar, pero con su contador interno en "0 de N" —
-  mensaje contradictorio (¿ya la resolví o no?).
-- El "Lo que necesitás saber" de una actividad aceptaba dos respuestas como válidas ("Helper o
-  Page Object"), pero el ejercicio solo daba por correcta una — el texto de ayuda y lo que el
-  ejercicio realmente acepta se habían desincronizado.
-- La consigna mandaba a revisar una tabla de referencia que no incluía dos propiedades que el
-  ejercicio sí usaba.
-- Una nota interna de alcance ("este POC todavía no tiene...") había quedado visible en el
-  contenido publicado.
-- Una lección sin el quiz de cierre que sí tenían todas las demás — asimetría entre hermanas.
-- El mismo método conceptual nombrado distinto en dos lecciones (`clickBuyButton` vs `clickBuy`)
-  para la misma acción del mismo ejemplo genérico.
-**Regla:** al terminar cada tanda de lecciones (no cada lección individual), spawneá un agente
-nuevo —sin el contexto de la conversación— con instrucciones de recorrerlas en orden, interactuar
-con cada actividad de verdad (no solo leer el código), y reportar cualquier punto de confusión sin
-asumir que "seguramente es a propósito". Es un chequeo distinto al que uno mismo puede hacerse
-releyendo lo que escribió.
-
-### 18. El sitio pasó a un único tema oscuro "arcade neón" — no hay modo claro
-**Qué pasó:** Walter pidió una portada con estética de menú de videojuego (fondo oscuro, colores
-neón, botón "START!") y después pidió extender esa estética a toda la base, botones incluidos.
-Como un menú de arcade no tiene una versión "modo claro" razonable, la decisión fue un único tema
-oscuro con acentos neón en todo el sitio (`site/src/css/custom.css`, tokens `--akb-*` +
-`colorMode: {defaultMode: 'dark', disableSwitch: true}` en `docusaurus.config.ts`), no dos paletas
-alternables. El bloque `[data-theme='dark']` que existía en `custom.css` se eliminó: ahora todo
-vive en un único `:root`.
-**Regla:** no reintroduzcas un modo claro ni el switch de tema sin que Walter lo pida
-explícitamente — es una decisión de diseño, no un olvido. Los ítems del checklist que mencionaban
-"modo claro y oscuro" quedaron actualizados a "con la paleta neón única". Si agregás o tocás un
-componente, usá los tokens `--akb-*` (nunca colores hardcodeados) para que seguir cambiando la
-paleta siga siendo un cambio en un solo lugar, y las variables `--ifm-*` que Infima redefine por
-selector propio (ej. `.footer--dark`, `.navbar--dark`) hay que pisarlas con ese mismo selector en
-`custom.css`, no alcanza con cambiar el valor en `:root`.
-
-### 19. Los ejercicios tienen que resistir el atajo (2026-10-22)
-**Qué pasó:** Walter señaló que las actividades de Foundations se resolvían sin pensar. Dos causas
-concretas: (a) los quizzes de cierre tenían solo 2 opciones y la correcta alternaba 1-2-1-2 (o
-caía siempre en la misma posición), así que se acertaba por patrón; y (b) en los FindInCode cada
-línea con problema era el anti-patrón textual de la teoría, y además los problemas aparecían en
-orden 1→2→3→4, así que alcanzaba con asignar las reglas en secuencia.
-**Regla:**
-- Los quizzes tienen **3 o más opciones** por pregunta, con distractores que sean malentendidos
-  plausibles (no relleno evidente). La posición de la correcta no puede repetirse en todas las
-  preguntas de un quiz, ni subir/bajar en orden, ni alternar; y a nivel global las posiciones se
-  reparten parejo.
-- Cada FindInCode mezcla **al menos 2 líneas "está bien" que parezcan sospechosas** (y al menos
-  un 30% del total) con los problemas. Los problemas no se ordenan por número de regla, y las
-  líneas con problema no delatan la regla por su forma: el lector tiene que razonar el caso, no
-  reconocer la definición.
-- El `hint` (solo en líneas con problema) es una pregunta que obliga a mirar otro aspecto; nunca
-  nombra la regla ni la respuesta.
-- Esto se verifica con `node site/scripts/check-exercises.mjs` (falla si hay patrones) y se
-  normaliza con `node site/scripts/balance-answers.mjs`, que es idempotente y reparte posiciones
-  por quiz y reordena los `RULE_LABELS` de cada FindInCode. Corré el checker y después el
-  codemod después de reescribir actividades.
-
-### 20. Un error no bloquea: el lector tiene que poder corregir (2026-10-22)
-**Qué pasó:** en `FindInCode`, si el lector marcaba una línea que estaba bien como si fuera un
-problema, la actividad la daba por resuelta y no había forma de corregir: el error quedaba
-registrado como acierto parcial y la línea se cerraba. Walter pidió que un error se pueda
-corregir sin recargar.
-**Regla:** ningún error cierra una línea ni completa una actividad. Ante una clasificación
-incorrecta se muestra un mensaje y se deja reintentar; la línea recién queda resuelta cuando la
-clasificación es correcta. `Quiz` y `Order` ya lo permiten (se puede volver a elegir o mover) y
-tienen que seguir así. El mensaje de error no revela la respuesta ni la ubicación.
-Además, `FindInCode` acepta `okLabel`, `prompt` y `counterLabel`: cuando la categoría "sin
-problema" en realidad significa "es testing", "es verificación" o "es black-box", el botón y la
-pregunta tienen que decir eso con ese nombre, no un genérico "Está bien", porque el lector
-termina marcando mal por no entender qué se le pide.
-
-## Checklist antes de dar por terminada una actividad
-
-- [ ] Toda la teoría va primero y todas las actividades (incluido el quiz) van juntas al final, bajo `## Práctica`; no hay sección `## Repaso` (ver aprendizaje 11).
-- [ ] La consigna dice qué hacer, sobre cuántas cosas y cómo se termina; si "sin problema" es una categoría, se llama por su nombre (`okLabel`, `prompt`, `counterLabel`).
-- [ ] Un error nunca bloquea ni da por resuelta una línea o una pregunta: se puede reintentar y corregir (ver aprendizaje 20).
-- [ ] Cada sección nueva se conecta explícitamente con la anterior (problema → solución), no es una definición suelta.
-- [ ] Si el ejercicio es de ordenar/clasificar, verifica el concepto enseñado — no una secuencia que se resuelve sin él.
-- [ ] Un ejercicio de Ordenar tiene ítems con secuencia intuitiva (pasos, líneas de código) — nunca tarjetas de definición sin orden temporal real.
-- [ ] La teoría de cada concepto tiene varios ejemplos, cubre los casos límite y explica todo lo que la actividad evalúa (ver aprendizaje 23).
-- [ ] Las actividades no usan sintaxis o métodos sin explicar; si aparecen, hay una aclaración junto al ejercicio.
-- [ ] Todo lo que pide se explicó antes en la entrada.
-- [ ] Ninguna afirmación generaliza una decisión específica de `project/` como si fuera una regla universal.
-- [ ] Si la lección describe cómo se relacionan varios conceptos entre sí (quién le habla a quién), esa relación está respaldada por la entrada real — releída, no inferida.
-- [ ] Tiene "Qué practicás", "Lo que necesitás saber", herramientas disponibles y consigna.
-- [ ] Ni la consigna ni la ayuda revelan la respuesta o dónde está.
-- [ ] Obliga a razonar y tiene distractores cuando corresponde.
-- [ ] Si es de clasificar, la consigna nombra todas las categorías (o las opciones), da una regla de decisión para los casos ambiguos, y `okLabel`/`prompt`/`counterLabel`/`itemLabel` nombran la categoría y el ítem reales (ver aprendizaje 22).
-- [ ] Ninguna actividad repite un escenario ya usado en otra actividad de la misma entrada.
-- [ ] Los quizzes tienen 3+ opciones por pregunta, con distractores que son malentendidos plausibles, y las posiciones correctas no repiten, ordenan ni alternan (ver aprendizaje 19).
-- [ ] El quiz no repite un caso ya resuelto en un ejercicio de la misma entrada; si no aporta, se elimina (ver aprendizaje 21).
-- [ ] Cada FindInCode incluye al menos 2 líneas "está bien" que parezcan sospechosas, y los problemas no aparecen en orden de regla (ver aprendizaje 19).
-- [ ] El feedback explica el porqué, cita la regla y las pistas son progresivas.
-- [ ] El código (real o inventado) sigue las convenciones del proyecto — Page Object Model,
-      TypeScript + Playwright, data-attributes de la entrada 08, `test.step`, tags.
-- [ ] Se completa con teclado (incluido ordenar, con arrastrar como agregado, no como reemplazo) y funciona en mobile — excepto `Classify` (arrastrar a cajas), donde Walter eligió drag-and-drop puro sin alternativa (ver aprendizaje 24).
-- [ ] Si la actividad usa `Classify`, el total de columnas (categoría "ok" + `RULE_LABELS`) es 2 o 3, nunca 4 o más — con 4+ se queda en `FindInCode` (ver aprendizaje 25).
-- [ ] Se ve bien en escritorio y en mobile, con la paleta neón única del sitio (sin modo claro — ver aprendizaje 18), usando tokens `--akb-*` en vez de colores hardcodeados.
-- [ ] Tiene un test que la resuelve con la solución declarada y otro con respuestas incorrectas.
-- [ ] El "Lo que necesitás saber" y cualquier tabla de referencia coinciden exactamente con lo que el ejercicio acepta como correcto y con lo que usa — ninguna respuesta presentada como válida ahí es rechazada por el ejercicio, y ninguna propiedad/método que el ejercicio usa falta en la tabla.
-- [ ] No queda ninguna nota interna de desarrollo (alcance de POC, TODO, referencia a fases internas) visible en el contenido publicado.
-- [ ] Si una lección reutiliza el mismo ejemplo genérico de otra (ej. `DashboardPage`), los nombres de métodos coinciden entre lecciones — no hay dos nombres distintos para la misma acción.
-- [ ] Si otras lecciones hermanas (incluida la anterior y la siguiente) tienen una sección equivalente (como un quiz de cierre), esta lección también la tiene — sin asimetrías sin justificar.
-
-### 21. Sin sección "Repaso" y sin repetir el ejercicio en el quiz (2026-10-22)
-**Qué pasó:** las actividades vivían bajo `## Práctica` y además había un quiz de cierre en
-`## Repaso`, que muchas veces preguntaba el mismo caso que un ejercicio con otras palabras. El
-lector hacía dos veces lo mismo y la entrada se alargaba sin enseñar nada nuevo. Walter pidió
-unificar todo en `## Práctica` y eliminar la repetición literal entre ejercicio y quiz.
-**Regla:** todas las actividades —incluido el quiz de cierre— van bajo `## Práctica`, cada una con
-su consigna y su contador. No hay `## Repaso`. El quiz no repite un caso ya resuelto en un
-ejercicio de la misma entrada: o evalúa otro aspecto del mismo concepto, o directamente no existe.
-Un quiz de una sola pregunta es válido si aporta; no se agregan preguntas de relleno para llegar a
-un número.
-
-### 22. Las actividades de clasificar necesitan categorías completas y una regla de decisión (2026-10-22)
-**Qué pasó:** el primer ejercicio de la entrada 01 mezclaba objetivos de testing con "no es
-testing" sin decir cuántas situaciones había de cada tipo ni cómo decidir los casos límite. Al
-revisarlo aparecieron los mismos problemas en otras entradas: la consigna no nombraba todas las
-categorías, el botón positivo decía "Está bien" aunque la categoría fuera "No es testing",
-"Alta prioridad" o "No hay que agrupar", el ítem se llamaba "Línea" aunque fuera una situación,
-y dos ejercicios repetían el mismo escenario. Peor: un reemplazo global de texto dejó una consigna
-de severidad en la actividad de priorización.
-**Regla:** en toda actividad de clasificar:
-- Las categorías son completas y mutuamente excluyentes. Si el ejercicio usa solo algunas de las
-  que enseña la entrada, la consigna lo dice explícitamente ("este ejercicio usa cuatro de los
-  cinco anti-patrones") y el lector puede ver cuáles son en las opciones.
-- La consigna nombra todas las categorías (o indica que son las que aparecen como opciones) y da
-  una regla de decisión para los casos que podrían caer en dos. No alcanza con "elegí cuál es".
-- `okLabel` nombra la categoría positiva real ("No es testing", "Alta prioridad", "No hay que
-  agrupar", "Transición válida"), no un genérico "Está bien".
-- `prompt`, `counterLabel` e `itemLabel` acompañan esa categoría: la pregunta es la de la
-  clasificación, el contador dice qué se cuenta y el ítem se llama Situación, Caso, Valor,
-  Transición, Pull Request, etc., no siempre "Línea".
-- Cada línea con problema tiene `hint`; ninguna línea con problema queda sin pista.
-- No se repite el mismo escenario entre dos actividades de la misma entrada.
-- El mensaje de error de `FindInCode` cuando se elige la categoría positiva no puede decir "esta
-  línea sí tiene un problema" si la categoría es "No es testing" o "Alta prioridad": usa un
-  mensaje genérico ("esa no es la clasificación correcta").
-- Los cambios de consigna se hacen con reemplazos acotados al bloque de la actividad, nunca
-  globales: dos actividades pueden compartir la misma consigna genérica.
-
-### 23. Un concepto se explica completo, con varios ejemplos (2026-10-22)
-**Qué pasó:** Walter señaló que en el bloque Programming se enseñaba cada tema con un solo
-ejemplo; por ejemplo, variables se presentaba con una declaración y no se explicaban reasignación,
-mutación, inferencia, `any`, `object` ni nombres. La actividad después pedía distinguir casos que
-la teoría nunca había mostrado.
-**Regla:** la teoría de un concepto no se limita al ejemplo mínimo. Antes de la actividad tiene que:
-- Mostrar el concepto con varios ejemplos y contrastar el caso correcto con el incorrecto.
-- Cubrir los casos límite, errores y variantes que la actividad va a pedir clasificar (incluidos
-  los `RULE_LABELS`).
-- Explicar la sintaxis y los métodos que aparecen en los ejemplos de la actividad; si una
-  construcción es de una entrada posterior, se aclara junto al ejercicio o se evita.
-- No dar por sabido un tema porque el lector ya vio una línea parecida: si la actividad lo usa
-  para decidir, se explica.
-Verificá que cada `## Conceptos` tenga varios bloques de código y que todos los conceptos
-evaluados tengan su explicación.
-
-### 24. El drag-and-drop de clasificar en cajas no necesita alternativa de teclado (2026-10-22)
-**Qué pasó:** se armó `Classify`, un componente de arrastrar ítems a 2-3 cajas (el patrón clásico
-de "arrastrá la imagen a la categoría correcta", tipo fichas TPT). Se le agregó de entrada un
-`<select>` por tarjeta como alternativa de teclado, aplicando a rajatabla la regla de la checklist
-"se completa con teclado, arrastrar como agregado, no como reemplazo" — pero Walter no lo había
-pedido, y el control agregado no aportaba: ensuciaba el diseño limpio que pedía (dos controles por
-tarjeta en vez de una sola interacción clara). Al preguntarle, eligió drag-and-drop puro, sin
-ningún control alternativo, aceptando que por ahora esta actividad no se completa por teclado.
-**Regla:** la regla de accesibilidad por teclado de la checklist sigue siendo la base por defecto,
-pero no es absoluta: cuando agregar una alternativa de teclado degrada visiblemente la actividad
-(ensucia el layout, duplica la interacción, no aporta), preguntale a Walter antes de agregarla en
-vez de asumir que el checklist manda sin excepción — no inventes el control "porque la regla lo
-pide" sin chequear si encaja con lo que se está construyendo. Si la respuesta es "sin
-alternativa", documentalo acá y en el componente, y no reviertas esa decisión en futuras pasadas
-del checklist sin que él lo pida — es una decisión de diseño, no un hueco pendiente. `Classify`
-(arrastrar a cajas) queda como la excepción conocida a este ítem del checklist.
-
-### 25. `Classify` solo tiene sentido con 2-3 categorías, nunca con 4 o más (2026-10-23)
-**Qué pasó:** después de crear `Classify`, se migraron a ese componente 34 actividades de
-`FindInCode` en Testing y Git, sin mirar cuántas categorías tenía cada una — incluidas varias con
-4, 5 y hasta 6 columnas. El patrón de cajas (como las fichas TPT que inspiraron el componente)
-funciona para arrastrar un ítem a una de pocas cajas visibles de un vistazo; con 4 o más cajas dejó
-de tener sentido visual y de interacción. Walter lo resumió así: "con 2 o 3 categorías tiene
-sentido. Pero a lo loco con cualquier ejercicio no lo tiene." Se revirtieron a `FindInCode` las 34
-actividades con 4+ columnas (contando la categoría "ok"/base), dejando `Classify` únicamente en
-las 9 que tienen 2 o 3 columnas en total.
-**Regla:** antes de migrar una actividad de `FindInCode` a `Classify`, contá el total de columnas
-(1 por la categoría "ok"/base + 1 por cada `RULE_LABEL`). Si da 2 o 3, `Classify` encaja. Si da 4 o
-más, se queda en `FindInCode` — no importa que las categorías sean una taxonomía real y legítima
-(aprendizaje 22 ya exige eso), el límite acá es de cuántas cajas se pueden mostrar y arrastrar de
-forma cómoda, no de si la clasificación tiene sentido conceptualmente. Ante la duda, contá antes de
-convertir — no migres una tanda entera de actividades sin revisar este número una por una.
-
-## Cómo mantener este archivo
-
-Cuando Walter corrija algo sobre una actividad o el sitio, agregá un aprendizaje nuevo en la
-sección anterior con el mismo formato (qué pasó y regla) y, si corresponde, un punto en la
-checklist. Aplicá la corrección también a las actividades ya hechas que tengan el mismo problema.
+- Un único tema oscuro "arcade neón", sin modo claro ni selector de tema.
+- `Classify` es drag-and-drop puro, sin alternativa de teclado.
+- Ninguna lección tiene sección `## Repaso`: todas las actividades van en `## Práctica`.

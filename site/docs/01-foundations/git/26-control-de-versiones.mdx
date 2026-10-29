@@ -4,14 +4,22 @@ sidebar_position: 26
 ---
 
 import Activity from '@site/src/components/Activity';
+import FillBlank from '@site/src/components/FillBlank';
+import DecisionPath from '@site/src/components/DecisionPath';
 import Classify from '@site/src/components/Classify';
-import FindInCode from '@site/src/components/FindInCode';
 import Quiz from '@site/src/components/Quiz';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
-  GIT_VS_GITHUB_LINES, GIT_VS_GITHUB_RULE_LABELS,
-  PRACTICE_LINES, PRACTICE_RULE_LABELS,
+  GIT_VS_GITHUB_LINES,
+  GIT_VS_GITHUB_RULE_LABELS,
   CLOSING_QUIZ,
+  START_START,
+  START_NODES,
+  START_EXPLANATION,
+  SETUP_TEMPLATE,
+  SETUP_SLOTS,
+  SETUP_BANK,
+  SETUP_EXPLANATION,
 } from '@site/src/content/lessons/26-control-de-versiones';
 
 export const LESSON_SLUG = 'foundations-control-de-versiones';
@@ -40,17 +48,23 @@ export function GitVsGithubActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function StartActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['start']);
   return (
     <Activity
-      title="¿Esto debería estar en el repositorio?"
-      kind="Clasificar"
-      goal="reconocer qué conviene versionar y qué no, por qué el repositorio necesita vivir también en un remoto y por qué nombrar versiones a mano no reemplaza al historial."
-      done={isDone('practice')}
-      consigna="Son 8 situaciones. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+      title="Arrancá el proyecto con el pie derecho"
+      kind="Escenario encadenado"
+      goal="tomar las decisiones de control de versiones de un proyecto nuevo: cuándo empezar a versionar, qué dejar afuera del historial y dónde guardar el trabajo."
+      done={isDone('start')}
+      consigna="Vas a tomar tres decisiones seguidas sobre el mismo proyecto nuevo, desde el primer archivo hasta el final del primer día. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al final."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} itemLabel="Situación" alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <DecisionPath
+        startId={START_START}
+        nodes={START_NODES}
+        explanation={START_EXPLANATION}
+        alreadyDone={isDone('start')}
+        onSolved={() => markDone('start')}
+      />
     </Activity>
   );
 }
@@ -70,74 +84,272 @@ export function ClosingQuizActivity() {
   );
 }
 
+export function SetupActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['setup']);
+  return (
+    <Activity
+      title="Prepará la computadora"
+      kind="Completar huecos"
+      goal="usar los comandos básicos de la terminal, configurar la identidad de Git y descargar un proyecto existente."
+      done={isDone('setup')}
+      consigna="En una computadora recién instalada, Tomás tiene que ubicarse, entrar a su carpeta de proyectos, configurar el email de sus commits y descargar el repositorio del equipo. Completá los cuatro huecos con las fichas (cada ficha se usa una vez y sobran varias); clickeá un hueco para vaciarlo. La actividad se completa cuando los cuatro quedan bien."
+    >
+      <FillBlank
+        template={SETUP_TEMPLATE}
+        slots={SETUP_SLOTS}
+        bank={SETUP_BANK}
+        explanation={SETUP_EXPLANATION}
+        alreadyDone={isDone('setup')}
+        onSolved={() => markDone('setup')}
+      />
+    </Activity>
+  );
+}
+
 Ya sabés programar lo básico. Ahora hace falta guardar ese código y
 compartirlo con el resto del equipo, sin que dos personas se pisen el
 trabajo sin darse cuenta — para eso existe el control de versiones.
 
 ## Conceptos
 
-Un sistema de **control de versiones** guarda el historial de cambios de
-un conjunto de archivos a lo largo del tiempo: quién cambió qué, cuándo, y
-con qué mensaje. Sin él, compartir código entre varias personas significa
-mandar archivos por chat o por una carpeta compartida — con el riesgo real
-de que dos personas sobreescriban el trabajo de la otra, o de perder una
-versión anterior que funcionaba y que nadie guardó aparte.
+### Qué resuelve el control de versiones
 
-**Git** es el sistema de control de versiones más usado hoy. **GitHub** es
-una plataforma que aloja repositorios Git en la nube y agrega herramientas
-de colaboración: revisión de código, Issues, Pull Requests. Git y GitHub
-no son lo mismo: Git funciona en tu máquina, sin conexión a internet;
-GitHub es un servicio que usa Git por abajo y le suma todo lo que hace
-falta para que un equipo colabore sobre el mismo repositorio.
+Un proyecto de software cambia todos los días, y lo cambian varias
+personas a la vez. Sin una herramienta para eso, cada cambio se maneja a
+mano: se copian archivos con nombres como `informe-v2.docx` o
+`validacion-FINAL.ts`, se envían por chat o se dejan en una carpeta
+compartida. Con ese método no hay forma confiable de saber qué cambió de
+una copia a otra, quién lo cambió ni por qué; volver a una versión
+anterior depende de que alguien la haya guardado, y dos personas que
+editan el mismo archivo pueden pisarse el trabajo sin enterarse.
+
+Un **sistema de control de versiones** registra cada cambio que se
+confirma sobre los archivos de un proyecto, con su autor, su fecha y un
+mensaje que lo explica. Cada uno de esos registros se llama **commit** y
+funciona como una foto del proyecto en ese momento: se puede consultar,
+comparar con otra y, si hace falta, volver a ella. El conjunto de commits
+forma el **historial** del proyecto. Así se ve un fragmento del historial
+de un proyecto real:
+
+```text
+commit 8b1d2e4f6a9c0b3d5e7f1a2b4c6d8e0f1a3b5c7d
+Author: Lucía Pérez <lucia@empresa.com>
+Date:   Mon Oct 27 10:14:02 2026 -0300
+
+    Aceptar emails con + en el formulario de alta
+```
+
+La primera línea identifica al commit con un código único; las
+siguientes dicen quién lo hizo y cuándo; la última, qué cambió. Para
+quien testea, ese historial responde preguntas habituales sin depender de
+la memoria de nadie: qué cambió en la versión que hay que probar, desde
+cuándo se comporta así una funcionalidad, qué cambio introdujo un fallo.
+
+**Git** es el sistema de control de versiones más usado. Además del
+código, se usa para versionar casos de prueba, datos de prueba y
+documentación.
+
+### Git y GitHub
+
+Git y GitHub suelen nombrarse juntos, pero no son lo mismo. **Git** es un
+programa que se instala en la computadora y funciona sin conexión a
+internet: guarda commits, muestra el historial, compara versiones, crea
+ramas. **GitHub** es un servicio web que aloja proyectos de Git para que
+un equipo trabaje sobre ellos, y agrega herramientas de colaboración que
+Git no tiene: Pull Requests para revisar cambios antes de integrarlos,
+Issues para registrar tareas y defectos, permisos por persona, reglas que
+impiden subir cambios sin revisión. GitLab y Bitbucket son servicios
+equivalentes; esta guía usa GitHub.
+
+Una forma práctica de distinguirlos es preguntarse si la tarea se puede
+hacer sin conexión. Hacer un commit, ver el historial o borrar una rama se
+hace con Git, en la propia computadora. Aprobar el cambio de un compañero,
+asignarle un defecto a alguien o configurar quién puede modificar la rama
+principal se hace en GitHub, porque involucra a otras personas.
+
+### Repositorio local y repositorio remoto
+
+Un **repositorio** es la carpeta de un proyecto junto con todo su
+historial. El que está en la computadora de cada persona es el
+**repositorio local**; el que está alojado en GitHub es el **repositorio
+remoto**, el punto en común del equipo. Los dos tienen el mismo historial,
+pero no se sincronizan solos: cada persona decide cuándo sube sus commits
+al remoto y cuándo trae los de los demás. Hasta que no se suben, los
+commits existen solo en esa computadora. Cómo se sincronizan se ve en la
+lección sobre el repositorio remoto.
+
+### La terminal
+
+Git se usa principalmente desde la **terminal** (también llamada consola
+o línea de comandos): una ventana en la que se escriben instrucciones de
+texto y la computadora responde con texto. En macOS es la aplicación
+*Terminal*; en Windows, la instalación de Git incluye *Git Bash*, que
+funciona igual que la terminal de macOS y Linux. Muchos editores, como
+Visual Studio Code, tienen además una terminal integrada.
+
+La terminal muestra un **prompt**, una marca que indica que está esperando
+una instrucción. En esta guía el prompt se representa con `$`. Se escribe
+un comando a continuación y se ejecuta con Enter; la respuesta aparece
+debajo. Cada comando trabaja sobre la carpeta en la que está parada la
+terminal, por eso los primeros comandos que conviene conocer son los que
+dicen dónde se está y permiten moverse:
+
+```bash
+$ pwd                 # muestra la carpeta actual
+/home/ana
+
+$ ls                  # lista lo que hay en esa carpeta
+Descargas  Documentos  proyectos
+
+$ cd proyectos        # entra a la carpeta "proyectos"
+$ pwd
+/home/ana/proyectos
+```
+
+`cd ..` vuelve a la carpeta anterior. En los ejemplos de esta guía, lo que
+va después de `$` es lo que se escribe; el resto es lo que responde la
+computadora. El signo `#` marca un comentario: la terminal lo ignora.
+
+### Instalar Git y configurar la identidad
+
+Git se descarga desde su sitio oficial (git-scm.com). Para confirmar que
+quedó instalado, se le pide la versión:
+
+```bash
+$ git --version
+git version 2.46.0
+```
+
+Si en lugar de la versión aparece un mensaje como `git: command not
+found`, Git no está instalado o la terminal se abrió antes de terminar la
+instalación y hay que volver a abrirla.
+
+Antes del primer commit, Git necesita saber quién es la persona que los
+hace, porque ese nombre y ese email quedan grabados en cada commit. Se
+configura una sola vez por computadora:
+
+```bash
+$ git config --global user.name "Ana Gómez"
+$ git config --global user.email "ana@empresa.com"
+```
+
+`--global` hace que la configuración valga para todos los repositorios de
+ese usuario. Para comprobar qué quedó configurado:
+
+```bash
+$ git config --list
+user.name=Ana Gómez
+user.email=ana@empresa.com
+```
+
+Si este paso se omite, el primer `git commit` se detiene con un mensaje
+que pide configurar exactamente esos dos valores.
+
+### Obtener un proyecto que ya existe
+
+Para trabajar sobre un proyecto que ya está en GitHub, se descarga una
+copia completa con `git clone` y la dirección del repositorio, que GitHub
+muestra en el botón *Code* de cada proyecto:
+
+```bash
+$ git clone https://github.com/empresa/tienda-web.git
+Cloning into 'tienda-web'...
+remote: Enumerating objects: 1204, done.
+Receiving objects: 100% (1204/1204), 2.31 MiB | 4.10 MiB/s, done.
+```
+
+El comando crea la carpeta `tienda-web` con los archivos y todo el
+historial. Desde ese momento, la mayor parte del trabajo con Git ocurre
+en la computadora: la conexión solo hace falta para sincronizar con el
+remoto. Para un proyecto nuevo, que todavía no existe en ningún lado, se
+usa `git init`, que se ve en la lección del primer commit.
+
+### Qué se versiona y qué no
+
+No todo lo que hay en la carpeta de un proyecto debe entrar al historial.
+Hay tres grupos de archivos que se dejan afuera. Los que **se pueden
+regenerar**: las dependencias que instala el gestor de paquetes (la
+carpeta `node_modules/` en proyectos de JavaScript), lo que genera la
+compilación (`dist/`) o los reportes que se producen al correr las
+pruebas (`coverage/`). Los que **son locales de cada persona**: registros
+de ejecución (`debug.log`), configuración del editor (`.vscode/`),
+archivos del sistema operativo (`.DS_Store`). Y, sobre todo, los que
+**nunca deben ser públicos**: contraseñas, claves de servicios y otras
+credenciales, que en muchos proyectos se guardan en un archivo `.env`.
+
+Para indicarle a Git qué no seguir existe el archivo `.gitignore`, en la
+carpeta principal del proyecto. Cada línea es un patrón:
+
+```text
+# dependencias y archivos generados
+node_modules/
+dist/
+coverage/
+
+# archivos locales
+*.log
+.DS_Store
+
+# credenciales: se ignora el real, se versiona la plantilla
+.env
+!.env.example
+```
+
+Una línea que termina en `/` ignora esa carpeta con todo su contenido. Un
+asterisco reemplaza cualquier texto: `*.log` ignora todos los archivos que
+terminan en `.log`, en cualquier carpeta. Un `!` al principio crea una
+excepción: `.env.example` sí se versiona, aunque otra regla lo alcance. Y
+las líneas que empiezan con `#` son comentarios.
+
+El caso de las credenciales merece atención, porque el error no tiene
+vuelta atrás. Un archivo que entra en un commit queda en el historial
+aunque se borre en el commit siguiente, y cualquiera con acceso al
+repositorio puede recuperarlo. Una clave de un servicio pago expuesta así
+puede terminar en un costo o en un incidente de seguridad. Por eso `.env`
+se agrega al `.gitignore` antes del primer commit, y se versiona en su
+lugar un `.env.example` con los nombres de las variables y los valores
+vacíos, para que quien clone el proyecto sepa qué tiene que completar:
+
+```text
+MAPS_API_KEY=
+SMTP_PASSWORD=
+```
+
+Un último detalle: el `.gitignore` solo actúa sobre archivos que Git
+todavía no sigue. Si un archivo ya entró en un commit, agregarlo después
+al `.gitignore` no lo saca del historial.
 
 ## Cuándo usarlo
 
-Desde el primer archivo de un proyecto, no "cuando ya esté más armado".
-El historial de control de versiones solo cubre los cambios que pasaron
-después de empezar a usarlo — todo lo anterior queda fuera y no se puede
-reconstruir después.
+El control de versiones se usa desde el primer archivo de un proyecto. El
+historial solo cubre lo que ocurre desde que se empieza a usar: lo
+anterior no se puede reconstruir.
 
 ## Buenas prácticas
 
-- **Empezar desde el primer archivo del proyecto**, no "cuando ya esté
-  más armado" — lo que pasó antes de empezar a versionar no se puede
-  reconstruir después.
-- **Commits chicos y frecuentes**, no uno gigante al final del día: un
-  commit chico es más fácil de revisar, y más fácil de deshacer sin
-  afectar el resto del trabajo.
-- **Excluir con `.gitignore` lo que no hace falta versionar**:
-  credenciales, dependencias instaladas, archivos de build generados —
-  todo lo que se puede reconstruir solo, o que nunca debería ser público.
-- **Subir el trabajo a un remoto regularmente** (no solo al terminar el
-  proyecto): el repositorio local es un solo punto de falla si la máquina
-  se rompe o se pierde.
-- **Elegir un nombre de repositorio que describa el proyecto**, no uno
-  genérico — en GitHub, varios repositorios con nombres como `proyecto1`
-  o `test` se vuelven imposibles de distinguir con el tiempo.
+- Empezar a versionar desde el primer archivo.
+- Configurar el `.gitignore` antes del primer commit.
+- Subir el trabajo al remoto con regularidad: el repositorio local es un
+  único punto de falla.
+- Usar nombres de repositorio que describan el proyecto.
 
 ## Anti-patrones
 
-- **Nombrar archivos a mano** como `final.ts`, `final_v2.ts`,
-  `final_definitivo.ts` en vez de usar control de versiones real — no hay
-  forma confiable de saber qué cambió entre una versión y la otra, ni de
-  volver a un estado intermedio.
-- **Compartir código por chat o carpetas compartidas**, donde dos
-  personas pueden sobreescribirse el trabajo sin darse cuenta.
-- **Versionar credenciales o archivos que no deberían ser públicos**: una
-  vez que algo entra al historial, queda ahí aunque se borre después —
-  hay que excluirlo desde el principio, no limpiarlo a posteriori.
-- **No subir nunca el trabajo a un remoto**, dejando todo el historial
-  viviendo en una sola máquina sin respaldo.
-- **Seguir mandando "la versión final" por otro canal, por las dudas** —
-  es una señal de que no se está confiando en el control de versiones
-  como la fuente de verdad del proyecto.
+- **Nombrar versiones a mano** (`final_v2.ts`) en lugar de usar el
+  historial.
+- **Compartir código por chat o carpetas compartidas**.
+- **Versionar credenciales** y confiar en borrarlas después.
+- **No subir nunca el trabajo a un remoto**.
+- **Seguir mandando "la versión final" por otro canal, por las dudas**.
 
 ## Práctica
 
-Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <GitVsGithubActivity />
 
-<PracticeActivity />
+<SetupActivity />
+
+<StartActivity />
 
 <ClosingQuizActivity />

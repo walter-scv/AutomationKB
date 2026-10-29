@@ -1,5 +1,7 @@
+import type {MatchItem} from '@site/src/components/Match';
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {MultiSelectQuestion} from '@site/src/components/MultiSelect';
 import type {OrderItem, OrderRule} from '@site/src/components/Order';
 
 export const RISK_RULE_LABELS = ['Baja probabilidad de fallar o cambiar (ya muy estable)', 'Bajo impacto si falla'];
@@ -64,54 +66,41 @@ export const PRIORITY_ORDER_RULES: OrderRule[] = [
   {before: 'prioritize', after: 'deprioritize', why: 'decidir qué va primero es lo que permite decidir, por descarte, qué queda para después.'},
 ];
 
-export const TROUBLESHOOT_RULE_LABELS = [
-  'Un área crítica quedó sin ningún caso',
-  'Se armó un caso detallado para una feature que todavía cambiaba demasiado',
-  'Se priorizó algo de bajo impacto antes que lo crítico',
-];
-
-export const TROUBLESHOOT_LINES: CodeLine[] = [
+export const COVERAGE_QUESTIONS: MultiSelectQuestion[] = [
   {
-    code: 'El equipo priorizó registro y checkout, y dejó el cambio de tema para una pasada exploratoria liviana.',
-    rule: 0,
-    why: 'Pone primero lo de alto impacto y resuelve lo cosmético con menos esfuerzo. Es el criterio de riesgo aplicado correctamente.',
-    hint: '¿Esto sigue el criterio de impacto y probabilidad?',
-  },
-  {
-    code: 'El caso de test de una pantalla se reescribió cinco veces en un sprint porque diseño la seguía cambiando.',
-    rule: 2,
-    why: 'Se invirtió en documentar detalle una feature que todavía cambiaba: cada reescritura fue costo sin cobertura estable.',
-    hint: '¿Esta feature ya se había estabilizado cuando se escribió el caso detallado?',
-  },
-  {
-    code: 'Se escribieron casos detallados para el texto de ayuda, pero el checkout quedó sin ningún caso y un bug tardó dos semanas en notarse.',
-    rule: 1,
-    why: 'El checkout no tenía ningún caso que lo cubriera: esa falta de cobertura en un área crítica es el problema, y el bug tardó en aparecer justamente porque nadie la estaba mirando.',
-    hint: '¿Dónde habría aparecido el bug si alguien hubiera estado ejercitando esa parte?',
-  },
-  {
-    code: 'El equipo priorizó cubrir primero el cambio de tema claro/oscuro, antes que el flujo de registro, que quedó para el final del sprint.',
-    rule: 3,
-    why: 'Invirtió el orden: puso primero algo cosmético y dejó para el final el registro, que si falla bloquea la entrada de usuarios nuevos.',
-    hint: '¿Cuál de las dos cosas tiene más impacto si falla?',
-  },
-  {
-    code: 'La exportación cambió tres veces este mes, así que se cubrió con una sesión exploratoria y el caso formal quedó para cuando se estabilice.',
-    rule: 0,
-    why: 'Reconoce que documentar en detalle algo que todavía cambia es esfuerzo desperdiciado. Primero explora y documenta cuando se estabiliza.',
-    hint: '¿Documentar en detalle algo que todavía cambia es un buen uso del esfuerzo?',
-  },
-  {
-    code: 'El checkout tiene casos detallados y se ejecutan en cada release; el texto de ayuda se revisa con una pasada exploratoria.',
-    rule: 0,
-    why: 'Asigna el detalle a lo crítico y lo liviano a lo de bajo impacto. La profundidad del testing sigue al riesgo.',
-    hint: '¿El detalle del testing sigue al riesgo acá?',
-  },
-  {
-    code: 'Nadie armó casos para el registro porque «es una pantalla simple», y en producción un usuario nuevo no pudo crear su cuenta.',
-    rule: 1,
-    why: 'Se asumió que una pantalla simple no necesitaba casos, pero es el único punto de entrada: al fallar, nadie nuevo pudo registrarse.',
-    hint: '¿Se evaluó el riesgo real de esa pantalla o se asumió por su tamaño?',
+    prompt: 'Release de una app de turnos médicos con tiempo limitado. ¿Qué partes tienen que quedar cubiertas con casos detallados? Marcá todas las que correspondan.',
+    options: [
+      {
+        text: 'El selector de color del avatar del perfil.',
+        correct: false,
+        why: 'Bajo impacto: si falla, nadie pierde un turno ni dinero. Ponerlo antes que lo crítico invierte la prioridad.',
+      },
+      {
+        text: 'La reserva del turno, que es lo único para lo que la mayoría abre la app.',
+        correct: true,
+        why: 'Impacto alto: si falla, la app deja de servir. Un área crítica no puede quedar sin casos.',
+      },
+      {
+        text: 'El recordatorio por SMS 24 horas antes, que este mes cambió de proveedor.',
+        correct: true,
+        why: 'Impacto alto (un paciente que falta) y probabilidad alta (acaba de cambiar): es justo la combinación que va primero.',
+      },
+      {
+        text: 'La pantalla de historial, que diseño rediseña cada semana y todavía no tiene versión final.',
+        correct: false,
+        why: 'Cambia demasiado: un caso detallado se reescribiría cada semana. Conviene una pasada exploratoria hasta que se estabilice.',
+      },
+      {
+        text: 'El pago de la consulta online.',
+        correct: true,
+        why: 'Si falla, hay dinero en juego y turnos que no se confirman: impacto alto.',
+      },
+      {
+        text: 'La página de preguntas frecuentes, que no cambió en dos años.',
+        correct: false,
+        why: 'Bajo impacto y muy estable: puede esperar o revisarse con una pasada liviana.',
+      },
+    ],
   },
 ];
 
@@ -176,3 +165,28 @@ export const PRACTICE_LINES: CodeLine[] = [
     hint: '¿El uso de esta feature cambió desde la última priorización?',
   },
 ];
+
+export const RESPONSE_LEFT: MatchItem[] = [
+  {id: 'mitigate', text: 'La fórmula de la nota final de los cursos cambió este mes, y un error terminaría en certificados con notas equivocadas.'},
+  {id: 'accept', text: 'En el modo oscuro del reproductor, los subtítulos tienen poco contraste; no hay reclamos y el arreglo exige rediseñar el reproductor.'},
+  {id: 'transfer', text: 'Los pagos de inscripción los procesa una pasarela externa, con un contrato que fija su disponibilidad y su responsabilidad.'},
+  {id: 'contingency', text: 'El cambio del servidor de videos a otro proveedor está programado para la noche anterior al inicio de clases.'},
+  {id: 'project', text: 'La única persona que conoce el módulo de certificados se va de licencia justo en la semana de pruebas.'},
+  {id: 'monitor', text: 'A mitad del ciclo se decide que el foro, hasta ahora de baja prioridad, también se use para entregar exámenes.'},
+];
+export const RESPONSE_RIGHT: MatchItem[] = [
+  {id: 'project', text: 'Es un riesgo de proyecto: se gestiona en la planificación (traspaso de conocimiento, otra persona), no con más casos de prueba.'},
+  {id: 'monitor', text: 'Volver a evaluar su impacto y cambiar su lugar en el registro de riesgos.'},
+  {id: 'mitigate', text: 'Mitigar: casos detallados sobre el cálculo, con valores límite, y revisión de la fórmula con la coordinación académica.'},
+  {id: 'contingency', text: 'Preparar un plan de contingencia: si los videos no cargan, volver esa misma noche al servidor anterior.'},
+  {id: 'transfer', text: 'Transferirlo: la responsabilidad del procesamiento queda en el proveedor según el contrato; se prueba la integración, no la pasarela.'},
+  {id: 'accept', text: 'Aceptarlo de forma consciente y dejarlo registrado como riesgo residual.'},
+];
+export const RESPONSE_WHY: Record<string, string> = {
+  mitigate: 'Impacto alto y una probabilidad que subió con el cambio: la respuesta es reducir el riesgo con testing más profundo y una revisión.',
+  accept: 'Impacto bajo y un costo alto de corregirlo: se acepta, pero de forma explícita, para que figure en el informe de cierre.',
+  transfer: 'Parte del riesgo ya está cubierta por un tercero con un contrato; lo que queda del lado propio es la integración.',
+  contingency: 'No se puede reducir mucho la probabilidad de que algo salga mal esa noche, pero sí preparar cómo volver atrás si ocurre.',
+  project: 'No es un problema de calidad del software sino de la gestión: afecta el plazo y la capacidad del equipo.',
+  monitor: 'El análisis de riesgos no se hace una sola vez: si cambia el uso de una funcionalidad, cambia su impacto.',
+};

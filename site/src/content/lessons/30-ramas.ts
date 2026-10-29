@@ -1,56 +1,18 @@
+import type {TerminalStep} from '@site/src/components/Terminal';
 import type {CodeLine} from '@site/src/components/FindInCode';
 import type {QuizQuestion} from '@site/src/components/Quiz';
+import type {FillBlankSlot} from '@site/src/components/FillBlank';
 
-export const BRANCH_RULE_LABELS = [
-  'El cambio se hace directo en main, sin rama propia',
-  'Creó la rama después de empezar a editar en main',
-  'El nombre no describe qué se está haciendo',
+export const START_BRANCH_TEMPLATE = 'git checkout {{base}}\ngit {{update}}\ngit checkout {{flag}} {{name}}';
+export const START_BRANCH_SLOTS: FillBlankSlot[] = [
+  {id: 'base', answer: 'main'},
+  {id: 'update', answer: 'pull'},
+  {id: 'flag', answer: '-b'},
+  {id: 'name', answer: 'fix/total-con-envio'},
 ];
-
-export const BRANCH_LINES: CodeLine[] = [
-  {
-    code: 'git checkout -b fix/validacion-email-registro',
-    rule: 0,
-    why: 'El nombre dice qué se corrige y en qué parte. Quien vea la rama en el remoto entiende el alcance sin abrirla.',
-    hint: '¿Este nombre dice qué cambio contiene la rama?',
-  },
-  {
-    code: 'git checkout -b pruebas-finales',
-    rule: 3,
-    why: '"pruebas-finales" no dice qué se está probando ni qué cambio contiene. En una semana no se distingue de cualquier otra rama olvidada.',
-    hint: '¿Este nombre te dice qué cambio contiene la rama?',
-  },
-  {
-    code: 'Para no abrir un Pull Request por un arreglo de dos líneas, el commit del login se hace sobre la rama que todo el equipo usa a diario.',
-    rule: 1,
-    why: 'Aunque sea un cambio chico, el commit va directo a la rama compartida. Sin una rama propia no hay forma de revisarlo ni de sacarlo sin afectar a los demás.',
-    hint: '¿Este cambio se hizo en una rama separada, o directo en la rama principal?',
-  },
-  {
-    code: 'Antes de empezar, se corre `git checkout main`, después `git pull`, y recién ahí `git checkout -b fix/operador-comparacion`.',
-    rule: 0,
-    why: 'La rama nueva parte de main actualizado: no arrastra cambios viejos y evita conflictos innecesarios cuando llegue el momento de integrarla.',
-    hint: '¿La rama parte de main actualizado, o de un estado viejo?',
-  },
-  {
-    code: 'Ya hay dos archivos modificados en `main`; recién ahí se crea `feature/validar-contraseña` y se mueven los cambios.',
-    rule: 2,
-    why: 'Crear la rama después de editar obliga a mover cambios que ya estaban mezclados con main. Es más simple crear la rama antes de tocar nada.',
-    hint: '¿La rama existía antes de que empezaran los cambios en main?',
-  },
-  {
-    code: 'git checkout -b mejoras',
-    rule: 3,
-    why: '"mejoras" puede ser cualquier cosa: rendimiento, textos, estilos. El nombre no acota el cambio, así que no ayuda a revisarlo ni a decidir cuándo mergearlo.',
-    hint: '¿Qué tipo de mejora contiene esta rama, según el nombre?',
-  },
-  {
-    code: 'Se crea `fix/timeout-carrito` desde `main` actualizado, se hace un solo commit y se mergea el mismo día.',
-    rule: 0,
-    why: 'Una rama corta, con un cambio acotado y creada desde main al día, es fácil de revisar y de integrar.',
-    hint: '¿Esta rama vive mucho tiempo antes de mergearse, o es corta?',
-  },
-];
+export const START_BRANCH_BANK = ['feature/reportes', '-d', 'pull', 'mejoras', 'main', 'push', 'fix/total-con-envio', '-b'];
+export const START_BRANCH_EXPLANATION =
+  'Primero te parás en `main` y lo actualizás con `pull`, para que la rama nueva arranque del código más reciente (partir de `feature/reportes`, una rama de otro compañero sin mergear, arrastraría cambios sin revisar). Después, `-b` crea la rama y te mueve a ella (`-d` es para borrar). Y el nombre dice qué se arregla: `mejoras` no le dice nada a nadie dentro de una semana.';
 
 export const PRACTICE_RULE_LABELS = [
   'Quedaron ramas viejas acumuladas, sin resolver ni borrar',
@@ -121,3 +83,50 @@ export const CLOSING_QUIZ: QuizQuestion[] = [
     ],
   },
 ];
+
+export const BRANCHES_STEPS: TerminalStep[] = [
+  {
+    instruction: 'Mostrá las ramas locales y en cuál estás trabajando.',
+    accepted: ['git branch'],
+    hint: 'Es el comando de ramas sin ninguna opción ni nombre.',
+    output: '  fix/fecha-vencida\n* feature/exportar-pdf\n  main',
+  },
+  {
+    instruction: 'Cambiá a main.',
+    accepted: ['git switch main', 'git checkout main'],
+    hint: 'Es el comando que cambia a una rama que ya existe.',
+    output: 'error: Your local changes to the following files would be overwritten by checkout:\n        reporte.ts\nPlease commit your changes or stash them before you switch branches.',
+  },
+  {
+    instruction: 'Git se negó. El cambio de reporte.ts ya está terminado: agregalo para confirmarlo.',
+    accepted: ['git add reporte.ts'],
+    hint: 'Antes de un commit, el archivo tiene que pasar al staging area.',
+    output: '',
+  },
+  {
+    instruction: 'Confirmalo con un mensaje que describa el cambio.',
+    accepted: ['git commit -m *'],
+    hint: 'Es git commit con la opción del mensaje, y el mensaje entre comillas.',
+    output: '[feature/exportar-pdf 4c2b9e1] Agregar el pie de página al reporte en PDF\n 1 file changed, 6 insertions(+)',
+  },
+  {
+    instruction: 'El equipo pidió que la rama se llame feature/exportar-reporte-pdf. Renombrala.',
+    accepted: ['git branch -m feature/exportar-pdf feature/exportar-reporte-pdf', 'git branch -m feature/exportar-reporte-pdf'],
+    hint: 'Es git branch con la opción de renombrar, seguida del nombre actual y el nuevo.',
+    output: '',
+  },
+  {
+    instruction: 'Ahora sí, cambiá a main.',
+    accepted: ['git switch main', 'git checkout main'],
+    hint: 'Es el mismo comando que antes: ahora no hay cambios sin confirmar.',
+    output: "Switched to branch 'main'",
+  },
+  {
+    instruction: 'La rama fix/fecha-vencida ya se integró a main hace días. Borrala de forma segura.',
+    accepted: ['git branch -d fix/fecha-vencida'],
+    hint: 'Es git branch con la opción de borrado que se niega si hay trabajo sin integrar (en minúscula).',
+    output: 'Deleted branch fix/fecha-vencida (was 2a7d3f0).',
+  },
+];
+export const BRANCHES_EXPLANATION =
+  '`git branch` marca con `*` la rama actual. Con cambios sin confirmar que chocan con la rama de destino, Git se niega a cambiar: se confirman (o se guardan con stash) y recién después se cambia. `git branch -m` renombra y `-d` borra solo si la rama ya está integrada; `-D` la borraría aunque no lo estuviera.';

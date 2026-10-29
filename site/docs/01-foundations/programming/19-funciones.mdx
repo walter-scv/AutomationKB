@@ -4,13 +4,25 @@ sidebar_position: 19
 ---
 
 import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
+import Terminal from '@site/src/components/Terminal';
+import MultiSelect from '@site/src/components/MultiSelect';
 import FindInCode from '@site/src/components/FindInCode';
+import FillBlank from '@site/src/components/FillBlank';
 import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
 import {
   RETURN_LINES,
   RETURN_RULE_LABELS,
-  PRACTICE_LINES,
-  PRACTICE_RULE_LABELS,
+  SHIPPING_TEMPLATE,
+  SHIPPING_SLOTS,
+  SHIPPING_BANK,
+  SHIPPING_EXPLANATION,
+  RELIABLE_QUESTIONS,
+  CALL_STEPS,
+  CALL_EXPLANATION,
+  LABEL_START,
+  LABEL_NODES,
+  LABEL_EXPLANATION,
 } from '@site/src/content/lessons/19-funciones';
 
 export const LESSON_SLUG = 'foundations-funciones';
@@ -30,17 +42,86 @@ export function ReturnActivity() {
   );
 }
 
-export function PracticeActivity() {
-  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['practice']);
+export function ReliableActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['reliable']);
   return (
     <Activity
-      title="¿Esta función es confiable?"
-      kind="Buscar en el código"
-      goal="reconocer una función que depende de algo externo, una que modifica lo que recibió, una con demasiados parámetros sueltos y un nombre que no dice qué hace."
-      done={isDone('practice')}
-      consigna="Son 7 líneas. Elegí una por una: en las que tengan un problema, elegí cuál es; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 4 problemas."
+      title="¿Cuáles son confiables?"
+      kind="Marcar todas"
+      goal="reconocer, entre varias funciones, cuáles dependen solo de sus parámetros, no modifican lo que reciben, tienen pocos parámetros y un nombre claro."
+      done={isDone('reliable')}
+      consigna="Es 1 pregunta con 7 funciones descriptas en una línea. Marcá todas las que cumplen las cuatro condiciones de la pregunta; las demás tienen un problema de diseño. El conjunto tiene que ser exacto; si te equivocás, podés desmarcar y volver a intentar. La actividad se completa al acertar el conjunto exacto."
     >
-      <FindInCode lines={PRACTICE_LINES} ruleLabels={PRACTICE_RULE_LABELS} alreadyDone={isDone('practice')} onSolved={() => markDone('practice')} />
+      <MultiSelect
+        questions={RELIABLE_QUESTIONS}
+        alreadyDone={isDone('reliable')}
+        onSolved={() => markDone('reliable')}
+      />
+    </Activity>
+  );
+}
+
+export function ShippingActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['shipping']);
+  return (
+    <Activity
+      title="Completá la función"
+      kind="Completar huecos"
+      goal="armar la firma de una función (tipo del parámetro y tipo de retorno) y asegurarte de que todos sus caminos devuelvan un valor."
+      done={isDone('shipping')}
+      consigna="La función recibe el peso de un paquete en kilos y devuelve una etiqueta: `'pesado'` si pasa los 20 kg, `'estándar'` si no. Quien la llama usa esa etiqueta para elegir el transporte. Completá los tres huecos con las fichas (cada ficha se usa una vez y sobran algunas); clickeá un hueco para vaciarlo. La actividad se completa cuando los tres quedan bien."
+    >
+      <FillBlank
+        template={SHIPPING_TEMPLATE}
+        slots={SHIPPING_SLOTS}
+        bank={SHIPPING_BANK}
+        explanation={SHIPPING_EXPLANATION}
+        alreadyDone={isDone('shipping')}
+        onSolved={() => markDone('shipping')}
+      />
+    </Activity>
+  );
+}
+
+export function CallActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['call']);
+  return (
+    <Activity
+      title="Llamá a la función en la consola"
+      kind="Terminal"
+      goal="llamar a una función con los argumentos en el orden correcto, ver qué devuelve y qué pasa cuando el orden está mal."
+      done={isDone('call')}
+      consigna="Es una consola de JavaScript simulada donde ya existe `crearSaludo` de la sección Parámetros y argumentos: escribís una expresión, apretás Enter y te muestra el resultado. Son 4 pasos; la instrucción de cada uno aparece como comentario arriba del prompt. Si la expresión no es la esperada, te avisa y podés corregirla. La actividad se completa al terminar los 4 pasos."
+    >
+      <Terminal
+        steps={CALL_STEPS}
+        explanation={CALL_EXPLANATION}
+        promptSymbol=">"
+        commentPrefix="//"
+        alreadyDone={isDone('call')}
+        onSolved={() => markDone('call')}
+      />
+    </Activity>
+  );
+}
+
+export function LabelPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['labelpath']);
+  return (
+    <Activity
+      title="Diseñá la función de la etiqueta"
+      kind="Escenario encadenado"
+      goal="decidir la firma de una función con valor por defecto, cómo sale su resultado, cómo se escribe como arrow function y qué llamadas la prueban."
+      done={isDone('labelpath')}
+      consigna="Vas a escribir una función en cuatro decisiones: la firma, el resultado, la sintaxis y la prueba. Si elegís mal, se explica por qué y podés probar otra opción. La actividad se completa al llegar al final."
+    >
+      <DecisionPath
+        startId={LABEL_START}
+        nodes={LABEL_NODES}
+        explanation={LABEL_EXPLANATION}
+        alreadyDone={isDone('labelpath')}
+        onSolved={() => markDone('labelpath')}
+      />
     </Activity>
   );
 }
@@ -181,6 +262,17 @@ function registrarLog(mensaje: string): void {
 Sin `return`, la función igual termina y devuelve `undefined`, pero `void`
 deja explícito que no hay un resultado que usar.
 
+No confundas mostrar con devolver: `console.log` imprime un valor en la
+consola para que lo veas vos, pero no se lo entrega a quien llamó a la
+función. Si la función tiene que dar un resultado, va `return`:
+
+```ts
+function armarTitulo(nombre: string): string {
+  console.log('Título: ' + nombre); // se ve en la consola, pero no se devuelve
+  return 'Título: ' + nombre;       // esto es lo que recibe quien la llamó
+}
+```
+
 ### La misma función con otra sintaxis
 
 Una función también se puede escribir como **arrow function**. Es la misma
@@ -269,6 +361,89 @@ function agregarPedido(pedidos: string[], pedido: string): string[] {
 }
 ```
 
+### Cuando una función se llama mal
+
+TypeScript compara cada llamada con la firma de la función: cuántos
+parámetros recibe y de qué tipo es cada uno. Si no coinciden, el error
+aparece antes de ejecutar. Con `crearSaludo(nombre: string, hora: number)`:
+
+```ts
+crearSaludo(9, 'Ana');
+```
+
+```text
+error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+```
+
+El mensaje se refiere al primer argumento: se pasó un `number` donde la
+firma espera un `string`. Los argumentos se asignan a los parámetros por
+posición, así que invertir el orden es un error de tipos cuando los tipos
+difieren. Si faltan argumentos, el mensaje es otro:
+
+```ts
+crearSaludo('Ana');
+```
+
+```text
+error TS2554: Expected 2 arguments, but got 1.
+```
+
+Cuando dos parámetros tienen el mismo tipo, invertirlos no produce ningún
+error, porque los dos tipos coinciden. `calcularTotal(cantidad, precio)` en
+lugar de `calcularTotal(precio, cantidad)` compila sin quejas. Esa es la
+razón de agrupar en un objeto los parámetros del mismo tipo cuando son
+varios: con nombres, el orden deja de importar.
+
+### Parámetros opcionales y valores por defecto
+
+Un parámetro puede ser opcional, marcado con `?`. Si no se pasa, vale
+`undefined`, y la función tiene que contemplarlo:
+
+```ts
+function formatearPrecio(monto: number, moneda?: string): string {
+  if (moneda === undefined) {
+    return `$${monto}`;
+  }
+  return `${moneda} ${monto}`;
+}
+
+formatearPrecio(1500);          // '$1500'
+formatearPrecio(1500, 'USD');   // 'USD 1500'
+```
+
+Cuando hay un valor razonable para el caso en que no se pasa nada, es más
+simple declarar un **valor por defecto**:
+
+```ts
+function formatearPrecio(monto: number, moneda: string = '$'): string {
+  return `${moneda} ${monto}`;
+}
+```
+
+Los parámetros opcionales y con valor por defecto van al final de la lista:
+como los argumentos se asignan por posición, uno opcional en el medio
+obligaría a pasar algo en su lugar.
+
+### Probar una función
+
+Una función que solo depende de sus parámetros y devuelve un valor tiene
+una propiedad muy útil para testear: con las mismas entradas, siempre da
+la misma salida. Probarla consiste en elegir entradas y comparar lo que
+devuelve con lo esperado, como en cualquier caso de prueba:
+
+```text
+esContraseñaValida('Abcd123')         → false   (7 caracteres, debajo del mínimo)
+esContraseñaValida('Abcd1234')        → true    (8, el mínimo)
+esContraseñaValida('A'.repeat(64))    → true    (64, el máximo)
+esContraseñaValida('A'.repeat(65))    → false   (65, encima del máximo)
+```
+
+Una función que lee una variable de afuera o modifica lo que recibe pierde
+esa propiedad: el resultado depende de algo más que sus parámetros, y la
+misma prueba puede dar resultados distintos. Esa es la consecuencia
+práctica de las reglas de la sección anterior: una función que depende
+solo de sus parámetros se puede probar de forma aislada y repetible.
+
 ## Cuándo usarlo
 
 Cualquier lógica que se vaya a usar más de una vez conviene envolverla en
@@ -279,45 +454,30 @@ necesita no lo dice por sí sola.
 
 ## Buenas prácticas
 
-- **Una función hace una sola cosa.** Si hace falta describirla con "y"
-  ("valida la contraseña y envía el formulario"), probablemente son dos
-  funciones — separarlas permite probar y reusar cada una por su cuenta.
-- **Nombrar la función con un verbo que describa qué hace o qué pregunta
-  responde** (`esContraseñaValida`, no `chequeo1`). Quien lee el código
-  donde se la llama entiende qué pasa sin tener que ir a buscar la
-  definición.
-- **Declarar el tipo de cada parámetro y del valor de retorno.**
-  TypeScript avisa en el momento de escribir el código si alguien la
-  llama con un valor del tipo equivocado, en vez de descubrirlo recién
-  cuando el programa corre.
-- **Usar solo lo que la función recibió como parámetro**, no variables
-  externas. Si el resultado depende de algo de afuera, dos llamados con
-  los mismos parámetros pueden dar resultados distintos, y eso es difícil
-  de rastrear después.
-- **Devolver un valor nuevo en vez de modificar el que se recibió.** Quien
-  llama a la función espera que su dato original siga igual, salvo que la
-  función diga explícitamente lo contrario.
+- Una función hace una sola cosa.
+- Nombrar la función con un verbo que describa qué hace o qué pregunta responde.
+- Declarar el tipo de cada parámetro y del valor de retorno.
+- Usar solo lo que la función recibió como parámetro.
+- Devolver un valor nuevo en vez de modificar el que se recibió.
 
 ## Anti-patrones
 
-- **Olvidarse del `return`.** La función calcula el resultado correcto
-  adentro, pero nunca lo entrega — quien la llama recibe `undefined`.
-- **Copiar y pegar la misma lógica** en vez de escribirla una sola vez
-  como función y llamarla donde haga falta.
-- **Depender de una variable externa** en vez de recibirla como
-  parámetro. Oculta de qué depende realmente el resultado — alguien que
-  lee solo la llamada a la función no se entera.
-- **Modificar el objeto que se recibió como parámetro**, en vez de
-  devolver uno nuevo. Quien llamó a la función puede seguir usando ese
-  objeto después, sin saber que cambió por abajo.
-- **Demasiados parámetros sueltos del mismo tipo** (varios `string`
-  seguidos, por ejemplo) en vez de agruparlos en un objeto — fácil de
-  pasar en el orden equivocado sin que nada avise.
+- **Olvidarse del `return`**.
+- **Copiar y pegar la misma lógica**.
+- **Depender de una variable externa**.
+- **Modificar el objeto que se recibió como parámetro**.
+- **Demasiados parámetros sueltos del mismo tipo**.
 
 ## Práctica
 
-Estos son los 2 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
 
 <ReturnActivity />
 
-<PracticeActivity />
+<ShippingActivity />
+
+<CallActivity />
+
+<ReliableActivity />
+
+<LabelPathActivity />
