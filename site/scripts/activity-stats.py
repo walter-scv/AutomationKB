@@ -19,8 +19,6 @@ COMPONENTS = (
 )
 # Mecánicas que para el lector son "la misma actividad" (encontrar/clasificar el problema).
 FAMILY = {'FindInCode': 'buscar-error', 'Classify': 'buscar-error', 'SpotToken': 'buscar-error'}
-# El laboratorio es una demo de componentes, no una lección del temario.
-SKIP = ('laboratorio',)
 
 
 def lesson_sequence(path: str) -> list[str]:
@@ -39,7 +37,7 @@ def main() -> int:
     show_lessons = '--lessons' in sys.argv
     repeated = 0
     for track in sorted(os.listdir(ROOT)):
-        files = sorted(f for f in glob.glob(os.path.join(ROOT, track, '*.mdx')) if not any(s in f for s in SKIP))
+        files = sorted(glob.glob(os.path.join(ROOT, track, '*.mdx')))
         if not files:
             continue
         counts: Counter[str] = Counter()

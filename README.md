@@ -1,6 +1,6 @@
-# Automation Knowledge Base
+# QAFoundry
 
-Base de conocimiento de prácticas de Quality Engineering / test automation.
+Base de conocimiento de prácticas de Quality Engineering: testing manual y automatizado.
 El orden de este repo importa: primero se establecen las **buenas prácticas**
 (cómo encaramos QA y automatización), y recién al final se habla de **IA** —
 como una capa que se apoya sobre esas prácticas, no como un reemplazo de

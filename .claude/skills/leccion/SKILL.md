@@ -40,6 +40,8 @@ desde `site/`.
   de una. Mínimo 3 actividades, cada una sobre un subtema distinto.
 - Elegí la mecánica según lo que el lector tiene que hacer, priorizando los tipos menos usados
   del track. Nunca dos actividades seguidas de la misma familia.
+- Para los props, los datos y las trampas de cada tipo, seguí
+  [tipos-de-ejercicio.md](tipos-de-ejercicio.md).
 - Escribí los datos en TypeScript con los tipos del componente (`ClassifyItem`,
   `DecisionNode`, `MatchItem`, `TerminalStep`, `FillBlankSlot`, etc.).
 - Si es una lección nueva de un bloque con integrador, sumala al integrador (paso 5).
