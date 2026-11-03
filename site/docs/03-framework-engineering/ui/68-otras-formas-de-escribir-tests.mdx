@@ -1,0 +1,494 @@
+---
+title: "Otras formas de escribir tests: Gherkin, keyword-driven y Screenplay"
+sidebar_position: 68
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import Order from '@site/src/components/Order';
+import SpotToken from '@site/src/components/SpotToken';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  FORM_LEFT,
+  FORM_RIGHT,
+  FORM_WHY,
+  FEATURE_ITEMS,
+  FEATURE_CORRECT,
+  FEATURE_RULES,
+  DIAG_ROUNDS,
+  DIAG_PROMPT,
+  RUN_QUIZ,
+} from '@site/src/content/lessons/68-otras-formas-de-escribir-tests';
+
+export const LESSON_SLUG = 'framework-ui-otras-formas';
+
+export function FormMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['formmatch']);
+  return (
+    <Activity
+      title="¿Qué forma conviene?"
+      kind="Emparejar"
+      goal="elegir la forma de escribir los casos según quién los lee, quién los escribe y cuántos roles comparten tareas."
+      done={isDone('formmatch')}
+      consigna="Son 5 pares. Elegí una situación de la izquierda y después la forma de escribir los casos que le corresponde (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={FORM_LEFT}
+        right={FORM_RIGHT}
+        why={FORM_WHY}
+        leftLabel="Situación"
+        rightLabel="Forma"
+        alreadyDone={isDone('formmatch')}
+        onSolved={() => markDone('formmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function FeatureOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['featureorder']);
+  return (
+    <Activity
+      title="Un .feature de reservas"
+      kind="Ordenar"
+      goal="armar un archivo .feature con un esquema del escenario y su tabla de ejemplos."
+      done={isDone('featureorder')}
+      consigna="Son las 9 líneas de un .feature que prueba la reserva en el primer horario del día, con una fila de ejemplos, desordenadas. Ordenalas y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={FEATURE_ITEMS}
+        correctOrder={FEATURE_CORRECT}
+        rules={FEATURE_RULES}
+        onSolved={() => markDone('featureorder')}
+      />
+    </Activity>
+  );
+}
+
+export function DiagSpotActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['diagspot']);
+  return (
+    <Activity
+      title="Cuatro fallas, cuatro capas"
+      kind="Señalar en la línea"
+      goal="encontrar la causa de fallas en una tabla de palabras clave, una definición de paso y un actor de Screenplay."
+      done={isDone('diagspot')}
+      consigna="Son 4 líneas de la suite de turnos, cada una con un comentario que describe lo que pasa. En cada una, hacé clic en la palabra que causa el problema. Si no es esa, aparece una pista y podés volver a elegir. Se completa al resolver las 4."
+    >
+      <SpotToken
+        rounds={DIAG_ROUNDS}
+        prompt={DIAG_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('diagspot')}
+        onSolved={() => markDone('diagspot')}
+      />
+    </Activity>
+  );
+}
+
+export function RunQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['runquiz']);
+  return (
+    <Activity
+      title="Leer y mantener los escenarios"
+      kind="Elegí la opción"
+      goal="leer el reporte de un escenario con ejemplos y decidir cómo mantener el código generado y las palabras clave."
+      done={isDone('runquiz')}
+      consigna="Son 3 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={RUN_QUIZ}
+        onSolved={() => markDone('runquiz')}
+      />
+    </Activity>
+  );
+}
+
+Page Object Model ordena el código, pero no define en qué forma se escribe el caso. Esta entrada muestra las tres formas establecidas de escribirlo distinto, cómo se conectan con Playwright y en qué situación conviene cada una.
+
+## Conceptos
+
+### Organizar el código no es lo mismo que redactar el caso
+
+Page Object Model, las fixtures y los builders resuelven cómo se organiza
+el código de la suite. Otra pregunta es en qué forma se escribe el caso
+que ese código ejecuta. Hasta acá, el caso es el propio test: un título,
+pasos numerados con `test.step` y assertions, en TypeScript. Para quien
+programa se lee bien; para una analista funcional o un responsable de
+producto, no.
+
+La industria tiene tres formas establecidas de escribirlo distinto:
+
+- **BDD con Gherkin**: el caso se escribe en lenguaje natural, con pasos
+  Dado / Cuando / Entonces, y el código traduce cada paso.
+- **Keyword-driven**: el caso es una tabla de palabras clave ya
+  programadas, que se combinan sin escribir código.
+- **Screenplay**: el caso se escribe en términos de actores que realizan
+  tareas, en lugar de pantallas.
+
+Ninguna reemplaza a Page Object Model: las tres terminan llamando a Page
+Objects, o a algo equivalente, por debajo. Y las tres agregan una capa
+que hay que mantener, así que solo convienen cuando resuelven un problema
+real del equipo.
+
+### BDD y Gherkin
+
+**BDD** (Behavior-Driven Development, desarrollo guiado por el
+comportamiento) es un enfoque en el que negocio, desarrollo y testing
+acuerdan el comportamiento esperado con ejemplos concretos, antes de
+programar. El programa de estudio ISTQB CTFL lo describe así: los casos se
+escriben en lenguaje natural simple, que las partes interesadas pueden
+entender, normalmente con el formato Given/When/Then, y después se
+traducen a tests ejecutables.
+
+**Gherkin** es el lenguaje de ese formato. Un archivo `.feature` describe
+una funcionalidad con uno o más escenarios. Gherkin admite palabras clave
+en español si el archivo empieza con `# language: es`:
+
+```gherkin
+# language: es
+Característica: Renovar un préstamo
+
+  Escenario: Renovar extiende el vencimiento 14 días
+    Dado que la socia tiene "Rayuela", que vence el "10/11"
+    Cuando renueva "Rayuela"
+    Entonces ve el mensaje "Préstamo renovado"
+    Y "Rayuela" vence el "24/11"
+```
+
+- `Característica` nombra la funcionalidad, y cada `Escenario` es un caso.
+- `Dado` describe el estado inicial (la precondición), `Cuando` la acción
+  y `Entonces` el resultado esperado. `Y` continúa el paso anterior.
+- Los textos entre comillas son los datos del paso.
+
+Es la misma estructura que preparar, actuar y verificar (entrada de
+anatomía de un test), escrita para que la lea alguien que no programa.
+
+### Gherkin con Playwright: `playwright-bdd`
+
+Playwright no lee archivos `.feature`. La librería más usada para
+conectarlos es `playwright-bdd`:
+
+```bash
+npm install -D playwright-bdd
+```
+
+Cada paso del `.feature` necesita una **definición de paso**: una función
+asociada a un texto. Las llaves `{string}` marcan dónde va un dato entre
+comillas, que llega como parámetro:
+
+```ts
+// steps/prestamos.steps.ts
+import { createBdd } from 'playwright-bdd';
+import { test, expect } from './fixtures';
+import { unPrestamo } from '../helpers/prestamo.builder';
+
+const { Given, When, Then } = createBdd(test);
+
+Given('que la socia tiene {string}, que vence el {string}', async ({ prestamosPage, sembrarPrestamo }, titulo: string, fecha: string) => {
+  await sembrarPrestamo(unPrestamo().deLibro(titulo).queVence(fecha).build());
+  await prestamosPage.abrir();
+});
+
+When('renueva {string}', async ({ prestamosPage }, titulo: string) => {
+  await prestamosPage.renovar(titulo);
+});
+```
+
+Las definiciones reciben las mismas fixtures de la suite, y por eso
+siguen usando los Page Objects y la siembra por API. El texto de la
+definición va sin la palabra clave: `Dado que la socia tiene...` se
+asocia con `Given('que la socia tiene...')`. Los nombres `Given`, `When`
+y `Then` quedan en inglés: son funciones de la librería.
+
+`createBdd` necesita un `test` que incluya las fixtures de
+`playwright-bdd`. La suite ya tiene su propio `test`, el de `base-test.ts`
+(entrada de fixtures y BaseTest). `mergeTests`, una función de
+Playwright, junta los dos en un `test` nuevo que tiene las fixtures de
+ambos:
+
+```ts
+// steps/fixtures.ts
+import { mergeTests } from '@playwright/test';
+import { test as bddTest } from 'playwright-bdd';
+import { test as baseTest, expect } from '../tests/base-test';
+
+export const test = mergeTests(bddTest, baseTest);
+export { expect };
+```
+
+En la configuración, `defineBddConfig` indica dónde están los `.feature`
+y los pasos, y devuelve la carpeta donde se generan los tests:
+
+```ts
+import { defineBddConfig } from 'playwright-bdd';
+
+const testDir = defineBddConfig({
+  features: 'features/*.feature',
+  steps: 'steps/*.ts',
+});
+```
+
+Ese `testDir` va en el proyecto que corre los escenarios.
+
+### Generar y correr
+
+Correr es un paso más: primero `bddgen` traduce cada `.feature` a un
+archivo de test de Playwright, y después se corre como siempre:
+
+```bash
+npx bddgen && npx playwright test
+```
+
+```text
+Running 2 tests using 1 worker
+  ✓  1 [setup] › tests/auth.setup.ts:6:6 › ingresar con la socia de prueba (162ms)
+  ✓  2 [chromium] › .features-gen/features/renovar.feature.spec.js:6:7 › Renovar un préstamo › Renovar extiende el vencimiento 14 días (167ms)
+  2 passed (919ms)
+```
+
+El test generado vive en `.features-gen/`, una carpeta que no se edita ni
+se versiona: se vuelve a generar en cada corrida. La `Característica` es
+el `describe` y el `Escenario`, el título del test.
+
+Si un paso del `.feature` no tiene definición, `bddgen` no genera nada y
+propone el código que falta:
+
+```text
+Missing step definitions: 1
+
+When('devuelve {string}', async ({}, arg: string) => {
+  // Step: Cuando devuelve "Ficciones"
+  // From: features/devolver.feature:6:5
+});
+
+Use snippets above to create missing steps.
+```
+
+Pasa también cuando el texto difiere en una sola letra: la asociación es
+exacta.
+
+Cuando un paso falla, el reporte nombra el paso de Gherkin y muestra la
+línea de la definición. Con el último paso cambiado a
+`Y "Rayuela" vence el "25/11"`:
+
+```text
+  1) [chromium] › .features-gen/features/renovar.feature.spec.js:6:7 › Renovar un préstamo › Renovar extiende el vencimiento 14 días › Y "Rayuela" vence el "25/11"
+
+    Error: expect(locator).toHaveText(expected) failed
+    Expected: "Vence el 25/11"
+    Received: "Vence el 24/11"
+
+       at steps/prestamos.steps.ts:21
+```
+
+### El mismo escenario con varios datos
+
+Gherkin tiene su propia forma de repetir un caso con distintos datos
+(entrada de parametrización): `Esquema del escenario`, con los datos en
+una tabla `Ejemplos`. Los nombres entre `<` y `>` se reemplazan por cada
+fila:
+
+```gherkin
+  Esquema del escenario: Renovar extiende el vencimiento 14 días
+    Dado que la socia tiene "Rayuela", que vence el "<vence>"
+    Cuando renueva "Rayuela"
+    Entonces ve el mensaje "Préstamo renovado"
+    Y "Rayuela" vence el "<nuevo>"
+
+    Ejemplos:
+      | vence | nuevo |
+      | 10/11 | 24/11 |
+      | 20/12 | 03/01 |
+```
+
+```text
+  ✓  2 [chromium] › .features-gen/features/renovar.feature.spec.js:8:9 › Renovar un préstamo › Renovar extiende el vencimiento 14 días › Ejemplos: #1 (147ms)
+  ✓  3 [chromium] › .features-gen/features/renovar.feature.spec.js:15:9 › Renovar un préstamo › Renovar extiende el vencimiento 14 días › Ejemplos: #2 (100ms)
+```
+
+Cada fila es un test aparte, igual que el `for` de la entrada anterior.
+Las versiones actuales de Gherkin también aceptan `Ejemplos` debajo de un
+`Escenario` común, pero `Esquema del escenario` deja explícito que el
+caso se repite.
+
+### Cuándo conviene Gherkin
+
+Gherkin suma una capa: cada paso existe dos veces, en el `.feature` y en
+su definición, y hay que mantenerlos sincronizados. Esa capa se paga
+sola cuando alguien que no programa lee, revisa o escribe los
+escenarios: negocio valida el comportamiento leyendo el `.feature`. Si
+los escenarios solo los lee quien programa, un test con `test.step`
+numerados dice lo mismo con una capa menos.
+
+Un escenario de Gherkin habla del negocio, no de la pantalla.
+`Cuando renueva "Rayuela"` sobrevive a un rediseño;
+`Cuando hace clic en el segundo botón azul` no, y deja de ser legible
+para negocio.
+
+### Keyword-driven
+
+En el enfoque **keyword-driven** (guiado por palabras clave), quien
+programa define un conjunto de palabras clave, cada una con su código, y
+los casos se arman como tablas que las combinan:
+
+```ts
+// keywords/palabras-clave.ts
+export interface Paso {
+  palabra: string;
+  valor: string;
+}
+
+export async function ejecutar(page: Page, pasos: Paso[]): Promise<void> {
+  for (const paso of pasos) {
+    switch (paso.palabra) {
+      case 'Abrir pantalla':
+        await page.goto(paso.valor);
+        break;
+      case 'Presionar botón':
+        await page.getByRole('button', { name: paso.valor }).click();
+        break;
+      case 'Verificar mensaje':
+        await expect(page.getByRole('status')).toHaveText(paso.valor);
+        break;
+      default:
+        throw new Error(`Palabra clave desconocida: ${paso.palabra}`);
+    }
+  }
+}
+```
+
+```ts
+await ejecutar(page, [
+  { palabra: 'Abrir pantalla', valor: '/mis-prestamos' },
+  { palabra: 'Presionar botón', valor: 'Renovar' },
+  { palabra: 'Verificar mensaje', valor: 'Préstamo renovado' },
+]);
+```
+
+El caso es una lista de datos: se puede escribir en una planilla y
+cargar desde ahí, sin tocar código. Una palabra clave mal escrita llega
+al `default` del `switch` (entrada de condicionales):
+
+```text
+Error: Palabra clave desconocida: Presionar
+   at ../keywords/palabras-clave.ts:21
+```
+
+Hay herramientas armadas sobre esta idea, como Robot Framework, que trae
+las tablas, las palabras clave y los reportes. Conviene cuando muchas
+personas que no programan componen casos con un vocabulario estable. Su
+costo: las palabras clave son un lenguaje propio, sin el control de tipos
+de TypeScript, y un vocabulario demasiado fino (`Presionar botón`) hace
+casos largos que repiten la interfaz en lugar del negocio.
+
+### Screenplay
+
+Page Object Model organiza el código por pantalla. **Screenplay** lo
+organiza por quién hace qué:
+
+- un **actor** es la persona que usa el sistema;
+- una **habilidad** es lo que el actor sabe usar (un navegador, una API);
+- una **tarea** es un paso del negocio, que cualquier actor con la
+  habilidad necesaria puede realizar.
+
+```ts
+// screenplay/screenplay.ts
+export class NavegarLaWeb {
+  constructor(readonly page: Page) {}
+}
+
+export interface Tarea {
+  realizarComo(actor: Actor): Promise<void>;
+}
+
+export class Actor {
+  private habilidad?: NavegarLaWeb;
+
+  constructor(readonly nombre: string) {}
+
+  queSabe(habilidad: NavegarLaWeb): Actor {
+    this.habilidad = habilidad;
+    return this;
+  }
+
+  navegador(): Page {
+    if (!this.habilidad) {
+      throw new Error(`${this.nombre} no sabe navegar la web`);
+    }
+    return this.habilidad.page;
+  }
+
+  async intenta(tarea: Tarea): Promise<void> {
+    await tarea.realizarComo(this);
+  }
+}
+
+export class RenovarPrestamo implements Tarea {
+  constructor(private titulo: string) {}
+
+  async realizarComo(actor: Actor): Promise<void> {
+    const prestamos = new PrestamosPage(actor.navegador());
+    await prestamos.abrir();
+    await prestamos.renovar(this.titulo);
+  }
+}
+```
+
+La tarea usa el Page Object por debajo. El test se lee como una oración:
+
+```ts
+const lucia = new Actor('Lucía').queSabe(new NavegarLaWeb(page));
+
+await lucia.intenta(new RenovarPrestamo('Rayuela'));
+```
+
+Si el actor no tiene la habilidad que la tarea necesita, el error lo
+dice:
+
+```text
+Error: Lucía no sabe navegar la web
+   at ../screenplay/screenplay.ts:26
+```
+
+Screenplay conviene cuando hay varios roles que hacen la misma tarea de
+negocio desde pantallas distintas: con Page Objects, el paso queda
+repetido en cada página; con Screenplay, la tarea se define una vez y
+cada actor la reutiliza. En una aplicación con un rol y pocas pantallas,
+es más estructura de la que hace falta. La librería establecida para
+usarlo con Playwright es Serenity/JS, que trae actores, habilidades e
+interacciones ya armados.
+
+## Cuándo usarlo
+
+Gherkin, cuando personas que no programan leen o escriben los escenarios.
+Keyword-driven, cuando muchas personas componen casos con un vocabulario
+fijo. Screenplay, cuando varios roles comparten tareas de negocio. Si
+nada de eso pasa, tests con Page Objects y `test.step` numerados.
+
+## Buenas prácticas
+
+- Elegir la forma por quién lee y escribe los casos, no por moda.
+- Redactar los pasos en términos de negocio, no de la pantalla.
+- Mantener los Page Objects por debajo de cualquiera de las tres.
+- No editar ni versionar el código generado por `bddgen`.
+
+## Anti-patrones
+
+- **Gherkin que nadie de negocio lee**: dos capas para el mismo trabajo.
+- **Pasos que describen clics** en lugar de comportamiento.
+- **Palabras clave demasiado finas**, que repiten la interfaz.
+- **Screenplay en una suite de un rol y pocas pantallas.**
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<FormMatchActivity />
+
+<FeatureOrderActivity />
+
+<DiagSpotActivity />
+
+<RunQuizActivity />

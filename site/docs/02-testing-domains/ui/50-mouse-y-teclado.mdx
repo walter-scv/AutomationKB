@@ -1,0 +1,291 @@
+---
+title: "Mouse y teclado"
+sidebar_position: 50
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import Order from '@site/src/components/Order';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  GESTURE_LEFT,
+  GESTURE_RIGHT,
+  GESTURE_WHY,
+  KEYS_ITEMS,
+  KEYS_CORRECT,
+  KEYS_RULES,
+  DRAG_PREFIX,
+  DRAG_STEPS,
+  DRAG_EXPLANATION,
+  SHORTCUT_ACCEPTED,
+  SHORTCUT_HINTS,
+  SHORTCUT_EXPLANATION,
+} from '@site/src/content/lessons/50-mouse-y-teclado';
+
+export const LESSON_SLUG = 'domains-ui-mouse-y-teclado';
+
+export function GestureMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['gesturematch']);
+  return (
+    <Activity
+      title="La interacción de cada pantalla"
+      kind="Emparejar"
+      goal="elegir la acción de mouse o teclado que reproduce cada interacción de una tienda."
+      done={isDone('gesturematch')}
+      consigna="Son 6 pares. Elegí una situación de la izquierda y después la acción que la reproduce (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={GESTURE_LEFT}
+        right={GESTURE_RIGHT}
+        why={GESTURE_WHY}
+        leftLabel="Situación"
+        rightLabel="Acción"
+        alreadyDone={isDone('gesturematch')}
+        onSolved={() => markDone('gesturematch')}
+      />
+    </Activity>
+  );
+}
+
+export function KeysOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['keysorder']);
+  return (
+    <Activity
+      title="Ingresar solo con el teclado"
+      kind="Ordenar"
+      goal="ordenar un recorrido con teclado que verifica a dónde va el foco antes de cada acción."
+      done={isDone('keysorder')}
+      consigna="El test recorre el ingreso de la tienda sin mouse y, después de cada Tab, verifica a dónde fue el foco antes de usar ese campo. Ordená las 8 líneas y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={KEYS_ITEMS}
+        correctOrder={KEYS_CORRECT}
+        rules={KEYS_RULES}
+        onSolved={() => markDone('keysorder')}
+      />
+    </Activity>
+  );
+}
+
+export function DragBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['dragbuilder']);
+  return (
+    <Activity
+      title="Mover el termo al principio"
+      kind="Armar"
+      goal="construir un arrastre entre dos ítems de una lista, sin posiciones ni coordenadas."
+      done={isDone('dragbuilder')}
+      consigna="La lista de deseos tiene Mochila urbana, Mochila escolar y Termo de acero, en ese orden. Armá la línea que arrastra el termo hasta la mochila urbana. Elegí un fragmento por paso; el siguiente se habilita cuando acertás. Son 4 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={DRAG_PREFIX}
+        steps={DRAG_STEPS}
+        explanation={DRAG_EXPLANATION}
+        alreadyDone={isDone('dragbuilder')}
+        onSolved={() => markDone('dragbuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function ShortcutTypeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['shortcuttype']);
+  return (
+    <Activity
+      title="Seleccionar todo, en cualquier sistema"
+      kind="Respuesta escrita"
+      goal="escribir un atajo de teclado que funcione en Windows, Linux y macOS."
+      done={isDone('shortcuttype')}
+      consigna="El test tiene que seleccionar todo el texto del campo Comentario con el atajo de teclado, y la suite corre en Windows, Linux y macOS. Escribí la tecla que va dentro de press(...) y presioná Enter."
+    >
+      <TypeAnswer
+        accepted={SHORTCUT_ACCEPTED}
+        hints={SHORTCUT_HINTS}
+        explanation={SHORTCUT_EXPLANATION}
+        placeholder="Tecla o combinación"
+        alreadyDone={isDone('shortcuttype')}
+        onSolved={() => markDone('shortcuttype')}
+      />
+    </Activity>
+  );
+}
+
+Las personas no solo hacen click: pasan el mouse por encima, usan atajos, navegan con el teclado y arrastran elementos. Esta entrada recorre esas interacciones y cuándo un test tiene que reproducirlas.
+
+## Conceptos
+
+### Más allá del click
+
+`click()` cubre la mayoría de las interacciones, pero una persona también
+pasa el mouse por encima de un ícono para ver una ayuda, hace doble click
+para editar, usa el click derecho, presiona Enter para buscar, Escape para
+cerrar una ventana o arrastra un elemento a otro lugar. Cada una de esas
+interacciones tiene su acción en Playwright, con las mismas esperas
+automáticas que `click` (entrada de esperas).
+
+Los ejemplos usan «Mis lecturas», una pantalla de la biblioteca con un
+buscador, una ayuda emergente, una lista de lectura que se ordena
+arrastrando y una nota que se edita con doble click.
+
+### Opciones del click
+
+`click` acepta opciones para las variantes del mouse:
+
+```ts
+await page.getByRole('heading', { name: 'Mis lecturas' }).click({ button: 'right' });   // click derecho
+await page.getByRole('link', { name: 'Rayuela' }).click({ modifiers: ['Shift'] });     // con Shift apretado
+await page.getByText('Releer el capítulo 7').dblclick();                               // doble click
+```
+
+`button: 'right'` abre el menú contextual que la página defina;
+`modifiers` mantiene apretadas teclas como `Shift`, `Alt` o `Control`
+durante el click; `dblclick()` hace doble click. En «Mis lecturas», el
+doble click sobre la nota la convierte en un campo editable.
+
+### Pasar el mouse: `hover`
+
+Algunos elementos aparecen solo cuando el mouse pasa por encima: una
+ayuda emergente (*tooltip*), un menú desplegable, los botones de una fila.
+`hover()` mueve el mouse sobre el elemento:
+
+```ts
+await expect(page.getByRole('tooltip')).toBeHidden();
+await page.getByText('¿Qué es la lista de espera?').hover();
+await expect(page.getByRole('tooltip')).toHaveText('Te avisamos cuando un ejemplar se libera.');
+```
+
+Antes del `hover`, la ayuda está en el DOM pero oculta; después, es
+visible. Un test que hiciera click directamente sobre un botón que solo
+aparece con el mouse encima fallaría esperando a que se vuelva visible.
+
+### Teclas: `press`
+
+`press(tecla)` presiona una tecla sobre un elemento: primero le da el foco
+y después envía la tecla. Las teclas se nombran como en el teclado:
+`Enter`, `Tab`, `Escape`, `Backspace`, `ArrowDown`, `Delete`, o una letra.
+
+```ts
+await page.getByLabel('Buscar libro').fill('Cortázar');
+await page.getByLabel('Buscar libro').press('Enter');
+// la lista muestra «Resultado para Cortázar»
+```
+
+El buscador de «Mis lecturas» no tiene botón: busca al presionar Enter,
+como hace mucha gente. Probar con `press('Enter')` verifica ese camino.
+
+Las combinaciones se escriben con `+`. `ControlOrMeta` es `Control` en
+Windows y Linux, y `Cmd` en macOS, así el mismo test corre en cualquier
+sistema:
+
+```ts
+await page.getByLabel('Editar nota').press('ControlOrMeta+A');   // seleccionar todo
+await page.getByLabel('Editar nota').press('Backspace');         // borrar lo seleccionado
+```
+
+### El teclado de la página: `page.keyboard`
+
+`press` sobre un locator envía la tecla a ese elemento. Algunas teclas
+actúan sobre la página entera, no sobre un elemento: Escape cierra una
+ventana emergente esté donde esté el foco. Para eso está `page.keyboard`:
+
+```ts
+await page.getByRole('button', { name: 'Ver detalle' }).click();
+await expect(page.getByRole('dialog')).toBeVisible();
+await page.keyboard.press('Escape');
+await expect(page.getByRole('dialog')).toBeHidden();
+```
+
+`page.keyboard.type(texto)` escribe en el elemento que tiene el foco, sin
+buscarlo. Se usa poco: escribir en un campo concreto con `fill` o
+`pressSequentially` es más claro.
+
+### Navegar con el teclado: el foco
+
+`Tab` mueve el foco al siguiente elemento que lo acepta, como hace una
+persona que no usa mouse. `locator.focus()` pone el foco en un elemento
+sin hacer click. Para verificar a dónde fue el foco, la assertion
+`toBeFocused()`:
+
+```ts
+await page.getByLabel('Buscar libro').focus();
+await page.keyboard.press('Tab');
+await expect(page.getByText('¿Qué es la lista de espera?')).toBeFocused();
+```
+
+Con el foco en un elemento, las teclas hacen lo mismo que en un teclado
+real: `Space` marca la casilla que tiene el foco, y `Enter` activa el
+botón. Recorrer una pantalla solo con Tab, Space y Enter es una prueba de
+accesibilidad básica: si un control no recibe el foco, alguien que navega con teclado no
+lo puede usar.
+
+### Arrastrar y soltar: `dragTo`
+
+`dragTo(destino)` arrastra un elemento y lo suelta sobre otro. En «Mis
+lecturas», el orden de lectura empieza como Rayuela, Ficciones, El Aleph,
+y se cambia arrastrando:
+
+```ts
+const aleph = page.getByRole('listitem').filter({ hasText: 'El Aleph' });
+const rayuela = page.getByRole('listitem').filter({ hasText: 'Rayuela' });
+await aleph.dragTo(rayuela);
+await expect(page.getByRole('listitem')).toHaveText(['El Aleph', 'Rayuela', 'Ficciones']);
+```
+
+`toHaveText` con una lista compara el texto de cada elemento, en orden:
+es la forma de verificar un orden completo. (Acá la posición sí es lo que
+se prueba, entrada de encadenar y filtrar.)
+
+`dragTo` funciona con el arrastre estándar del navegador. Algunas
+librerías implementan su propio arrastre, que escucha movimientos del
+mouse paso a paso; para esas existe `page.mouse`, con `move`, `down` y
+`up`, que mueve el mouse por coordenadas. Es el último recurso: las
+coordenadas dependen del tamaño de la pantalla.
+
+### Desplazarse por la página
+
+No hace falta desplazarse antes de actuar: las acciones llevan el
+elemento a la vista solas (`scrolling into view if needed`, en el call
+log). Lo que sí requiere atención son las listas que cargan más
+elementos al llegar al final: ahí el test se desplaza con
+`locator.scrollIntoViewIfNeeded()` sobre el último elemento, o con
+`page.mouse.wheel(0, 800)`, y espera con una assertion a que aparezcan
+los nuevos.
+
+## Cuándo usarlo
+
+`hover` para lo que aparece con el mouse encima, `press` para los atajos
+y las acciones que la persona hace con el teclado, `dblclick` y el click
+derecho cuando la interfaz los usa, y `dragTo` para reordenar o mover
+elementos.
+
+## Buenas prácticas
+
+- Probar el camino que usa la persona: si la búsqueda funciona con Enter,
+  usar `press('Enter')`.
+- Usar `ControlOrMeta` en los atajos, para que el test corra en cualquier
+  sistema.
+- Verificar el foco con `toBeFocused` al probar navegación con teclado.
+- Verificar el resultado de un arrastre con el orden completo.
+
+## Anti-patrones
+
+- **Hacer click sobre algo que solo aparece con `hover`**, sin el `hover`
+  previo.
+- **Usar `page.mouse` con coordenadas** cuando `dragTo` funciona.
+- **`page.keyboard.type`** para escribir en un campo que se puede
+  encontrar con un locator.
+- **Atajos con `Control` fijo**, que fallan en macOS.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<GestureMatchActivity />
+
+<KeysOrderActivity />
+
+<DragBuilderActivity />
+
+<ShortcutTypeActivity />

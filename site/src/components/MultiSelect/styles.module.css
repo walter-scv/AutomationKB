@@ -67,3 +67,9 @@
   color: var(--akb-muted);
   margin-bottom: 8px;
 }
+
+/* Código inline largo (un locator completo) sin espacios: que corte en lugar de desbordar la página. */
+.option > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

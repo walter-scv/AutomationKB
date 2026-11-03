@@ -1,0 +1,243 @@
+---
+title: "Revisar lo que produce la IA"
+sidebar_position: 77
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import DecisionPath from '@site/src/components/DecisionPath';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  GEN_LINES,
+  GEN_RULE_LABELS,
+  HYP_START,
+  HYP_NODES,
+  HYP_EXPLANATION,
+  SNAP_ACCEPTED,
+  SNAP_HINTS,
+  SNAP_EXPLANATION,
+  SNAP_CODE,
+} from '@site/src/content/lessons/77-revisar-lo-que-produce';
+
+export const LESSON_SLUG = 'ai-ui-revisar-lo-que-produce';
+
+export function GenFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['genfind']);
+  return (
+    <Activity
+      title="Revisar un test generado"
+      kind="Buscar en el código"
+      goal="encontrar métodos inventados, assertions que no verifican lo prometido y código que rompe el framework."
+      done={isDone('genfind')}
+      consigna="Son las 9 líneas, en orden, de un test que escribió un asistente para la pantalla de pacientes. Su título promete que buscar un paciente por DNI muestra su ficha. Elegí cada línea y decí qué problema tiene (usa algo que no existe, no verifica lo que promete el título o no respeta el framework), o si no tiene problema. Se completa cuando encontrás las 5 que tienen un problema."
+    >
+      <FindInCode
+        lines={GEN_LINES}
+        ruleLabels={GEN_RULE_LABELS}
+        okLabel="Sin problema"
+        prompt="¿qué problema tiene?"
+        itemLabel="Línea del test generado"
+        counterLabel="líneas con problema encontradas"
+        alreadyDone={isDone('genfind')}
+        onSolved={() => markDone('genfind')}
+      />
+    </Activity>
+  );
+}
+
+export function HypPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['hyppath']);
+  return (
+    <Activity
+      title="De la hipótesis al test confiable"
+      kind="Escenario encadenado"
+      goal="confirmar una explicación contra el diseño, comprobar que un test pueda fallar y medir su estabilidad."
+      done={isDone('hyppath')}
+      consigna="Son 3 decisiones encadenadas sobre tests de la agenda escritos con un asistente. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={HYP_START}
+        nodes={HYP_NODES}
+        explanation={HYP_EXPLANATION}
+        alreadyDone={isDone('hyppath')}
+        onSolved={() => markDone('hyppath')}
+      />
+    </Activity>
+  );
+}
+
+export function SnapTypeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['snaptype']);
+  return (
+    <Activity
+      title="Leer el snapshot de un fallo"
+      kind="Respuesta escrita"
+      goal="corregir un locator con el nombre que muestra el snapshot, cuando el diseño confirma el cambio."
+      done={isDone('snaptype')}
+      consigna="Abajo están la línea del test que falló y una parte de su error-context.md. El diseño aprobado confirma que el botón cambió de nombre. Escribí la misma línea del test, cambiando solo el nombre del botón por el que muestra el snapshot, y presioná Enter."
+    >
+      <CodeBlock language="text">{SNAP_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={SNAP_ACCEPTED}
+        hints={SNAP_HINTS}
+        explanation={SNAP_EXPLANATION}
+        placeholder="await page.getByRole(...)..."
+        alreadyDone={isDone('snaptype')}
+        onSolved={() => markDone('snaptype')}
+      />
+    </Activity>
+  );
+}
+
+Un asistente escribe código que parece correcto con mucha facilidad. Esta entrada muestra las preguntas con las que se revisa lo que produce, y cómo tratar su explicación de un fallo: como una hipótesis.
+
+## Conceptos
+
+### Lo que produce es un borrador
+
+Todo lo que escribe un asistente (un test, un Page Object, la explicación
+de un fallo) se trata como el Pull Request de una persona que no conoce
+el proyecto: puede estar bien, y hay que comprobarlo antes de integrarlo.
+Quien lo integra es responsable de ese código, no la herramienta que lo
+escribió.
+
+Las preguntas de esta entrada son las que se le hacen a cualquier test.
+Lo que cambia es dónde mirar con más cuidado, porque un asistente no se
+equivoca como una persona: rara vez escribe mal la sintaxis, y con más
+frecuencia inventa lo que no conoce (entrada de cómo funciona un
+asistente), verifica algo distinto de lo que promete, o ignora las reglas
+de la suite, que no conoce si nadie se las dio.
+
+Como ejemplo, el asistente escribió este test para la agenda:
+
+```ts
+test('cancelar un turno lo libera', async ({ page }) => {
+  await page.goto('https://agenda-staging.clinica.test/agenda?fecha=2026-11-14');
+  await page.getByRole('button', { name: 'Cancelar turno' }).first().click();
+  await page.getByRole('button', { name: 'Confirmar' }).click();
+  await page.waitForTimeout(2000);
+  await expect(page.getByText('Turno cancelado')).toBeVisible();
+});
+```
+
+Pasa. Las preguntas que siguen muestran por qué igual no se integra así.
+
+### ¿Corre, y corre siempre?
+
+Lo primero es ejecutarlo. Y no una vez: un test que depende de una espera
+fija, como el `waitForTimeout(2000)` del ejemplo, puede pasar hoy y fallar
+mañana, cuando la aplicación tarde un poco más. Con
+`npx playwright test --repeat-each=20 --retries=0` se corre veinte veces
+seguidas, sin reintentos que escondan los fallos (entrada de tests
+inestables): si falla alguna, no es estable.
+
+### ¿Puede fallar?
+
+Un test que pasa no prueba nada si no puede fallar. La comprobación es
+romper a propósito lo que verifica: cambiar el valor esperado por uno
+imposible y correrlo.
+
+```ts
+await expect(agendaPage.estado('09:30')).toHaveText('Estado imposible');
+```
+
+Si con un valor imposible el test sigue pasando, la assertion no está
+verificando: por ejemplo, porque apunta a otro elemento, o porque le
+falta el `await` y Playwright nunca espera su resultado (entrada de
+anatomía de un test).
+
+### ¿Verifica lo que promete?
+
+El título dice qué comprueba el test, y las assertions tienen que
+comprobar exactamente eso. Un asistente tiende a verificar lo que se ve
+fácil en la pantalla, aunque no sea el resultado del caso. En el ejemplo,
+el título promete que el turno queda libre, y lo único que se verifica es
+el mensaje «Turno cancelado». Si la aplicación muestra el mensaje y deja
+el turno reservado, el test pasa igual. La assertion que corresponde es
+sobre el estado del turno:
+
+```ts
+await expect(agendaPage.estado('09:30')).toHaveText('Libre');
+```
+
+### ¿Respeta el framework?
+
+El código generado tiende a lo genérico, y el ejemplo lo muestra:
+
+- usa `page` directamente, en lugar de `AgendaPage`: los locators tienen
+  que estar en el Page Object (sección III);
+- abre una dirección completa de staging: la página se abre con
+  `agendaPage.abrir()`, que usa la `baseURL` del entorno donde corre;
+- toma el primer botón con `.first()`: puede cancelar otro turno que el
+  que creó el test;
+- no crea su propio turno: depende de que exista uno en el entorno, en
+  lugar de crearlo con una fixture;
+- espera con `waitForTimeout`: las assertions de Playwright ya esperan
+  solas hasta que se cumplen;
+- no tiene pasos numerados con `test.step` ni los tags del equipo.
+
+Funciona hoy y le cuesta mantenimiento al equipo mañana. La forma más
+barata de evitarlo es que el asistente conozca las reglas desde el
+principio (entrada de instrucciones del proyecto).
+
+### ¿Existe todo lo que usa?
+
+Las alucinaciones aparecen como métodos, assertions u opciones que no
+existen. TypeScript las detecta sin correr el test:
+
+```ts
+await expect(agendaPage.estado('09:30')).toBeShown();
+```
+
+```text
+error TS2339: Property 'toBeShown' does not exist on type 'MakeMatchers<void, Locator, {}>'.
+```
+
+Por eso conviene correr `npx tsc --noEmit` sobre el código generado, y
+desconfiar de una opción que no conocés hasta encontrarla en la
+documentación de la versión de Playwright del proyecto.
+
+### La explicación de un fallo es una hipótesis
+
+Cuando un asistente explica por qué falló un test, propone una causa.
+Antes de aplicar el cambio que sugiere, la pregunta es la del triage
+(entrada de tests inestables): ¿el test está mal, o la aplicación hace
+algo que no debería?
+
+El test de cancelar falla buscando el botón «Cancelar», y el asistente,
+mirando el snapshot de la página, propone cambiar el locator a «Cancelar
+turno». Si el diseño aprobado dice «Cancelar turno», el cambio es
+correcto. Si dice «Cancelar», la aplicación tiene un defecto y el test no
+se toca. El asistente no tiene cómo saberlo: el diseño aprobado no está
+en su contexto.
+
+## Cuándo usarlo
+
+Con cada test, Page Object, fixture o explicación que produzca un
+asistente, antes de integrarlo.
+
+## Buenas prácticas
+
+- Correr el código generado varias veces, sin reintentos.
+- Romper a propósito el valor esperado y confirmar que el test falla.
+- Comparar el título con lo que verifican las assertions.
+- Pasar `npx tsc --noEmit` antes de correr.
+
+## Anti-patrones
+
+- **Integrar un test porque pasó a la primera.**
+- **Aplicar la explicación de un fallo** sin preguntar si la aplicación
+  está bien.
+- **Aceptar código fuera del framework** porque «funciona».
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<GenFindActivity />
+
+<HypPathActivity />
+
+<SnapTypeActivity />

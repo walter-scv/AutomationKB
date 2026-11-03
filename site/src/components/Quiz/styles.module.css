@@ -56,3 +56,8 @@
   color: var(--akb-muted);
   margin-top: 4px;
 }
+
+/* Código inline largo sin espacios: que corte en lugar de desbordar la página. */
+.option {
+  overflow-wrap: anywhere;
+}

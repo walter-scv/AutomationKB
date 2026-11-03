@@ -1,0 +1,271 @@
+---
+title: "La válvula de seguridad y la tabla de gates"
+sidebar_position: 94
+---
+
+import Activity from '@site/src/components/Activity';
+import Quiz from '@site/src/components/Quiz';
+import Classify from '@site/src/components/Classify';
+import FillBlank from '@site/src/components/FillBlank';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  VALVE_QUIZ,
+  GATE_ITEMS,
+  GATE_COLUMNS,
+  FN_TEMPLATE,
+  FN_SLOTS,
+  FN_BANK,
+  FN_EXPLANATION,
+} from '@site/src/content/lessons/94-valvula-y-gates';
+
+export const LESSON_SLUG = 'ai-ui-valvula-y-gates';
+
+export function ValveQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['valvequiz']);
+  return (
+    <Activity
+      title="Qué decide la válvula"
+      kind="Elegí la opción"
+      goal="seguir la ejecución de la función de la válvula con distintos grupos de fallos."
+      done={isDone('valvequiz')}
+      consigna="Son 4 preguntas de opción única: las 3 primeras sobre decidirHeal, con maxGrupos en 5, y la última sobre la tabla de gates. Recordá: decidirHeal devuelve una de tres decisiones (router, regresion-amplia o sin-fallos), y frena con regresion-amplia solo si se cumplen las tres condiciones a la vez: más de 5 grupos, sin un único sospechoso y sin mayoría de grupos reparables. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 4."
+    >
+      <Quiz
+        questions={VALVE_QUIZ}
+        onSolved={() => markDone('valvequiz')}
+      />
+    </Activity>
+  );
+}
+
+export function GateClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['gateclassify']);
+  return (
+    <Activity
+      title="¿skipped o error?"
+      kind="Clasificar"
+      goal="distinguir las decisiones esperadas de los fallos que tienen que hacer ruido."
+      done={isDone('gateclassify')}
+      consigna="Son 6 resultados de los gates del auto-heal de la agenda. Arrastrá cada uno a skipped o error. Regla para los casos dudosos: si la automatización decidió no actuar por una razón prevista, es skipped; si algo que tenía que funcionar no funcionó, o no se sabe qué decidió, es error. Se completa cuando los 6 están en su caja."
+    >
+      <Classify
+        items={GATE_ITEMS}
+        columns={GATE_COLUMNS}
+        itemLabel="Resultado"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('gateclassify')}
+        onSolved={() => markDone('gateclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function FnFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['fnfill']);
+  return (
+    <Activity
+      title="Completar la válvula"
+      kind="Completar huecos"
+      goal="escribir las condiciones de la válvula de seguridad."
+      done={isDone('fnfill')}
+      consigna="Completá los 4 huecos de decidirHeal: lista vacía, convergencia en un solo sospechoso, mayoría y la condición de no convergencia. Presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={FN_TEMPLATE}
+        slots={FN_SLOTS}
+        bank={FN_BANK}
+        explanation={FN_EXPLANATION}
+        alreadyDone={isDone('fnfill')}
+        onSolved={() => markDone('fnfill')}
+      />
+    </Activity>
+  );
+}
+
+No todo fallo tiene que llegar a los agentes, y cuando una automatización no actúa, tiene que quedar claro por qué. Esta entrada muestra la válvula de seguridad como función pura, la cadena de gates con sus resultados, y la tabla consolidada de cuándo corre cada automatización.
+
+## Conceptos
+
+### Cuándo no tiene que actuar nadie automático
+
+El auto-heal y el router de causa raíz (entradas anteriores) están
+pensados para fallos acotados: unos pocos grupos, con una causa que se
+puede averiguar. Si una noche falla media suite por veinte causas
+distintas, sin relación con ningún cambio, lo probable es algo grande:
+el entorno caído, una dependencia que se actualizó, un cambio de
+infraestructura. Mandar eso a los agentes cuesta mucho, porque cada
+grupo es una reproducción y un análisis, y no resuelve nada, porque
+ninguna reparación de un test arregla un entorno caído.
+
+Hace falta una **válvula de seguridad**: una regla, que corre antes de
+lanzar cualquier agente, y decide si el fallo va a los agentes o
+directamente a una persona. Como la válvula de una cañería, deja pasar
+lo normal y corta lo que podría romper el sistema.
+
+### Con qué datos decide
+
+La válvula corre después del análisis en CI de la entrada anterior, el
+script que agrupa los fallos por firma y busca los Pull Requests
+sospechosos. Ese análisis le deja a cada grupo dos datos:
+
+- `prSospechoso`: el Pull Request que más probablemente lo causó;
+- `veredicto`: una **pista** de su causa, todavía sin confirmar. Por
+  ejemplo, si el error es «no encontró el elemento» y el texto del
+  contrato no aparece en el componente, la pista es `locator`. Son
+  pistas: el que confirma con evidencia es el router, después.
+
+### La regla
+
+En el sistema del que sale este caso, un fallo **no** va al router solo
+si se cumplen las tres cosas a la vez:
+
+- hay **más de 5 grupos**;
+- los grupos **no convergen** en un único Pull Request sospechoso: no
+  hay un solo cambio que los explique a todos;
+- los grupos **reparables** (los que tienen pista de locator, datos o
+  cambio documentado) **no son mayoría**.
+
+En ese caso, se publica un reporte visible de **regresión amplia**, en
+el resumen del workflow y en un issue, para que lo mire una persona.
+
+Hay dos salidas independientes a propósito: si los grupos convergen en
+un mismo Pull Request, o si la mayoría es reparable, el router sí actúa,
+aunque haya muchos grupos. Solo frena la combinación de muchos grupos,
+sin un cambio que los explique y mayormente no reparables.
+
+### Una función pura, con tests
+
+La válvula se escribe como una **función pura**: recibe los grupos y
+devuelve una decisión, sin leer archivos ni llamar a servicios. Así se
+puede probar con **tests unitarios**: tests que llaman a la función con
+datos de ejemplo (siete grupos de un Pull Request, ocho de otro) y
+comprueban lo que devuelve, sin navegador ni entorno. Y la comparten todas las suites que se
+reparan (por ejemplo, la web y la móvil), para que su criterio no se
+desalinee con el tiempo.
+
+```ts
+type Grupo = { prSospechoso: string; veredicto: string };
+
+export function decidirHeal(grupos: Grupo[], maxGrupos = 5) {
+  if (grupos.length === 0) {
+    return { decision: 'sin-fallos', motivo: 'no se encontraron fallos' };
+  }
+  const convergen = new Set(grupos.map((g) => g.prSospechoso)).size === 1;
+  const reparables = grupos.filter((g) =>
+    ['locator', 'datos', 'cambio-documentado'].includes(g.veredicto));
+  const mayoriaReparable = reparables.length > grupos.length / 2;
+
+  if (grupos.length > maxGrupos && !convergen && !mayoriaReparable) {
+    return { decision: 'regresion-amplia', motivo: 'la mira una persona' };
+  }
+  return { decision: 'router', motivo: 'al router de causa raíz' };
+}
+```
+
+- `new Set(...)` deja los valores sin repetir: si tiene un solo elemento,
+  todos los grupos apuntan al mismo Pull Request.
+- Hay tres decisiones posibles: `router` manda los fallos al router de
+  causa raíz, `regresion-amplia` frena y deja el problema para una
+  persona, y `sin-fallos` indica que no se encontró ningún fallo para
+  procesar.
+
+### Cómo se entera el workflow
+
+El workflow no llama a la función directamente: corre un script que la
+usa, y el script le comunica la decisión con su **código de salida**
+(entrada de hooks), un código distinto para cada una de las tres
+decisiones. Qué código corresponde a cada decisión lo elige el equipo:
+pueden ser 1, 2 y 3, o cualquier otro trío, siempre que esté escrito y
+que el workflow use los mismos. El paso siguiente del workflow lee el
+código y actúa: lanza el router, publica el reporte de regresión amplia
+o no lanza ningún agente.
+
+Un caso especial: si la regresión falló y aun así el análisis no
+encontró ningún fallo, algo se rompió en el análisis. Esa decisión
+`sin-fallos` se registra como `error`, no como un silencio (lo que
+sigue).
+
+Una decisión de diseño importante: un código que no es ninguno de los
+tres, por ejemplo el que sale si el script se rompe por un error, se
+trata como «mandar al router». Un análisis innecesario cuesta tokens;
+una reparación salteada por error cuesta lo que se necesitaba arreglar.
+
+### La cadena de gates
+
+La válvula es uno de varios **gates** que deciden si una automatización
+actúa (entrada de gates y revisores). Para un auto-heal, por ejemplo, en
+orden:
+
+1. el paso de tests falló y el auto-heal no está deshabilitado;
+2. las credenciales de la integración están configuradas;
+3. el análisis produjo su salida;
+4. el diagnóstico se pudo leer;
+5. el diagnóstico es un «sí» sin dudas, no un «posiblemente»;
+6. hay al menos un fallo;
+7. no hay demasiados fallos.
+
+Cada gate que no se cumple deja registrado un resultado en el resumen
+del workflow, para que quien lo lea sepa por qué no se actuó. Hay dos
+tipos de resultado:
+
+- `skipped`: la automatización decidió no actuar, por una razón
+  esperada: no hay credenciales configuradas, el diagnóstico dijo «no»,
+  hay demasiados fallos.
+- `error`: algo que tenía que funcionar no funcionó: el análisis no dejó
+  su salida, el diagnóstico no se pudo leer, no se encontró ningún fallo
+  en una corrida que falló.
+
+La regla de diseño: **un gate que falla en silencio, como si todo
+estuviera bien, es peor que uno que falla con ruido**. «No se pudo leer
+el diagnóstico» es un `error`, no un `skipped`: no es una absolución, y la
+diferencia importa cuando alguien investiga por qué el sistema no actuó.
+
+### La tabla de gates consolidada
+
+En un sistema con varias automatizaciones (la suite del Pull Request,
+la regresión nocturna, el auto-heal y, como se verá en las entradas
+siguientes, la exploración y la comparación de pantallas), la
+pregunta más frecuente es «¿por qué no corrió esto?». Cada gate está
+comentado en su workflow, pero la respuesta obliga a abrir seis archivos.
+Un documento único, con una tabla por automatización (cuándo dispara y
+cuándo explícitamente no), responde la pregunta en un solo lugar:
+
+| Automatización | Dispara con | No dispara con |
+| :- | :- | :- |
+| Suite del Pull Request | Pull Request abierto, no borrador, con cambios en la aplicación | Borradores; cambios solo en documentación |
+| Auto-heal del Pull Request | La suite del Pull Request falló | Ramas `auto-heal/`; diagnóstico distinto de «sí»; demasiados fallos |
+| Regresión nocturna | Horario programado; ejecución manual | — |
+
+Y una advertencia que ya apareció en el auto-heal: si el agente corre
+en una plataforma externa de agentes y «arreglaste el pedido y no
+cambió nada», lo primero es comprobar si lo que corre es el archivo del
+repositorio o una copia guardada en la configuración de la plataforma
+(entrada de auto-heal en el Pull Request).
+
+## Cuándo usarlo
+
+En cualquier sistema que repara o explora de forma automática: una
+válvula para lo que no tiene que llegar a los agentes, gates que fallan
+con ruido, y una tabla única de cuándo corre cada cosa.
+
+## Buenas prácticas
+
+- La válvula como función pura, con tests unitarios y compartida.
+- `error` para lo que no funcionó; `skipped` solo para lo esperado.
+- Una tabla consolidada de disparadores por automatización.
+
+## Anti-patrones
+
+- **Mandar a los agentes** una regresión amplia sin atribución.
+- **Un `skipped` cuando el análisis falló.**
+- **Gates documentados solo** dentro de cada workflow.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ValveQuizActivity />
+
+<GateClassifyActivity />
+
+<FnFillActivity />

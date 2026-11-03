@@ -21,7 +21,7 @@ def fn_code(a):
       f'      consigna="{a["consigna"]}"','    >',code+body,'    </Activity>','  );','}',''])
 def main(p):
     sp=importlib.util.spec_from_file_location('s',p); m=importlib.util.module_from_spec(sp); sp.loader.exec_module(m); spec=m.spec
-    mdx_p=f"{SITE}/docs/01-foundations/{spec['lesson']}.mdx"; ts_p=f"{SITE}/src/content/lessons/{os.path.basename(spec['lesson'])}.ts"
+    mdx_p=f"{SITE}/docs/{spec['lesson'] if spec['lesson'][:2].isdigit() else '01-foundations/'+spec['lesson']}.mdx"; ts_p=f"{SITE}/src/content/lessons/{os.path.basename(spec['lesson'])}.ts"
     ts=open(ts_p).read().rstrip('\n')+'\n\n'+open(spec['ts']).read().strip('\n')+'\n'
     for t in spec.get('ts_types',[]):
         n,c=t.split(':'); line=f"import type {{{n}}} from '@site/src/components/{c}';"

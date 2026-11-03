@@ -1,0 +1,8 @@
+{
+  "label": "Mobile",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "CI/CD, Docker, cloud, distributed systems y continuous testing, aplicados a cada track. Integrar la automatización al ciclo real de entrega."
+  }
+}

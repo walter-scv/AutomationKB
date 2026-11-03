@@ -49,7 +49,12 @@ const config: Config = {
     // config recomendada por Docusaurus para no sorprenderse si algún .md
     // se agrega acá más adelante.
     format: 'detect',
+    // Diagramas ```mermaid en las lecciones (por ejemplo, el mapa de la
+    // aplicación de la sección V).
+    mermaid: true,
   },
+
+  themes: ['@docusaurus/theme-mermaid'],
 
   presets: [
     [
@@ -78,6 +83,19 @@ const config: Config = {
     // Tema único "arcade neón" en toda la base (portada y lecciones) — sin
     // alternativa en modo claro, por eso se deshabilita el switch en vez de
     // mantener dos paletas (ver CLAUDE.md).
+    mermaid: {
+      theme: {light: 'dark', dark: 'dark'},
+      options: {
+        fontSize: 16,
+        themeVariables: {
+          primaryColor: '#170f33',
+          primaryBorderColor: '#39f6ff',
+          primaryTextColor: '#f2f3ff',
+          lineColor: '#ff7edb',
+          edgeLabelBackground: '#0b0e1a',
+        },
+      },
+    },
     colorMode: {
       defaultMode: 'dark',
       disableSwitch: true,

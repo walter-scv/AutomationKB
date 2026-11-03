@@ -1,0 +1,261 @@
+---
+title: "Varios navegadores y dispositivos"
+sidebar_position: 57
+---
+
+import Activity from '@site/src/components/Activity';
+import FillBlank from '@site/src/components/FillBlank';
+import Terminal from '@site/src/components/Terminal';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  PROJECTS_TEMPLATE,
+  PROJECTS_SLOTS,
+  PROJECTS_BANK,
+  PROJECTS_EXPLANATION,
+  MOBILE_STEPS,
+  MOBILE_EXPLANATION,
+  CROSS_QUIZ,
+} from '@site/src/content/lessons/57-cross-browser-y-emulacion';
+
+export const LESSON_SLUG = 'domains-ui-cross-browser';
+
+export function ProjectsFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['projectsfill']);
+  return (
+    <Activity
+      title="Configurar los entornos de la tienda"
+      kind="Completar huecos"
+      goal="configurar idioma, zona horaria, un navegador de marca y un perfil de celular."
+      done={isDone('projectsfill')}
+      consigna="La tienda tiene que probarse con formato argentino y la zona horaria de Córdoba, en Safari, en el Edge instalado y en un iPhone 13. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={PROJECTS_TEMPLATE}
+        slots={PROJECTS_SLOTS}
+        bank={PROJECTS_BANK}
+        explanation={PROJECTS_EXPLANATION}
+        alreadyDone={isDone('projectsfill')}
+        onSolved={() => markDone('projectsfill')}
+      />
+    </Activity>
+  );
+}
+
+export function MobileTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['mobileterm']);
+  return (
+    <Activity
+      title="Correr solo en los celulares"
+      kind="Terminal"
+      goal="ver en qué proyectos corre un archivo y elegir solo los de celular."
+      done={isDone('mobileterm')}
+      consigna="Son 2 pasos. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el segundo paso."
+    >
+      <Terminal
+        steps={MOBILE_STEPS}
+        explanation={MOBILE_EXPLANATION}
+        alreadyDone={isDone('mobileterm')}
+        onSolved={() => markDone('mobileterm')}
+      />
+    </Activity>
+  );
+}
+
+export function CrossQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['crossquiz']);
+  return (
+    <Activity
+      title="Falla en un entorno y no en otro"
+      kind="Elegí la opción"
+      goal="diagnosticar fallos que aparecen solo en un navegador, un dispositivo o una máquina."
+      done={isDone('crossquiz')}
+      consigna="Son 3 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={CROSS_QUIZ}
+        onSolved={() => markDone('crossquiz')}
+      />
+    </Activity>
+  );
+}
+
+Las personas usan la aplicación en Chrome, Safari, Firefox y Edge, en computadoras y en celulares, en distintos idiomas y zonas horarias. Esta entrada muestra cómo correr la misma suite en todos esos entornos con los proyectos de Playwright.
+
+## Conceptos
+
+### Por qué correr en varios navegadores
+
+Una misma página no se comporta igual en todos los navegadores. Chromium
+(la base de Chrome y Edge), Firefox y WebKit (la base de Safari) tienen
+motores distintos: interpretan el CSS, el JavaScript y los formatos de
+fecha con diferencias. Un defecto puede aparecer solo en Safari, que
+además es el único navegador de los iPhone.
+
+Playwright corre la misma suite en los tres motores con los **proyectos**
+de la configuración (entrada de configuración). Cada proyecto es una
+corrida completa con su propio `use`:
+
+```ts
+projects: [
+  { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+  { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+],
+```
+
+Un test de la biblioteca que imprime cómo ve la página cada proyecto
+muestra una diferencia real:
+
+```text
+chromium       chromium  mobile: false {"ancho":1280,"alto":720,"fecha":"14/11/2026, 11:00:00","tactil":false}
+firefox        firefox   mobile: false {"ancho":1280,"alto":720,"fecha":"14/11/2026, 11:00:00","tactil":false}
+webkit         webkit    mobile: false {"ancho":1280,"alto":720,"fecha":"14/11/2026, 11:00:00 p.m.","tactil":false}
+```
+
+Los tres corren con `locale: 'es-AR'` y la zona horaria de Buenos Aires
+(se explican más abajo), y la fecha es el 15/11 a las 02:00 UTC, que en
+Buenos Aires son las 23:00 del 14/11. El mismo código, con
+`toLocaleString()`, la muestra distinto: WebKit escribe «11:00:00 p.m.»,
+y Chromium y Firefox, «11:00:00» a secas, que ni siquiera dice si es de
+mañana o de noche. Si la pantalla
+de préstamos mostrara así el horario de devolución, un test que verifica
+el texto exacto pasaría en Chrome y fallaría en Safari, y una persona con
+iPhone vería un formato distinto.
+
+El test recibe el navegador en la fixture `browserName`
+(`'chromium'`, `'firefox'` o `'webkit'`), útil cuando algo tiene que
+verificarse distinto en un navegador.
+
+### Navegadores de marca: `channel`
+
+Los proyectos anteriores usan los navegadores que descarga Playwright.
+Para probar en el Chrome o el Edge que tiene instalados la persona
+usuaria, se agrega `channel`:
+
+```ts
+{ name: 'chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome' } },
+{ name: 'edge', use: { ...devices['Desktop Edge'], channel: 'msedge' } },
+```
+
+### Emular dispositivos
+
+`devices` trae perfiles de celulares y tabletas. Cada perfil define el
+tamaño de pantalla (`viewport`), la densidad de píxeles, el *user agent*
+(la cadena con que el navegador se identifica ante el servidor), si es un
+dispositivo móvil y si tiene pantalla táctil, y qué motor usa:
+
+```text
+Pixel 7    {"viewport":{"width":412,"height":839},"deviceScaleFactor":2.625,"isMobile":true,"hasTouch":true,"defaultBrowserType":"chromium"}
+iPhone 13  {"viewport":{"width":390,"height":664},"deviceScaleFactor":3,"isMobile":true,"hasTouch":true,"defaultBrowserType":"webkit"}
+```
+
+Se agregan como proyectos:
+
+```ts
+{ name: 'mobile-chrome', use: { ...devices['Pixel 7'] } },
+{ name: 'mobile-safari', use: { ...devices['iPhone 13'] } },
+```
+
+Es una **emulación**: el navegador de escritorio se comporta como el del
+celular (tamaño, táctil, user agent), pero no es un celular real. Detecta
+la gran mayoría de los problemas de diseño adaptable; los que dependen
+del hardware o del sistema del teléfono quedan para el track de Mobile.
+
+Correr el test anterior en los perfiles de celular muestra otro defecto,
+esta vez de la página de prueba:
+
+```text
+mobile-chrome  chromium  mobile: true  {"ancho":981,"alto":1996,"fecha":"14/11/2026, 11:00:00","tactil":true}
+mobile-safari  webkit    mobile: true  {"ancho":980,"alto":1668,"fecha":"14/11/2026, 11:00:00 p.m.","tactil":true}
+```
+
+El celular tiene 412 o 390 píxeles de ancho, pero la página se dibuja a
+980: le falta la etiqueta `<meta name="viewport" content="width=device-width">`,
+que le dice al navegador del celular que use el ancho real. Sin ella, se
+ve como una página de escritorio achicada. Es exactamente lo que pasa en
+un teléfono de verdad, y por eso vale la pena correr la suite con
+perfiles móviles.
+
+### Idioma, zona horaria, ubicación y tema
+
+`use` también emula el entorno de la persona:
+
+- `locale: 'es-AR'`: el idioma y el formato regional (fechas, números).
+- `timezoneId: 'America/Argentina/Buenos_Aires'`: la zona horaria. En la
+  salida de arriba, el instante 15/11 a las 02:00 UTC se ve como el
+  14/11 a las 23:00 en Buenos Aires.
+- `geolocation: { latitude: -34.6037, longitude: -58.3816 }` junto con
+  `permissions: ['geolocation']`: la ubicación que informa el navegador, ya
+  autorizada.
+- `colorScheme: 'dark'`: la preferencia de tema oscuro del sistema.
+
+Se definen en la configuración, para toda la suite o un proyecto, o en
+un archivo de tests con `test.use`:
+
+```ts
+test.use({
+  geolocation: { latitude: -34.6037, longitude: -58.3816 },
+  permissions: ['geolocation'],
+  colorScheme: 'dark',
+  viewport: { width: 390, height: 844 },
+});
+```
+
+`test.use` aplica a todos los tests del archivo, o del `describe` donde se
+escribe. Sirve para la sede más cercana, que depende de la ubicación, o
+para un tema oscuro que tiene que verse bien.
+
+Fijar `locale` y `timezoneId` en la configuración, además, vuelve
+repetibles los tests que muestran fechas: sin ellos, el resultado depende
+de la configuración de la máquina donde corre la suite, y una de CI
+suele estar en UTC.
+
+### Correr solo algunos proyectos
+
+`--project` (entrada de cómo correr los tests) elige proyectos, y se
+repite para varios:
+
+```bash
+npx playwright test --project=mobile-safari --project=firefox
+```
+
+Correr todos los proyectos multiplica el tiempo de la suite. Un criterio
+habitual: en cada cambio, un solo navegador; en la suite completa, antes
+de una versión, todos los navegadores y dispositivos que usan las
+personas.
+
+## Cuándo usarlo
+
+Cuando la aplicación tiene usuarios en distintos navegadores y
+dispositivos, que es casi siempre. Los perfiles móviles, en cuanto el
+diseño tiene que adaptarse a pantallas chicas. `locale`, `timezoneId` y
+`geolocation`, cuando la pantalla depende del idioma, de la hora o de la
+ubicación.
+
+## Buenas prácticas
+
+- Incluir WebKit en la suite: es el motor de Safari y de todos los iPhone.
+- Sumar al menos un perfil móvil si la aplicación se usa en celulares.
+- Fijar `locale` y `timezoneId` en la configuración.
+- Elegir qué proyectos corren en cada momento, en lugar de correr siempre
+  todos.
+
+## Anti-patrones
+
+- **Probar solo en Chromium** una aplicación que se usa en Safari.
+- **Dar por probado un celular** porque se achicó la ventana: el perfil
+  emula además el táctil y el user agent.
+- **Depender de la zona horaria de la máquina** en tests con fechas.
+- **Escribir `if (browserName === ...)`** para esconder un defecto de un
+  navegador, en lugar de reportarlo.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ProjectsFillActivity />
+
+<MobileTerminalActivity />
+
+<CrossQuizActivity />

@@ -1,0 +1,230 @@
+---
+title: "Por qué dividir una tarea entre agentes"
+sidebar_position: 86
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import DecisionPath from '@site/src/components/DecisionPath';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  SIZE_ITEMS,
+  SIZE_COLUMNS,
+  SPLIT_START,
+  SPLIT_NODES,
+  SPLIT_EXPLANATION,
+  ORCH_QUESTIONS,
+} from '@site/src/content/lessons/86-por-que-multiagente';
+
+export const LESSON_SLUG = 'ai-ui-por-que-multiagente';
+
+export function SizeClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['sizeclassify']);
+  return (
+    <Activity
+      title="¿Cuánto proceso necesita?"
+      kind="Clasificar"
+      goal="decidir si una tarea se resuelve con un pedido, con una skill o con un sistema multiagente."
+      done={isDone('sizeclassify')}
+      consigna="Son 6 tareas del equipo de turnos. Arrastrá cada una a Un pedido a un agente, Una skill o Un sistema multiagente. Regla para los casos dudosos: si es puntual, un pedido; si es una sola tarea que se repite con reglas propias, una skill; si tiene varias fases que conviene separar y se repite, un sistema. Se completa cuando las 6 están en su caja."
+    >
+      <Classify
+        items={SIZE_ITEMS}
+        columns={SIZE_COLUMNS}
+        itemLabel="Tarea"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('sizeclassify')}
+        onSolved={() => markDone('sizeclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function SplitPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['splitpath']);
+  return (
+    <Activity
+      title="Corregir un sistema que no funciona"
+      kind="Escenario encadenado"
+      goal="separar la revisión, condensar lo que se pasan los agentes y controlar el consumo."
+      done={isDone('splitpath')}
+      consigna="Son 3 decisiones encadenadas sobre la automatización de la agenda con agentes. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={SPLIT_START}
+        nodes={SPLIT_NODES}
+        explanation={SPLIT_EXPLANATION}
+        alreadyDone={isDone('splitpath')}
+        onSolved={() => markDone('splitpath')}
+      />
+    </Activity>
+  );
+}
+
+export function OrchMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['orchmulti']);
+  return (
+    <Activity
+      title="El rol del orquestador"
+      kind="Marcar todas"
+      goal="reconocer qué hace el orquestador de un sistema multiagente y qué no."
+      done={isDone('orchmulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todas las afirmaciones correctas y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={ORCH_QUESTIONS}
+        alreadyDone={isDone('orchmulti')}
+        onSolved={() => markDone('orchmulti')}
+      />
+    </Activity>
+  );
+}
+
+Una tarea de automatización completa tiene muchas fases, y hecha por un solo agente en una sola conversación sufre por contexto, mezcla de roles y falta de revisión. Esta entrada muestra qué resuelve un sistema multiagente, qué hace el orquestador, cuánto cuesta y cuándo no conviene.
+
+## Conceptos
+
+### Una tarea grande con un solo agente
+
+Le pedís al agente, en una sola sesión: «automatizá los casos de
+cancelación de turnos de la agenda». Para hacerlo bien tiene que:
+
+1. leer los casos de uso de cancelación y los tests que ya existen
+   (entrada de casos de uso);
+2. recorrer la pantalla de la agenda con el navegador, para ver qué
+   botones y textos hay (entrada de MCP);
+3. decidir qué escenarios automatizar y qué datos necesita cada uno;
+4. escribir el Page Object y los tests;
+5. revisar que respeten las reglas de la suite;
+6. correrlos, y si fallan, corregir y volver a correr;
+7. actualizar la tabla de cobertura del caso de uso.
+
+Seguí lo que pasa en su contexto, lo único que el agente ve (entrada de
+cómo funciona un asistente). En el paso 2 entra el árbol de
+accesibilidad de cada pantalla que recorrió: cientos de líneas por
+pantalla. En el paso 4 entran tres versiones del Page Object, porque las
+dos primeras no funcionaron. En el paso 6 entran las salidas de cinco
+ejecuciones, con sus errores. Cuando llega al paso 5, revisar, el
+contexto tiene miles de líneas, y las reglas de la suite, que leyó al
+principio, quedaron mezcladas con todo lo demás.
+
+Aparecen tres problemas, uno por cada causa:
+
+- **Pierde detalle.** Con el contexto tan cargado, las respuestas
+  empeoran: olvida una regla que leyó al principio o confunde la versión
+  vieja del Page Object con la nueva.
+- **Se revisa a sí mismo.** El mismo agente que decidió buscar la fila
+  del turno por posición revisa ese código, con el mismo razonamiento que
+  lo llevó a escribirlo. Es la razón por la que, en un equipo, un Pull
+  Request lo revisa otra persona.
+- **Nadie controla el proceso.** Si en el paso 6 un test sigue fallando,
+  el agente puede seguir intentando durante una hora, o decidir que «el
+  test es demasiado frágil» y borrarlo. No hay nada que diga cuántos
+  intentos son razonables ni qué tests no se pueden quitar.
+
+### Dividir el trabajo entre agentes
+
+La solución es la misma que en un equipo de personas: repartir el
+trabajo. Un **sistema multiagente** divide una tarea entre varios
+agentes, cada uno con un rol. Cada uno es un subagente (entrada de
+subagentes): tiene sus instrucciones, sus herramientas y su propio
+contexto, que arranca vacío.
+
+Para la tarea de cancelación, los roles podrían ser:
+
+- un **explorador**, que lee los documentos y recorre la pantalla;
+- un **planificador**, que decide los escenarios y sus datos;
+- un **constructor**, que escribe el Page Object y los tests;
+- **revisores**, que comprueban cada pieza contra las reglas, sin poder
+  editarla;
+- un **ejecutor**, que corre los tests y reporta el resultado.
+
+Cada uno recibe solo lo que necesita y devuelve un resultado corto. El
+revisor no ve los tres intentos del constructor: ve el archivo final y
+las reglas, con su contexto limpio. Los tres problemas de antes se
+resuelven así: cada contexto tiene solo lo de su tarea, quien revisa no
+es quien escribió, y alguien controla el proceso, que es lo que sigue.
+
+### El orquestador
+
+Si cada agente hace una parte, alguien tiene que decidir el orden: a
+quién le toca, qué le pasa, qué hacer con lo que devuelve. En un equipo
+de personas, ese rol lo cumple quien coordina el trabajo. En un sistema
+de agentes se llama **orquestador**.
+
+El orquestador suele ser el agente de tu sesión, el principal, siguiendo
+un procedimiento escrito en una skill o en un comando (entradas de
+comandos y de skills). Por ejemplo, el comando `/automatizar
+cancelacion` le dice: «primero lanzá al explorador con estos documentos;
+cuando devuelva, lanzá al planificador con lo que encontró; si el plan
+se rechaza, volvé al planificador con los motivos; nunca más de tres
+veces…».
+
+Dos reglas definen al orquestador:
+
+- **No hace el trabajo de los demás.** No escribe tests ni los revisa:
+  si lo hiciera, volverían los problemas de un solo agente.
+- **Lleva el estado.** Sabe en qué paso está el proceso, cuántos intentos
+  van, qué quedó aprobado y qué falta. Una práctica útil es que, al
+  empezar, arme una lista de tareas con un ítem por paso, cada uno
+  dependiendo del anterior: así se ve en todo momento qué falta, y ningún
+  paso se saltea.
+
+### Lo que cuesta
+
+Cada subagente arranca de cero y vuelve a leer lo que necesita: los
+documentos, las reglas, los archivos. Un sistema de seis agentes puede
+consumir varias veces los tokens que consume uno solo (entrada de cómo
+funciona un asistente). Tres decisiones de diseño lo controlan:
+
+- **El modelo según el rol.** Uno grande para planificar y escribir
+  código, uno chico para tareas mecánicas, como borrar los archivos
+  temporales al terminar (entrada de subagentes).
+- **Resultados condensados.** El explorador no le pasa al constructor el
+  árbol de accesibilidad entero de la pantalla, sino la lista corta de
+  locators que verificó.
+- **Pocos agentes a la vez.** Muchos agentes en paralelo sobre una misma
+  tarea pueden agotar en minutos el límite de uso del plan. Nos pasó:
+  una tanda grande de agentes lanzados a la vez consumió el uso de una
+  jornada entera. La corrección fue medir cuánto consume cada agente y
+  limitar cuántos corren al mismo tiempo; en ese proyecto, el trabajo
+  pasó a hacerse en secuencia, con un solo agente revisor por tanda.
+
+### Cuándo no conviene
+
+Para un cambio chico, como corregir un locator, un sistema de agentes
+es más lento y más caro que un buen pedido a un solo agente (entrada de
+pedirle bien). Conviene cuando la tarea tiene varias fases que se
+benefician de roles distintos, sobre todo de una revisión independiente,
+y se repite lo suficiente como para que valga la pena escribir el
+procedimiento.
+
+## Cuándo usarlo
+
+Para tareas de varias fases que se repiten, como automatizar los casos
+de una pantalla nueva, donde la revisión independiente y el contexto
+limpio de cada fase valen lo que cuestan.
+
+## Buenas prácticas
+
+- Un rol por agente, con lo mínimo que necesita.
+- Un orquestador que lleve el estado y no haga el trabajo de los demás.
+- Resultados condensados entre agentes.
+- Un modelo acorde a cada rol.
+
+## Anti-patrones
+
+- **Un sistema de seis agentes** para cambiar un locator.
+- **El mismo agente** escribiendo y aprobando su propio código.
+- **Lanzar muchos agentes en paralelo** sin medir lo que consumen.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<SizeClassifyActivity />
+
+<SplitPathActivity />
+
+<OrchMultiActivity />

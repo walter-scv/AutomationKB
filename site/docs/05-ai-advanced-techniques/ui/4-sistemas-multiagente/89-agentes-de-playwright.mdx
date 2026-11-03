@@ -1,0 +1,296 @@
+---
+title: "Agentes de Playwright: un sistema listo para usar"
+sidebar_position: 89
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import Terminal from '@site/src/components/Terminal';
+import Order from '@site/src/components/Order';
+import DecisionPath from '@site/src/components/DecisionPath';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  ROLE_LEFT,
+  ROLE_RIGHT,
+  ROLE_WHY,
+  INIT_STEPS,
+  INIT_EXPLANATION,
+  FLOW_ITEMS,
+  FLOW_CORRECT,
+  FLOW_RULES,
+  HEAL_START,
+  HEAL_NODES,
+  HEAL_EXPLANATION,
+} from '@site/src/content/lessons/89-agentes-de-playwright';
+
+export const LESSON_SLUG = 'ai-ui-agentes-de-playwright';
+
+export function RoleMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['rolematch']);
+  return (
+    <Activity
+      title="Cada pieza con su trabajo"
+      kind="Emparejar"
+      goal="relacionar cada agente y cada archivo del sistema con lo que hace."
+      done={isDone('rolematch')}
+      consigna="Son 6 pares. Elegí una tarea de la izquierda y después el agente o archivo que la hace (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={ROLE_LEFT}
+        right={ROLE_RIGHT}
+        why={ROLE_WHY}
+        leftLabel="Tarea"
+        rightLabel="Pieza"
+        alreadyDone={isDone('rolematch')}
+        onSolved={() => markDone('rolematch')}
+      />
+    </Activity>
+  );
+}
+
+export function InitTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['initterm']);
+  return (
+    <Activity
+      title="Instalar los agentes"
+      kind="Terminal"
+      goal="instalar los agentes de Playwright para un cliente y leer qué archivos crea."
+      done={isDone('initterm')}
+      consigna="Es 1 paso. Escribí el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el paso."
+    >
+      <Terminal
+        steps={INIT_STEPS}
+        explanation={INIT_EXPLANATION}
+        alreadyDone={isDone('initterm')}
+        onSolved={() => markDone('initterm')}
+      />
+    </Activity>
+  );
+}
+
+export function FlowOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['floworder']);
+  return (
+    <Activity
+      title="De la instalación a los tests integrados"
+      kind="Ordenar"
+      goal="ordenar el trabajo con los agentes, desde la instalación hasta el código integrado al framework."
+      done={isDone('floworder')}
+      consigna="Son 6 pasos para cubrir la reserva de turnos con los agentes de Playwright, desordenados. Ordenalos y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={FLOW_ITEMS}
+        correctOrder={FLOW_CORRECT}
+        rules={FLOW_RULES}
+        onSolved={() => markDone('floworder')}
+      />
+    </Activity>
+  );
+}
+
+export function HealPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['healpath']);
+  return (
+    <Activity
+      title="Revisar lo que cambiaron los agentes"
+      kind="Escenario encadenado"
+      goal="revisar la configuración que dejó init-agents y decidir qué cambios del healer se dejan."
+      done={isDone('healpath')}
+      consigna="Son 4 decisiones encadenadas: la configuración que dejó init-agents y tres cambios del healer en la suite de turnos. En cada uno elegí qué hacer; si no es lo mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={HEAL_START}
+        nodes={HEAL_NODES}
+        explanation={HEAL_EXPLANATION}
+        alreadyDone={isDone('healpath')}
+        onSolved={() => markDone('healpath')}
+      />
+    </Activity>
+  );
+}
+
+Playwright trae un sistema de tres agentes, planner, generator y healer, que aplica todo lo de esta unidad. Esta entrada muestra cómo instalarlo, qué produce cada rol, y los dos puntos donde decide una persona.
+
+## Conceptos
+
+### Un sistema multiagente que ya viene armado
+
+Antes de diseñar un sistema de agentes propio, sirve ver uno terminado.
+Playwright trae el suyo para automatizar tests, con tres roles:
+
+- el **planner** (planificador) recorre la aplicación y escribe un plan
+  de pruebas;
+- el **generator** (generador) convierte cada caso del plan en un
+  archivo de test;
+- el **healer** (reparador) corre los tests que fallan e intenta
+  arreglarlos.
+
+Los tres se coordinan a través de archivos: el plan que escribe el
+planner es lo que lee el generator. Es un ejemplo concreto de lo que
+viste en esta unidad: roles separados, herramientas por rol y
+artefactos con formato (entrada de las fases del pipeline).
+
+### Instalarlos
+
+Desde la carpeta de la suite:
+
+```bash
+npx playwright init-agents --loop=claude
+```
+
+```text
+ 🎭 Using project "chromium" as a primary project
+ 📝 specs/README.md - directory for test plans
+ 🌱 tests/seed.spec.ts - default environment seed file
+ 🤖 .claude/agents/playwright-test-generator.md - agent definition
+ 🤖 .claude/agents/playwright-test-healer.md - agent definition
+ 🤖 .claude/agents/playwright-test-planner.md - agent definition
+ 🔧 .mcp.json - mcp configuration
+ ✅ Done.
+```
+
+- `--loop` dice con qué agente los vas a usar, porque cada uno espera
+  los archivos en un formato y una carpeta distintos: `claude` para
+  Claude Code; también acepta `vscode`, `copilot`, `codex` u `opencode`.
+- Los tres agentes son archivos de subagente en `.claude/agents/`, con su
+  frontmatter, sus herramientas y sus instrucciones (entrada de
+  subagentes). Son texto: se leen, se suben al repositorio y se pueden
+  ajustar.
+- `.mcp.json` registra `playwright-test`, un servidor MCP propio de estos
+  agentes (entrada de MCP). Además de manejar el navegador, sabe listar,
+  correr y depurar los tests de la suite, y guardar planes y archivos de
+  test.
+- `specs/` es la carpeta de los planes, y `tests/seed.spec.ts` es el
+  test semilla, que se explica abajo.
+
+Una advertencia: si el repositorio ya tenía un `.mcp.json` con otros
+servidores, `init-agents` lo **reemplaza** por uno que solo tiene
+`playwright-test`. Antes de confirmar el cambio se mira el diff con Git
+y se vuelven a agregar los servidores que faltan. El seed y los planes
+que ya existían no se tocan.
+
+### El test semilla
+
+El **seed** (semilla) es un test que deja la aplicación lista para
+empezar a trabajar. Los agentes lo corren antes de explorar o de
+generar, y los tests que generan lo toman como modelo. El que crea
+`init-agents` está vacío, y entonces los agentes abren la aplicación
+escribiendo la dirección completa, que los tests generados copian. Con
+las fixtures de la suite, los agentes parten de las mismas piezas que el
+resto de los tests:
+
+```ts
+import { test } from './base-test';
+
+test('seed', async ({ agendaPage }) => {
+  await agendaPage.abrir();
+});
+```
+
+Así, el agente arranca con la `baseURL` del entorno y la sesión de la
+recepcionista que ya prepara la fixture (entrada de fixtures propias y
+BaseTest).
+
+### El plan: el gate es tuyo
+
+El planner recorre la aplicación y guarda un plan en Markdown, con casos
+numerados, pasos y resultados esperados, como un caso de test manual
+(entrada de anatomía de un caso de test):
+
+```markdown
+#### 1.1. cancelar un turno lo libera
+
+**File:** `tests/agenda/cancelar-turno.spec.ts`
+
+**Steps:**
+  1. Presionar «Cancelar turno» en la fila de las 09:30
+  2. Presionar «Confirmar» en el diálogo
+    - expect: La fila de las 09:30 muestra «Libre»
+```
+
+En este sistema, el gate del plan (entrada de gates y revisores) lo
+hacés vos. El planner propone casos a partir de lo que ve en la
+pantalla, y las reglas de negocio no se ven en la pantalla: no sabe que
+un turno no se puede cancelar con menos de 2 horas, salvo que lo lea en
+un caso de uso (entrada de casos de uso). Antes de generar nada,
+el plan se completa con los valores límite y las reglas.
+
+### El generator: del plan al código
+
+El generator ejecuta cada paso del plan en el navegador y anota el
+código de Playwright de cada acción. Un extracto de lo que anota:
+
+```markdown
+### Presionar «Confirmar» en el diálogo
+await page.getByRole('button', { name: 'Confirmar' }).click();
+
+### La fila de las 09:30 muestra «Libre»
+await expect(page.getByRole('row', { name: /09:30/ })).toContainText('Libre');
+```
+
+Con eso escribe el test. Sus instrucciones le imponen reglas, como no
+usar nunca `waitForTimeout`. Los locators salen del árbol de
+accesibilidad, así que son orientados al usuario, y las assertions
+esperan solas a que se cumplan (entrada de assertions). Lo que el
+generator no sabe es que la suite tiene Page Objects, fixtures y un
+contrato de setup: el test generado usa `page` directamente. Pasarlo al
+framework es trabajo de quien lo integra (entrada de revisar lo que
+produce).
+
+### El healer: repara, y hay que revisarlo
+
+El healer corre los tests, detiene cada uno que falla en el momento del
+error, mira el snapshot de la página y **edita** los archivos hasta que
+el test pasa. Sus instrucciones le piden dos cosas que conviene conocer:
+
+- no hacer preguntas y «hacer lo más razonable para que el test pase»;
+- si no lo logra y cree que el test es correcto, marcarlo con
+  `test.fixme()`, que hace que Playwright lo saltee (entrada de tags,
+  anotaciones y subsets).
+
+Para un locator que cambió por un rediseño aprobado, hace exactamente lo
+que hace falta. El riesgo está en el resto. Si la agenda muestra mal la
+fecha de un turno reprogramado, el healer puede cambiar el valor
+esperado por el que muestra la aplicación: el test pasa y el defecto
+queda escondido. Y un `fixme` deja la funcionalidad sin probar, sumando
+solo un `skipped` en el resumen. Sus cambios quedan en tu copia del
+repositorio y se revisan con `git diff` como cualquier Pull Request.
+
+### Lo que enseña este sistema
+
+Los agentes de Playwright aplican lo de esta unidad: roles separados,
+herramientas por rol y artefactos con formato (el plan, lo que anota el
+generator, el archivo de test). Y dejan dos gates en manos de las
+personas: el plan, antes de generar, y el diff del healer, antes de
+integrar.
+
+## Cuándo usarlo
+
+Para cubrir pantallas nuevas con un primer plan y sus borradores, y para
+mantener locators después de cambios de interfaz aprobados, con el plan y
+el diff revisados por una persona.
+
+## Buenas prácticas
+
+- Un seed que use las fixtures y la configuración de la suite.
+- Completar el plan con las reglas de negocio antes de generar.
+- Revisar el diff del healer, en especial valores esperados y `fixme`.
+- Revisar `.mcp.json` después de `init-agents`.
+
+## Anti-patrones
+
+- **Generar de un plan sin revisar.**
+- **Aceptar los cambios del healer** sin mirar el diff.
+- **Dejar el seed vacío.**
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<RoleMatchActivity />
+
+<InitTerminalActivity />
+
+<FlowOrderActivity />
+
+<HealPathActivity />

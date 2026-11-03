@@ -1,0 +1,342 @@
+---
+title: "Hooks: reglas que siempre se cumplen"
+sidebar_position: 85
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import Order from '@site/src/components/Order';
+import Quiz from '@site/src/components/Quiz';
+import SpotToken from '@site/src/components/SpotToken';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  EVENT_LEFT,
+  EVENT_RIGHT,
+  EVENT_WHY,
+  HOOK_ITEMS,
+  HOOK_CORRECT,
+  HOOK_RULES,
+  HOOK_QUIZ,
+  HOOKBUG_ROUNDS,
+  HOOKBUG_PROMPT,
+} from '@site/src/content/lessons/85-hooks';
+
+export const LESSON_SLUG = 'ai-ui-hooks';
+
+export function EventMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['eventmatch']);
+  return (
+    <Activity
+      title="Cada necesidad con su evento"
+      kind="Emparejar"
+      goal="elegir el evento de hook que corresponde a cada necesidad de la suite."
+      done={isDone('eventmatch')}
+      consigna="Son 5 pares. Elegí una necesidad del equipo de turnos (izquierda) y después el evento en el que tiene que correr el hook (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={EVENT_LEFT}
+        right={EVENT_RIGHT}
+        why={EVENT_WHY}
+        leftLabel="Necesidad"
+        rightLabel="Evento"
+        alreadyDone={isDone('eventmatch')}
+        onSolved={() => markDone('eventmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function HookOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['hookorder']);
+  return (
+    <Activity
+      title="El hook que protege producción"
+      kind="Ordenar"
+      goal="ordenar la lógica de un hook que bloquea una acción con su motivo."
+      done={isDone('hookorder')}
+      consigna="Son los 6 pasos de un hook PreToolUse que impide correr los tests de la agenda contra producción, desordenados. Ordenalos y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={HOOK_ITEMS}
+        correctOrder={HOOK_CORRECT}
+        rules={HOOK_RULES}
+        onSolved={() => markDone('hookorder')}
+      />
+    </Activity>
+  );
+}
+
+export function HookQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['hookquiz']);
+  return (
+    <Activity
+      title="Códigos de salida y decisiones"
+      kind="Elegí la opción"
+      goal="predecir el efecto de un hook según su código de salida y su forma de fallar, y revisar uno ajeno antes de activarlo."
+      done={isDone('hookquiz')}
+      consigna="Son 3 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={HOOK_QUIZ}
+        onSolved={() => markDone('hookquiz')}
+      />
+    </Activity>
+  );
+}
+
+export function HookBugActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['hookbug']);
+  return (
+    <Activity
+      title="Hooks que no hacen lo que deberían"
+      kind="Señalar en la línea"
+      goal="encontrar el detalle de configuración que hace que un hook no proteja."
+      done={isDone('hookbug')}
+      consigna="Son 3 líneas de hooks de la suite de turnos, cada una con un comentario que dice qué tendría que lograr. En cada una, hacé clic en la palabra que impide lograrlo. Si no es esa, aparece una pista y podés volver a elegir. Se completa al resolver las 3."
+    >
+      <SpotToken
+        rounds={HOOKBUG_ROUNDS}
+        prompt={HOOKBUG_PROMPT}
+        itemLabel="Línea del hook"
+        alreadyDone={isDone('hookbug')}
+        onSolved={() => markDone('hookbug')}
+      />
+    </Activity>
+  );
+}
+
+Una instrucción se puede ignorar y un permiso solo mira patrones. Un hook es código que corre siempre, en un momento fijo del trabajo del agente, y puede bloquearlo. Esta entrada muestra los eventos, cómo se configura, cómo se bloquea una acción y un caso real.
+
+## Conceptos
+
+### Instrucciones, permisos y lo que falta
+
+Hasta acá hay dos formas de guiar a un agente:
+
+- Las **instrucciones** del `CLAUDE.md` (entrada de instrucciones del
+  proyecto): el agente las lee e intenta seguirlas, pero no lo obligan.
+- Los **permisos** (entrada de permisos): bloquean o permiten una acción
+  según un patrón fijo, como `Bash(git push *)`.
+
+Hay reglas que ninguna de las dos resuelve. En la agenda, el equipo
+quiere que el agente nunca use para ingresar una cuenta que no sea de
+prueba. No alcanza con un patrón: hay que mirar el email que aparece en
+el comando y compararlo con la lista de cuentas de prueba. Eso necesita
+lógica, y tiene que cumplirse siempre. Para eso están los **hooks**.
+
+Un aviso sobre el nombre: en la sección II viste los hooks de Playwright,
+como `beforeEach`, que corren código antes o después de cada test. Los
+hooks de Claude Code no tienen relación con esos: comparten la palabra
+porque las dos cosas se «enganchan» (*hook*, en inglés) a un momento de
+otro proceso.
+
+### Qué es un hook
+
+Un **hook** de Claude Code es un comando de la terminal que Claude Code
+ejecuta solo, en un momento determinado del trabajo del agente. Esos
+momentos se llaman **eventos**. Los más usados:
+
+- `PreToolUse`: antes de que el agente use una herramienta, como correr
+  un comando o editar un archivo. Puede bloquear esa acción.
+- `PostToolUse`: después de que una herramienta terminó bien.
+- `UserPromptSubmit`: cuando enviás un pedido, antes de que el agente lo
+  lea.
+- `SessionStart`: al empezar o retomar una sesión.
+- `Stop`: cuando el agente termina de responder.
+
+La diferencia con una instrucción es quién lo ejecuta: una instrucción
+depende de que el agente decida cumplirla; un hook lo ejecuta Claude
+Code, el programa, cada vez que ocurre el evento, decida lo que decida
+el agente.
+
+### Cómo se configura
+
+Los hooks se escriben en la clave `hooks` de los mismos archivos
+`settings.json` de los permisos. Cada uno dice en qué evento corre, para
+qué herramientas (`matcher`, un patrón con sus nombres) y qué comando
+ejecuta. Un ejemplo que no bloquea nada, para ver la forma:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "jq -r '.tool_input.file_path' | xargs npx prettier --write" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Se lee así: después de cada vez que el agente edita (`Edit`) o crea
+(`Write`) un archivo, correr ese comando. El comando usa tres
+herramientas de la terminal:
+
+- `jq` lee datos en formato JSON y extrae un campo: acá, la ruta del
+  archivo que se editó;
+- `xargs` le pasa esa ruta al comando siguiente;
+- `npx prettier --write` formatea ese archivo con Prettier, el programa
+  que acomoda sangrías, comillas y espacios según las reglas del
+  proyecto.
+
+Resultado: todo archivo que toca el agente queda formateado, sin
+pedírselo.
+
+### Cómo recibe los datos un hook
+
+Para decidir, un hook necesita saber qué está por hacer el agente.
+Claude Code se lo pasa como un texto JSON por la **entrada estándar**:
+el canal por el que un programa de la terminal recibe datos de otro
+programa, el mismo que usa `|` para pasarle la salida de un comando al
+siguiente. En el evento `PreToolUse`, el JSON tiene un campo
+`tool_input` con lo que el agente quiere hacer; para un comando de la
+terminal, `tool_input.command` es el comando exacto.
+
+### Bloquear una acción
+
+Todo programa de la terminal termina con un **código de salida**: un
+número que le dice a quien lo ejecutó cómo le fue. Por convención, 0
+significa «todo bien» y cualquier otro número, un problema. Un hook usa
+ese número para responderle a Claude Code:
+
+- **0**: no tiene objeciones. La acción sigue, y después se aplican las
+  reglas de permisos de siempre.
+- **2**: bloquea la acción. Lo que el hook escribió en la **salida de
+  errores** (el canal de los mensajes de error, que en bash se escribe
+  con `>&2`) le llega al agente como explicación, para que corrija.
+- **Otro código**: se considera un error del propio hook, y en la
+  mayoría de los eventos la acción sigue igual.
+
+Un hook que impide actualizar las imágenes de referencia del visual
+testing (entrada de visual testing) sin revisar:
+
+```bash
+#!/bin/bash
+INPUT=$(cat)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
+
+if echo "$COMMAND" | grep -q -- "--update-snapshots"; then
+  echo "Bloqueado: las imágenes de referencia se actualizan solo después de revisar el diff visual." >&2
+  exit 2
+fi
+
+exit 0
+```
+
+Línea por línea: `INPUT=$(cat)` guarda el JSON que llegó por la entrada
+estándar; la línea siguiente extrae el comando con `jq`; el `if` busca
+`--update-snapshots` en el comando; si lo encuentra, escribe el motivo
+en la salida de errores y termina con 2, y si no, termina con 0.
+
+Para activarlo, el script se guarda en el repositorio, por ejemplo en
+`.claude/hooks/no-update-snapshots.sh`, se le da permiso de ejecución
+con `chmod +x .claude/hooks/no-update-snapshots.sh`, y se registra en
+`.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/no-update-snapshots.sh" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`"matcher": "Bash"` hace que corra antes de cada comando de la terminal.
+El script usa `jq`, que no viene instalado en todas las computadoras: en
+macOS se instala con `brew install jq`, y en Ubuntu con
+`sudo apt install jq`. Si falta, `jq` no extrae nada, el `if` no
+encuentra el texto y el script termina con 0: el hook deja pasar todo,
+sin avisar. Es un caso de fallar abierto, que se ve más abajo.
+
+Un hook que sale con 2 bloquea antes de que se miren las reglas `allow`:
+aunque un permiso habilite el comando, el hook lo frena.
+
+### Un caso real: solo cuentas de prueba
+
+En un proyecto donde trabajamos, el `CLAUDE.md` tenía las credenciales
+del entorno de pruebas de una persona del equipo, algo que de entrada no
+tenía que estar ahí (entrada de instrucciones del proyecto). Al explorar la
+aplicación, el agente usaba esa cuenta, y las conclusiones salían mal:
+esa persona tenía permisos y datos distintos de los de las cuentas de
+prueba que usa la suite. La instrucción «usá solo las cuentas de prueba»
+no alcanzó. La solución fue un hook `PreToolUse` con una regla
+**positiva**:
+
+- si la acción contiene un email, ese email tiene que estar en el
+  archivo de cuentas de prueba (`.env.test`);
+- si está, termina con 0; si no, termina con 2 y le explica al agente que
+  use una cuenta de prueba;
+- los emails que nunca se usan para ingresar, como los de `noreply`, se
+  ignoran.
+
+Una regla positiva («solo estas») es más segura que una lista de
+prohibidos («estas no»): una cuenta nueva que nadie agregó a la lista
+queda bloqueada sola.
+
+### Fallar abierto o cerrado
+
+¿Qué hace el hook si no puede decidir, por ejemplo si no encuentra el
+archivo de cuentas? Hay dos opciones:
+
+- **Fallar abierto**: deja pasar. El trabajo no se frena, pero en ese
+  caso la protección no existe.
+- **Fallar cerrado**: bloquea. No se escapa nada, pero un archivo
+  faltante frena todo.
+
+El hook del caso real falla abierto cuando no encuentra el archivo,
+porque corre en todos los proyectos de esa persona y muchos no tienen
+ese archivo. Es una decisión de diseño: se toma a conciencia y se deja
+escrita en un comentario del propio hook.
+
+### Cuidados
+
+- Un hook es un programa que corre en tu computadora, con tus permisos
+  de usuario, en cada acción del agente. Uno que te pasa otra persona se
+  lee entero antes de activarlo.
+- Un hook lento se nota en cada acción: conviene que sea simple y
+  rápido.
+- Los hooks complementan los permisos, no los reemplazan: lo que se
+  puede expresar como una regla `deny` se escribe como regla.
+- El comando `/hooks`, dentro de una sesión, muestra los hooks activos.
+
+## Cuándo usarlo
+
+Cuando una regla tiene que cumplirse siempre y necesita lógica que un
+permiso no puede expresar: validar datos, formatear después de editar,
+bloquear un comando según sus argumentos.
+
+## Buenas prácticas
+
+- Reglas positivas en lugar de listas de prohibidos.
+- Un mensaje de bloqueo que le diga al agente qué hacer en su lugar.
+- Decidir y documentar si falla abierto o cerrado.
+- Hooks simples, rápidos y revisados antes de activarlos.
+
+## Anti-patrones
+
+- **Confiar en una instrucción** para algo que tiene que cumplirse
+  siempre.
+- **Un hook que bloquea sin explicar** qué hacer.
+- **Activar hooks ajenos** sin leerlos.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<EventMatchActivity />
+
+<HookOrderActivity />
+
+<HookQuizActivity />
+
+<HookBugActivity />

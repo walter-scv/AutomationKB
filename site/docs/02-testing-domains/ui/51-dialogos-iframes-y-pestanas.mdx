@@ -1,0 +1,297 @@
+---
+title: "Diálogos, iframes y pestañas nuevas"
+sidebar_position: 51
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import FillBlank from '@site/src/components/FillBlank';
+import Order from '@site/src/components/Order';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  REACH_LEFT,
+  REACH_RIGHT,
+  REACH_WHY,
+  HANDLER_TEMPLATE,
+  HANDLER_SLOTS,
+  HANDLER_BANK,
+  HANDLER_EXPLANATION,
+  POPUP_ITEMS,
+  POPUP_CORRECT,
+  POPUP_RULES,
+  SYMPTOM_QUIZ,
+} from '@site/src/content/lessons/51-dialogos-iframes-y-pestanas';
+
+export const LESSON_SLUG = 'domains-ui-dialogos-iframes-pestanas';
+
+export function ReachMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['reachmatch']);
+  return (
+    <Activity
+      title="¿Cómo se alcanza cada cosa?"
+      kind="Emparejar"
+      goal="elegir cómo alcanza el test cada diálogo, iframe o pestaña de una app de turnos."
+      done={isDone('reachmatch')}
+      consigna="Son 6 pares. Elegí una situación de la izquierda y después cómo la maneja el test (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={REACH_LEFT}
+        right={REACH_RIGHT}
+        why={REACH_WHY}
+        leftLabel="Situación"
+        rightLabel="En el test"
+        alreadyDone={isDone('reachmatch')}
+        onSolved={() => markDone('reachmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function HandlerFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['handlerfill']);
+  return (
+    <Activity
+      title="Aceptar la confirmación y pagar"
+      kind="Completar huecos"
+      goal="escribir un manejador que verifica y acepta un diálogo, y entrar a un iframe de pago."
+      done={isDone('handlerfill')}
+      consigna="El test tiene que aceptar la confirmación de cancelar un turno, verificando su mensaje, y después escribir la tarjeta en el iframe de pago. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={HANDLER_TEMPLATE}
+        slots={HANDLER_SLOTS}
+        bank={HANDLER_BANK}
+        explanation={HANDLER_EXPLANATION}
+        alreadyDone={isDone('handlerfill')}
+        onSolved={() => markDone('handlerfill')}
+      />
+    </Activity>
+  );
+}
+
+export function PopupOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['popuporder']);
+  return (
+    <Activity
+      title="Las indicaciones en otra pestaña"
+      kind="Ordenar"
+      goal="ordenar un test que abre una pestaña nueva y verifica su contenido."
+      done={isDone('popuporder')}
+      consigna="El enlace Preparación para el estudio abre las indicaciones en otra pestaña. Ordená las 5 líneas del test y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={POPUP_ITEMS}
+        correctOrder={POPUP_CORRECT}
+        rules={POPUP_RULES}
+        onSolved={() => markDone('popuporder')}
+      />
+    </Activity>
+  );
+}
+
+export function SymptomQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['symptomquiz']);
+  return (
+    <Activity
+      title="Del síntoma a la causa"
+      kind="Elegí la opción"
+      goal="diagnosticar fallos causados por diálogos, iframes y manejadores incompletos."
+      done={isDone('symptomquiz')}
+      consigna="Son 3 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={SYMPTOM_QUIZ}
+        onSolved={() => markDone('symptomquiz')}
+      />
+    </Activity>
+  );
+}
+
+Algunas partes de una aplicación no están en el DOM de la pestaña que maneja el test: las ventanitas del navegador, los formularios incrustados de otro sitio y las páginas que se abren en otra pestaña. Esta entrada muestra cómo alcanzarlas.
+
+## Conceptos
+
+### Tres cosas que no están en la página
+
+Todo lo visto hasta acá actúa sobre el DOM de una pestaña. Tres
+situaciones comunes se salen de eso:
+
+- **Diálogos del navegador**: las ventanitas de `alert`, `confirm` y
+  `prompt`, que dibuja el navegador y no la página.
+- **iframes**: una página dentro de otra, como el formulario de pago de
+  una pasarela externa.
+- **Pestañas nuevas**: un enlace que abre otra pestaña.
+
+Los ejemplos usan «Mi cuenta» de la biblioteca: un botón para dar de baja
+la cuenta, que pide confirmación; un botón que pregunta el motivo; un
+enlace al reglamento que se abre en otra pestaña; y el pago de la cuota en
+un iframe de una pasarela.
+
+### Diálogos del navegador
+
+`confirm('¿Seguro que querés dar de baja la cuenta?')` muestra una
+ventanita con Aceptar y Cancelar, y detiene la página hasta que alguien
+responde. No es HTML: no tiene rol ni nombre, y ningún locator la
+encuentra.
+
+Playwright la **cancela automáticamente** si el test no dice otra cosa.
+Este test parece correcto, pero falla:
+
+```ts
+await page.goto('/socio');
+await page.getByRole('button', { name: 'Dar de baja la cuenta' }).click();
+await expect(page.getByText('Cuenta dada de baja')).toBeVisible();
+```
+
+```text
+Error: expect(locator).toBeVisible() failed
+
+Locator: getByText('Cuenta dada de baja')
+Expected: visible
+Timeout: 5000ms
+Error: element(s) not found
+```
+
+El diálogo apareció y Playwright lo canceló: la página muestra «Baja
+cancelada». Para responderlo, el test registra un **manejador** antes de
+la acción que lo abre:
+
+```ts
+await page.goto('/socio');
+page.once('dialog', async (dialog) => {
+  console.log(dialog.type(), '|', dialog.message());
+  await dialog.accept();
+});
+await page.getByRole('button', { name: 'Dar de baja la cuenta' }).click();
+await expect(page.getByText('Cuenta dada de baja')).toBeVisible();
+```
+
+```text
+confirm | ¿Seguro que querés dar de baja la cuenta?
+```
+
+`page.once('dialog', función)` ejecuta la función la próxima vez que
+aparezca un diálogo, una sola vez. (`page.on` la ejecutaría con cada
+diálogo.) La función recibe el diálogo:
+
+- `dialog.type()`: `alert`, `confirm`, `prompt` o `beforeunload`.
+- `dialog.message()`: el texto que muestra.
+- `dialog.accept()`: responde Aceptar. En un `prompt`, recibe el texto que
+  se escribiría en la ventanita: `dialog.accept('Me mudo de ciudad')`.
+- `dialog.dismiss()`: responde Cancelar.
+
+El manejador tiene que registrarse **antes** del click: el diálogo
+aparece durante el click, y si nadie lo está esperando, Playwright ya lo
+canceló. Y tiene que responderlo: un manejador que no llama a `accept` ni
+a `dismiss` deja la página detenida, y el click nunca termina.
+
+Muchas aplicaciones no usan los diálogos del navegador, sino ventanas
+propias hechas con HTML (`<dialog>` o un `<div>` con `role="dialog"`).
+Esas sí son parte del DOM: se encuentran con `getByRole('dialog')` y se
+manejan como cualquier otro elemento.
+
+### iframes: una página dentro de otra
+
+Un `<iframe>` inserta otra página, con su propio DOM, dentro de la
+actual. Las pasarelas de pago lo usan para que los datos de la tarjeta no
+pasen por la aplicación. Los locators de `page` no entran en un iframe:
+
+```ts
+await page.getByLabel('Número de tarjeta').fill('4509953566233704');
+```
+
+```text
+Error: locator.fill: Test timeout of 30000ms exceeded.
+Call log:
+  - waiting for getByLabel('Número de tarjeta')
+```
+
+El campo está en pantalla, pero en otro documento: el locator nunca lo
+encuentra. `page.frameLocator(selector)` apunta al iframe y busca adentro:
+
+```ts
+const pago = page.frameLocator('iframe[title="Pago con tarjeta"]');
+await pago.getByLabel('Número de tarjeta').fill('4509953566233704');
+await pago.getByRole('button', { name: 'Pagar $ 2.500' }).click();
+await expect(pago.getByText('Pago aprobado')).toBeVisible();
+```
+
+El iframe se identifica por un atributo estable, como su `title`, que
+además describe el contenido para los lectores de pantalla. La forma
+equivalente, partiendo de un locator del iframe:
+
+```ts
+const pago = page.getByTitle('Pago con tarjeta').contentFrame();
+```
+
+Dentro del iframe todo funciona igual: locators, acciones, assertions y
+esperas.
+
+### Pestañas nuevas
+
+Un enlace con `target="_blank"` abre otra pestaña, que es una página
+distinta. `page` sigue apuntando a la pestaña original:
+
+```ts
+await page.getByRole('link', { name: 'Ver reglamento' }).click();
+await expect(page.getByRole('heading', { name: 'Reglamento de préstamos' })).toBeVisible();
+// falla: el título está en la otra pestaña
+```
+
+Para obtener la pestaña nueva, el test empieza a esperarla **antes** del
+click, con `page.waitForEvent('popup')`, y la recibe después:
+
+```ts
+await page.goto('/socio');
+const nuevaPestana = page.waitForEvent('popup');      // empieza a esperar, sin await
+await page.getByRole('link', { name: 'Ver reglamento' }).click();
+const reglamento = await nuevaPestana;                // ahora sí, la pestaña
+
+await expect(reglamento.getByRole('heading', { name: 'Reglamento de préstamos' })).toBeVisible();
+await expect(reglamento).toHaveURL(/\/reglamento/);
+await expect(page.getByRole('heading', { name: 'Mi cuenta' })).toBeVisible();
+```
+
+El orden importa por la misma razón que con los diálogos: la pestaña se
+abre durante el click. Si la espera empieza después, a veces igual llega
+a tiempo y a veces no, según cuánto tarde la pestaña: es una carrera, y
+el test queda inestable. `waitForEvent` sin `await` deja la espera en curso
+(una Promise, entrada de funciones asíncronas); el `await` de después
+recibe la pestaña. Desde ahí hay dos páginas: `reglamento` para la nueva
+y `page` para la original, y cada una se usa con sus propios locators.
+
+## Cuándo usarlo
+
+El manejador de diálogos, cuando una acción abre `alert`, `confirm` o
+`prompt`. `frameLocator` o `contentFrame`, cuando el elemento vive en un
+iframe, como en los pagos y los mapas incrustados. `waitForEvent('popup')`,
+cuando un enlace o un botón abre otra pestaña.
+
+## Buenas prácticas
+
+- Registrar el manejador del diálogo, o la espera de la pestaña, antes de
+  la acción que lo abre.
+- Verificar el mensaje del diálogo con `dialog.message()` cuando el texto
+  importa.
+- Identificar el iframe por un atributo estable, como `title`.
+- Nombrar las páginas por su contenido (`reglamento`, `pago`), no `page2`.
+
+## Anti-patrones
+
+- **Confiar en que el diálogo se acepta solo**: Playwright lo cancela.
+- **Un manejador que no responde** el diálogo.
+- **Buscar elementos de un iframe con `page`.**
+- **Seguir usando `page`** para algo que se abrió en otra pestaña.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ReachMatchActivity />
+
+<HandlerFillActivity />
+
+<PopupOrderActivity />
+
+<SymptomQuizActivity />

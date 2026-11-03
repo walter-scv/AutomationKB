@@ -1,0 +1,274 @@
+---
+title: "Estructura del proyecto y capas"
+sidebar_position: 60
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import DecisionPath from '@site/src/components/DecisionPath';
+import Classify from '@site/src/components/Classify';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  LAYER_LINES,
+  LAYER_RULE_LABELS,
+  REFACTOR_START,
+  REFACTOR_NODES,
+  REFACTOR_EXPLANATION,
+  FOLDER_ITEMS,
+  FOLDER_COLUMNS,
+} from '@site/src/content/lessons/60-estructura-y-capas';
+
+export const LESSON_SLUG = 'framework-ui-estructura-y-capas';
+
+export function LayerFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['layerfind']);
+  return (
+    <Activity
+      title="¿En qué capa va esta línea?"
+      kind="Clasificar"
+      goal="detectar líneas de un test de la agenda de turnos que pertenecen a otra capa del framework."
+      done={isDone('layerfind')}
+      consigna="Son 8 líneas escritas dentro de tests de la agenda. Elegí cada una y decí a qué capa pertenece (Page Object, helper, o datos y fixtures) o si va en el test. Se completa cuando encontrás las 5 que están en la capa equivocada."
+    >
+      <FindInCode
+        lines={LAYER_LINES}
+        ruleLabels={LAYER_RULE_LABELS}
+        okLabel="Va en el test"
+        prompt="¿a qué capa pertenece?"
+        itemLabel="Línea"
+        counterLabel="líneas fuera de su capa encontradas"
+        alreadyDone={isDone('layerfind')}
+        onSolved={() => markDone('layerfind')}
+      />
+    </Activity>
+  );
+}
+
+export function RefactorActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['refactor']);
+  return (
+    <Activity
+      title="Ordenar una suite que creció sin capas"
+      kind="Escenario encadenado"
+      goal="decidir, paso a paso, cómo separar en capas una suite de agenda que se rompe con cada cambio."
+      done={isDone('refactor')}
+      consigna="Son 3 decisiones encadenadas: cada una depende de la anterior. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la tercera."
+    >
+      <DecisionPath
+        startId={REFACTOR_START}
+        nodes={REFACTOR_NODES}
+        explanation={REFACTOR_EXPLANATION}
+        alreadyDone={isDone('refactor')}
+        onSolved={() => markDone('refactor')}
+      />
+    </Activity>
+  );
+}
+
+export function FolderClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['folderclassify']);
+  return (
+    <Activity
+      title="¿En qué carpeta va cada archivo?"
+      kind="Clasificar"
+      goal="ubicar cada archivo del framework de la agenda en la carpeta de su capa."
+      done={isDone('folderclassify')}
+      consigna="Son 7 archivos del framework de la agenda. Arrastrá cada uno a pages/, tests/ o helpers/. Regla para los casos dudosos: si declara qué y cómo se prueba (tests, fixtures, setup de la sesión), va en tests/; si sabe de una pantalla, en pages/; si es una utilidad que no es de ninguna pantalla, en helpers/ Se completa cuando los 7 están en su carpeta."
+    >
+      <Classify
+        items={FOLDER_ITEMS}
+        columns={FOLDER_COLUMNS}
+        itemLabel="Archivo"
+        counterLabel="ubicados en su carpeta"
+        alreadyDone={isDone('folderclassify')}
+        onSolved={() => markDone('folderclassify')}
+      />
+    </Activity>
+  );
+}
+
+La sección II enseñó a escribir tests de UI uno por uno. Esta sección los organiza en un framework: código separado en capas con una responsabilidad cada una, para que la suite crezca sin que cada cambio de la aplicación obligue a tocar decenas de tests.
+
+## Conceptos
+
+### De tests sueltos a un framework
+
+En la sección II, cada test hacía todo: navegaba, buscaba elementos con
+locators, preparaba sus datos y verificaba. Con diez tests eso funciona.
+Con cien, el mismo locator aparece en treinta archivos, el mismo ingreso
+se escribe veinte veces y nadie sabe de dónde salió el préstamo que un
+test da por existente. Un cambio en una pantalla obliga a tocar decenas de
+tests.
+
+Un **framework de automatización** es la organización del código de la
+suite en piezas con una sola responsabilidad cada una, para que cada
+cambio se haga en un solo lugar. Esta sección construye, entrada por
+entrada, el framework de la biblioteca. Esta entrada presenta el mapa
+completo.
+
+### Las cuatro capas
+
+El código de una suite de UI se reparte en cuatro capas, cada una con lo
+que sabe y lo que no:
+
+- **Test**: dice qué se prueba, en el lenguaje del negocio, con la forma
+  Arrange, Act, Assert (entrada de anatomía de un test). Sabe qué hace la
+  persona y qué tiene que ver. **No** sabe cómo está construida la
+  pantalla ni cómo se crean los datos.
+- **Page Object**: sabe interactuar con una pantalla. Tiene sus locators y
+  métodos como `renovar(libro)` o `vencimiento(libro)`. **No** decide si un
+  resultado es correcto: eso es del test. Se desarrolla en la entrada de
+  Page Object Model.
+- **Helper o servicio**: lógica compartida que no es de una pantalla. Sabe
+  **cómo** se hace algo: llamar a la API para crear un préstamo, armar un
+  dato de prueba con valores por defecto (un builder) o formatear una
+  fecha. Se ve en la entrada de Setup & Cleanup.
+- **Datos y fixtures**: deciden **qué** datos existen antes de que el test
+  empiece, los crean usando los helpers, los limpian después y se los
+  entregan al test. Se ve en las entradas de fixtures, de Setup & Cleanup
+  y de parametrización.
+
+La diferencia entre las dos últimas: el helper sabe crear un préstamo; la
+fixture decide que este test necesita uno, lo crea con el helper y lo
+borra al terminar.
+
+### El árbol de carpetas
+
+Así queda el proyecto de la biblioteca al terminar la sección:
+
+```text
+.
+├── .env
+├── .env.example
+├── helpers
+│   ├── api.ts
+│   └── prestamo.builder.ts
+├── pages
+│   ├── BasePage.ts
+│   ├── IngresoPage.ts
+│   └── PrestamosPage.ts
+├── playwright
+│   └── .auth
+│       └── socia.json
+├── playwright.config.ts
+└── tests
+    ├── auth.setup.ts
+    ├── base-test.ts
+    └── prestamos.spec.ts
+```
+
+Cada carpeta es una capa:
+
+- `tests/`: los archivos de test (`*.spec.ts`), el archivo de fixtures
+  compartidas (`base-test.ts`) y la preparación de la sesión
+  (`auth.setup.ts`).
+- `pages/`: un Page Object por pantalla, y la clase base de la que heredan
+  todos (`BasePage.ts`).
+- `helpers/`: las llamadas a la API y el armado de datos de prueba.
+- `.env` y `.env.example`: los datos que cambian según el entorno, como la
+  dirección del servidor o la cuenta de prueba (entrada de
+  parametrización). `.env` no se versiona; `.env.example` sí, como
+  plantilla.
+- `playwright/.auth/`: la sesión guardada de la socia de prueba (entrada
+  de sesión reutilizada). Tampoco se versiona (entrada de instalación).
+
+Los nombres siguen convenciones: una clase por archivo, con el nombre de
+la clase en PascalCase (`PrestamosPage.ts`); los tests terminan en
+`.spec.ts`; los helpers, en minúscula y con nombres que dicen qué hacen.
+
+### El mismo test, mezclado y por capas
+
+Así se ve un test que hace todo por su cuenta:
+
+```ts
+test('renovar suma 14 días al vencimiento', async ({ page, request }) => {
+  await request.post('/api/prestamos', { data: { titulo: 'Rayuela', vence: '10/11' }, headers: { 'x-socia': 'lucia' } });
+  await page.goto('/mis-prestamos');
+  await page.getByRole('listitem').filter({ hasText: 'Rayuela' }).getByRole('button', { name: 'Renovar' }).click();
+  const texto = await page.getByRole('listitem').filter({ hasText: 'Rayuela' }).getByText(/^Vence el/).textContent();
+  const [dia, mes] = (texto ?? '').replace('Vence el ', '').split('/').map(Number);
+  expect(dia).toBe(24);
+  expect(mes).toBe(11);
+});
+```
+
+El test sabe cómo se llama la API y qué encabezado pide, cómo está
+armada la lista, cómo se escribe el texto del vencimiento y cómo
+separarlo en día y mes. Además, deja creado el préstamo: la próxima
+corrida encuentra dos Rayuela. Cuatro responsabilidades que no son del
+test, y un cambio en cualquiera de ellas lo rompe.
+
+El mismo test con las capas:
+
+```ts
+test.describe('Préstamos', () => {
+  test('renovar un préstamo extiende el vencimiento 14 días', { tag: '@smoke' }, async ({ prestamosPage, sembrarPrestamo }) => {
+    await test.step('1- La socia tiene Rayuela, que vence el 10/11', async () => {
+      await sembrarPrestamo(unPrestamo().deLibro('Rayuela').queVence('10/11').build());
+      await prestamosPage.abrir();
+      await expect(prestamosPage.vencimiento('Rayuela')).toHaveText('Vence el 10/11');
+    });
+    await test.step('2- Renueva el préstamo', async () => {
+      await prestamosPage.renovar('Rayuela');
+    });
+    await test.step('3- Ve el vencimiento nuevo', async () => {
+      await expect(prestamosPage.mensaje).toHaveText('Préstamo renovado');
+      await expect(prestamosPage.vencimiento('Rayuela')).toHaveText('Vence el 24/11');
+    });
+  });
+});
+```
+
+`sembrarPrestamo` (una fixture) crea el préstamo por API y lo borra al
+terminar; `unPrestamo()` (un builder) arma el dato; `prestamosPage` (un
+Page Object) sabe cómo abrir la pantalla, renovar y leer el vencimiento.
+El test solo dice qué pasa y qué se espera. Y corre:
+
+```text
+Running 2 tests using 1 worker
+  ✓  1 [setup] › tests/auth.setup.ts:6:6 › ingresar con la socia de prueba (303ms)
+  ✓  2 [chromium] › tests/prestamos.spec.ts:5:7 › Préstamos › renovar un préstamo extiende el vencimiento 14 días @smoke (201ms)
+  2 passed (1.2s)
+```
+
+(El primer «test» es la preparación de la sesión, que corre antes; se
+explica en la entrada de sesión reutilizada.)
+
+### Un chequeo rápido
+
+Para revisar si una suite respeta las capas: leer un test tapando el
+código de los Page Objects y helpers que usa. Si se entiende qué verifica,
+la separación funciona. Si aparece un locator, una expresión regular, una
+cuenta o una llamada a la API escrita en el test, esa pieza está en la
+capa equivocada.
+
+## Cuándo usarlo
+
+Desde que la suite tiene más de un puñado de tests, o más de una persona
+que la mantiene. Empezar con las capas cuesta poco; separarlas en una
+suite de cientos de tests mezclados cuesta mucho.
+
+## Buenas prácticas
+
+- Que cada test se lea como el caso de prueba que automatiza.
+- Una carpeta por capa, con nombres que digan qué contiene.
+- Un Page Object por pantalla, en su propio archivo.
+- Versionar `.env.example` y nunca `.env` ni las sesiones guardadas.
+
+## Anti-patrones
+
+- **Locators, llamadas a la API y cuentas** escritos dentro del test.
+- **Un archivo `utils.ts`** que junta de todo sin criterio.
+- **Page Objects que verifican** con `expect` en lugar de devolver el
+  estado.
+- **Datos creados por un test** que nadie limpia.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<LayerFindActivity />
+
+<RefactorActivity />
+
+<FolderClassifyActivity />

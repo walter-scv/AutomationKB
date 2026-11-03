@@ -1,0 +1,257 @@
+---
+title: "Visual testing"
+sidebar_position: 58
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import Terminal from '@site/src/components/Terminal';
+import Order from '@site/src/components/Order';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  DIFF_ITEMS,
+  DIFF_COLUMNS,
+  BASELINE_STEPS,
+  BASELINE_EXPLANATION,
+  VISUAL_ITEMS,
+  VISUAL_CORRECT,
+  VISUAL_RULES,
+} from '@site/src/content/lessons/58-visual-testing';
+
+export const LESSON_SLUG = 'domains-ui-visual-testing';
+
+export function DiffClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['diffclassify']);
+  return (
+    <Activity
+      title="¿Qué hacer con esta diferencia?"
+      kind="Clasificar"
+      goal="decidir qué hacer ante cada diferencia visual de la tienda según su origen."
+      done={isDone('diffclassify')}
+      consigna="Son 6 diferencias que marcó toHaveScreenshot. Arrastrá cada una a Reportar un defecto, Actualizar la referencia o Enmascarar o fijar el dato. Regla para los casos dudosos: decidí por el origen de la diferencia que describe cada caso. Se completa cuando las 6 están en su caja."
+    >
+      <Classify
+        items={DIFF_ITEMS}
+        columns={DIFF_COLUMNS}
+        itemLabel="Diferencia"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('diffclassify')}
+        onSolved={() => markDone('diffclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function BaselineTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['baselineterm']);
+  return (
+    <Activity
+      title="Crear y actualizar una referencia"
+      kind="Terminal"
+      goal="generar la imagen de referencia de un test visual y actualizarla cuando un cambio está aprobado."
+      done={isDone('baselineterm')}
+      consigna="Son 2 pasos sobre el test visual de la ficha de producto. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el segundo paso."
+    >
+      <Terminal
+        steps={BASELINE_STEPS}
+        explanation={BASELINE_EXPLANATION}
+        alreadyDone={isDone('baselineterm')}
+        onSolved={() => markDone('baselineterm')}
+      />
+    </Activity>
+  );
+}
+
+export function VisualOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['visualorder']);
+  return (
+    <Activity
+      title="La vida de una imagen de referencia"
+      kind="Ordenar"
+      goal="ordenar el ciclo de un test visual, desde la primera referencia hasta su actualización."
+      done={isDone('visualorder')}
+      consigna="Son 7 pasos del ciclo de un test visual: desde que se escribe hasta que se actualiza su referencia por un cambio aprobado. Ordenalos y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={VISUAL_ITEMS}
+        correctOrder={VISUAL_CORRECT}
+        rules={VISUAL_RULES}
+        onSolved={() => markDone('visualorder')}
+      />
+    </Activity>
+  );
+}
+
+Un test puede verificar todos los textos de una pantalla y pasar aunque el diseño se haya desarmado. El visual testing compara capturas con una imagen aprobada para detectar lo que las assertions de texto no ven.
+
+## Conceptos
+
+### Lo que las assertions no ven
+
+Un test puede verificar que el carnet de socia muestra el nombre correcto
+y el número correcto, y pasar aunque el borde haya cambiado de color, el
+texto se superponga o el diseño se haya desarmado. Las assertions de texto
+verifican contenido; no miran cómo se ve.
+
+El **visual testing** compara una captura de la pantalla, o de un
+elemento, con una imagen aprobada: la **imagen de referencia** (o
+*baseline*). Si difieren, el test falla y muestra dónde.
+
+### `toHaveScreenshot`
+
+```ts
+test('el carnet se ve como el aprobado', async ({ page }) => {
+  await page.goto('/carnet');
+  await expect(page.getByTestId('carnet')).toHaveScreenshot('carnet.png', {
+    mask: [page.locator('#hoy')],
+  });
+});
+```
+
+`toHaveScreenshot` sobre un locator captura solo ese elemento; sobre
+`page`, la pantalla visible (con `{ fullPage: true }`, la página
+entera). El nombre (`'carnet.png'`) identifica la imagen de referencia.
+`mask` se explica más abajo.
+
+La primera vez no hay referencia, así que el test falla y la crea:
+
+```text
+Error: A snapshot doesn't exist at .../tests/carnet.spec.ts-snapshots/carnet-chromium-darwin.png, writing actual.
+```
+
+Playwright guardó la captura actual como referencia en una carpeta junto
+al test, `carnet.spec.ts-snapshots/`. El nombre del archivo suma el
+proyecto (`chromium`) y el sistema operativo (`darwin` es macOS; en Linux
+es `linux`, en Windows `win32`), porque el mismo elemento se dibuja
+distinto en cada navegador y cada sistema. La segunda corrida compara
+contra esa imagen y pasa.
+
+Que la referencia se cree sola no la vuelve correcta: hay que **mirarla**
+antes de confirmarla en el repositorio, porque desde ese momento es la
+definición de "se ve bien".
+
+### Cuando la imagen cambia
+
+Si alguien cambia el borde del carnet de verde a rojo, el test falla:
+
+```text
+Error: expect(locator).toHaveScreenshot(expected) failed
+
+Locator: getByTestId('carnet')
+  1988 pixels (ratio 0.04 of all image pixels) are different.
+  Snapshot: carnet.png
+
+attachment #1: carnet (image/png)
+Expected: tests/carnet.spec.ts-snapshots/carnet-chromium-darwin.png
+Received: test-results/carnet-el-carnet-se-ve-como-el-aprobado-chromium/carnet-actual.png
+Diff:     test-results/carnet-el-carnet-se-ve-como-el-aprobado-chromium/carnet-diff.png
+```
+
+1988 píxeles distintos, el 4% de la imagen. Quedan tres imágenes:
+la referencia (`Expected`), la captura actual (`Received`) y una imagen
+de **diferencias** (`Diff`) que pinta los píxeles que cambiaron. El
+reporte HTML las muestra lado a lado, con una vista para superponerlas.
+
+La pregunta, como en cualquier fallo (entrada de leer un fallo), es qué
+pasó:
+
+- Si el cambio **no** era esperado, es un defecto visual: se reporta.
+- Si el cambio fue decidido (el borde ahora es rojo por un rediseño
+  aprobado), la referencia quedó vieja y se actualiza:
+
+  ```bash
+  npx playwright test --update-snapshots
+  ```
+
+  (Su forma corta es `-u`.) Reemplaza las referencias por las capturas actuales de los tests que
+  corre. Combinado con los filtros de siempre (archivo, `-g`), actualiza
+  solo lo que corresponde.
+
+### Contenido que cambia: `mask`
+
+El carnet muestra la hora de la consulta, que es distinta en cada
+corrida. Sin máscara, el test falla siempre aunque nada esté mal:
+
+```text
+32 pixels (ratio 0.01 of all image pixels) are different.
+```
+
+`mask` recibe una lista de locators y los tapa con un rectángulo de color
+en la captura, tanto en la referencia como en la actual. Se enmascara
+todo lo que cambia entre corridas sin ser un defecto: fechas y horas,
+números aleatorios, publicidad, avatares. Otra opción es fijar el dato.
+Para la hora, `page.clock.setFixedTime` detiene el reloj del navegador en
+un instante, antes de abrir la página:
+
+```ts
+await page.clock.setFixedTime(new Date('2026-11-14T10:00:00'));
+await page.goto('/carnet');
+// el carnet dice «Consultado: 10:00:00» en todas las corridas
+```
+
+Para los datos, una respuesta simulada (entrada de interceptar la red).
+
+### Cuánta diferencia se tolera
+
+Por defecto, cualquier píxel distinto hace fallar el test. Algunas
+diferencias mínimas aparecen sin que nada cambie, por el suavizado de las
+fuentes o de los bordes. Hay tres opciones para tolerarlas:
+
+- `maxDiffPixels: 50`: hasta 50 píxeles distintos.
+- `maxDiffPixelRatio: 0.01`: hasta el 1% de la imagen.
+- `threshold: 0.2`: cuánto puede variar el color de un píxel para
+  considerarlo igual, de 0 a 1 (por defecto 0.2).
+
+Se usan con moderación: una tolerancia alta deja pasar defectos reales,
+como un texto cortado de pocos píxeles. Antes de subirla, conviene
+enmascarar lo que cambia.
+
+### Estable antes de comparar
+
+`toHaveScreenshot` desactiva las animaciones CSS, espera a que carguen
+las fuentes y toma capturas hasta que dos seguidas coinciden; recién ahí
+compara con la referencia. El call log del fallo lo muestra:
+`disabled all CSS animations`, `waiting for fonts to load...`.
+
+### La referencia depende de la máquina
+
+Como el sistema operativo forma parte del nombre, una referencia creada
+en macOS no sirve en el Linux de CI: allí no existe y el test falla. La
+práctica habitual es generar y actualizar las referencias en el mismo
+entorno donde corre CI, por ejemplo dentro del mismo contenedor Docker
+(sección IV).
+
+## Cuándo usarlo
+
+En pantallas o componentes cuyo aspecto importa y cambia poco: un carnet,
+un comprobante, un encabezado, un gráfico. No en pantallas que cambian
+todos los días, donde la referencia vive desactualizada.
+
+## Buenas prácticas
+
+- Capturar el elemento que importa, no la página entera.
+- Mirar la imagen de referencia antes de confirmarla.
+- Enmascarar o fijar el contenido dinámico.
+- Actualizar las referencias solo cuando el cambio está aprobado, y solo
+  las de los tests afectados.
+- Generar las referencias en el mismo entorno que CI.
+
+## Anti-patrones
+
+- **Correr `--update-snapshots` para que el test pase** sin mirar el
+  diff.
+- **Subir la tolerancia** en lugar de enmascarar lo que cambia.
+- **Reemplazar las assertions de texto** por capturas: una captura no
+  dice qué dato está mal.
+- **Confirmar referencias creadas en una computadora personal** para
+  tests que corren en CI.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<DiffClassifyActivity />
+
+<BaselineTerminalActivity />
+
+<VisualOrderActivity />

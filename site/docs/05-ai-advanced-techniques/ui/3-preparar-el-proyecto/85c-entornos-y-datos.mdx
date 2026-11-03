@@ -1,0 +1,302 @@
+---
+title: "Entornos y datos para agentes"
+sidebar_position: 85.3
+---
+
+import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
+import FillBlank from '@site/src/components/FillBlank';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  ENV_START,
+  ENV_NODES,
+  ENV_EXPLANATION,
+  GUARD_TEMPLATE,
+  GUARD_SLOTS,
+  GUARD_BANK,
+  GUARD_EXPLANATION,
+  SETUP_QUESTIONS,
+} from '@site/src/content/lessons/85c-entornos-y-datos';
+
+export const LESSON_SLUG = 'ai-ui-entornos-y-datos';
+
+export function EnvPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['envpath']);
+  return (
+    <Activity
+      title="Dónde y con qué trabaja el agente"
+      kind="Escenario encadenado"
+      goal="elegir el entorno, la siembra y la cuenta que necesita un agente que trabaja sin supervisión."
+      done={isDone('envpath')}
+      consigna="Son 3 decisiones encadenadas sobre el agente que explora la agenda. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={ENV_START}
+        nodes={ENV_NODES}
+        explanation={ENV_EXPLANATION}
+        alreadyDone={isDone('envpath')}
+        onSolved={() => markDone('envpath')}
+      />
+    </Activity>
+  );
+}
+
+export function GuardFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['guardfill']);
+  return (
+    <Activity
+      title="Solo en local"
+      kind="Completar huecos"
+      goal="escribir el control que impide que una herramienta de datos opere fuera del entorno local."
+      done={isDone('guardfill')}
+      consigna="La herramienta de datos de la agenda tiene que negarse a operar si la dirección no está en la lista de direcciones locales. Completá los 3 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={GUARD_TEMPLATE}
+        slots={GUARD_SLOTS}
+        bank={GUARD_BANK}
+        explanation={GUARD_EXPLANATION}
+        alreadyDone={isDone('guardfill')}
+        onSolved={() => markDone('guardfill')}
+      />
+    </Activity>
+  );
+}
+
+export function SetupMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['setupmulti']);
+  return (
+    <Activity
+      title="El contrato de setup"
+      kind="Marcar todas"
+      goal="distinguir lo que va en el contrato de setup de lo que va en otro lugar."
+      done={isDone('setupmulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todas las que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={SETUP_QUESTIONS}
+        alreadyDone={isDone('setupmulti')}
+        onSolved={() => markDone('setupmulti')}
+      />
+    </Activity>
+  );
+}
+
+Un agente que trabaja sin supervisión necesita dónde trabajar sin romper nada ajeno. Esta entrada muestra las cuatro piezas que lo permiten: un entorno descartable, datos sembrados de cero, cuentas de prueba por rol y herramientas de datos que solo operan en local, más el contrato de setup que fija las convenciones de datos.
+
+## Conceptos
+
+### El problema: un agente que trabaja solo necesita dónde trabajar
+
+Hasta ahora, el agente trabajó con vos mirando: cada acción pasaba por
+tu aprobación (entrada de tu primer agente). En las unidades siguientes
+vas a ver agentes que trabajan sin que nadie mire cada paso: exploran la
+aplicación buscando defectos, reproducen fallos para entender su causa o
+sacan capturas de pantallas. Para eso tienen que **usar la aplicación de
+verdad**: ingresar, reservar turnos, cancelarlos, crear pacientes.
+
+Si lo hacen en el **entorno compartido**, el staging que usa todo el
+equipo (entrada de parametrización: datos y entornos), pasa esto:
+
+- el agente crea cuarenta turnos de prueba a las 9:00 del lunes, y el
+  test de la regresión nocturna que espera ese horario libre falla;
+- otro tester está mostrando la agenda en una demo y ve aparecer turnos
+  que nadie cargó;
+- el agente quiere reproducir un fallo de anoche, pero los datos de
+  staging ya cambiaron y el fallo no aparece.
+
+Lo que necesita un agente que trabaja solo es un entorno propio, con
+datos conocidos, que pueda romper sin que nadie se entere. Esta entrada
+muestra sus cuatro piezas: el entorno descartable, los datos sembrados,
+las cuentas de prueba y las herramientas de datos.
+
+### Un entorno descartable
+
+Un **entorno descartable** es una copia completa de la aplicación (la
+interfaz, el servidor y la base de datos) que se crea para una tarea y
+se borra al terminar. Si el agente lo deja en un estado raro, se tira y
+se crea otro.
+
+Lo habitual es armarlo con Docker, que corre cada parte de la
+aplicación en un contenedor (entrada de Docker). En la sección IV se usó
+un solo contenedor, el de los tests. Una aplicación como la agenda tiene
+varias partes (la interfaz, el servidor, la base de datos), y para
+levantarlas juntas se usa **Docker Compose**: un archivo,
+`compose.yaml`, que lista cada parte con su imagen y cómo se conectan, y
+un comando que las levanta todas. En la agenda, el equipo de desarrollo
+ya tiene ese archivo para trabajar en su computadora:
+
+```bash
+docker compose up -d
+npm run sembrar
+```
+
+El primer comando levanta todas las partes de la aplicación, que queda
+en `http://localhost:3000`; `-d` hace que sigan corriendo en segundo
+plano y devuelva la terminal. El segundo carga los datos iniciales. Lo que importa para un agente es que
+**se levanta con uno o dos comandos, sin pasos manuales**: si hace falta
+que alguien configure algo a mano, el agente no puede crear su propio
+entorno.
+
+Este entorno suele existir ya en el equipo de desarrollo. El trabajo de
+QA es pedir acceso a él, aprender a levantarlo, y asegurarse de que la
+suite pueda correr contra su dirección cambiando solo `BASE_URL`.
+
+### Datos sembrados de cero
+
+**Sembrar** es cargar en un entorno vacío los datos iniciales que
+necesitan los tests y los agentes. Un buen script de siembra, como
+`npm run sembrar`:
+
+- **crea siempre lo mismo**: los mismos profesionales, con los mismos
+  nombres y horarios. Un agente o un test que busca «la agenda de la
+  doctora Paz» la encuentra siempre;
+- **se puede correr varias veces** y el resultado es el mismo: si un
+  dato ya existe, no lo duplica;
+- **verifica al final que funcionó**, por ejemplo ingresando con una
+  cuenta y leyendo la agenda, y termina con error si algo falló. Un script
+  que dice «listo» sin comprobarlo deja al agente trabajando sobre un
+  entorno roto.
+
+### Cuentas de prueba por rol
+
+Cada rol de la aplicación tiene su cuenta de prueba, siempre la misma:
+una recepcionista, un médico, un administrador. Conviene sumar una
+cuenta **aislada**, que no pertenece a ninguna agenda: es la única forma
+de probar que un usuario sin permisos no ve lo que no le corresponde.
+
+Las cuentas se escriben en un archivo de variables de entorno, como
+`.env.test`, que no se sube al repositorio, y el mapa de navegación
+dice qué rol necesita cada pantalla (entrada del mapa de navegación).
+Nunca se usan cuentas personales: en un caso real, un agente que
+ingresaba con la cuenta de una persona del equipo sacaba conclusiones
+equivocadas, porque esa cuenta tenía permisos y datos distintos de los de
+las cuentas de prueba (entrada de hooks).
+
+### Herramientas de datos para el agente
+
+Para explorar la reprogramación de turnos, el agente necesita un turno
+reservado. Crearlo desde la interfaz son diez clics que pueden fallar
+por cualquier motivo ajeno a lo que quiere probar. En la sección III, las
+fixtures crean los datos por la API, sin pasar por la interfaz (entrada
+de setup y cleanup). Un agente necesita lo mismo, pero como comandos que
+pueda correr desde la terminal:
+
+```bash
+npm run datos -- turno --profesional paz --hora 09:30 --como recepcion
+```
+
+Imprime lo que creó:
+
+```text
+Turno creado: id=8812, doctora Paz, 14/11 09:30, Reservado
+```
+
+Tres reglas para que un agente pueda usarlas sin supervisión:
+
+- **un comando por acción del negocio**: crear un turno, cancelarlo,
+  crear un paciente. El agente arma escenarios complejos combinando
+  comandos simples, sin conocer la API por dentro;
+- **cada comando imprime lo que creó**, con su identificador, para que
+  el agente pueda usarlo en el paso siguiente;
+- **se niegan a operar fuera del entorno local.** Antes de hacer nada, la
+  herramienta mira contra qué dirección va a trabajar, y si no está en
+  una lista corta de direcciones locales, se detiene con un error. Ese control está en el código de
+  la herramienta, no en un documento: es lo que permite dejar trabajar al
+  agente sin miedo a que, por un pedido mal escrito, cree turnos en
+  staging o en producción.
+
+Ese control son pocas líneas al principio de la herramienta:
+
+```ts
+const PERMITIDOS = ['localhost', '127.0.0.1'];
+const url = new URL(process.env.BASE_URL ?? 'http://localhost:3000');
+if (!PERMITIDOS.includes(url.hostname)) {
+  console.error(`Solo se puede usar contra el entorno local, no contra ${url.hostname}.`);
+  process.exit(1);
+}
+```
+
+`127.0.0.1` es otra forma de escribir «esta misma computadora». Si la
+herramienta corre dentro de un contenedor de Compose, las partes se
+llaman entre sí por su nombre de servicio, como `api`, y ese nombre se
+suma a la lista. Lo que importa es que sea una lista cerrada: todo lo
+que no está, se rechaza. Si alguien la corre con `BASE_URL` apuntando a
+staging, termina antes de crear nada:
+
+```text
+Solo se puede usar contra el entorno local, no contra agenda-staging.clinica.test.
+```
+
+### El contrato de setup
+
+Un agente que escribe tests tampoco conoce las convenciones de datos del
+proyecto, salvo que estén escritas. El **contrato de setup** es un
+documento corto en el repositorio que las fija:
+
+```markdown
+# Datos de prueba de la agenda
+
+- Los datos se crean en las fixtures de `fixtures/`, nunca dentro del test.
+- Todo dato que crea un test se borra en su limpieza, aunque el test falle.
+- Un test que modifica un turno usa un turno propio; uno que solo lee
+  puede usar los turnos sembrados.
+- Los nombres de pacientes se generan con Faker; nunca se usan datos reales.
+- Las cuentas por rol están en `.env.test`; el rol de cada pantalla, en el mapa de navegación.
+```
+
+Lo leen los agentes que planifican, escriben y revisan tests, y lo leen
+las personas que se suman al equipo.
+
+### Qué necesita cada sistema de las unidades siguientes
+
+| Sistema | Lo que usa de esta entrada |
+| :- | :- |
+| Agentes que automatizan casos nuevos | El contrato de setup y las cuentas por rol |
+| Agentes que reparan tests rotos | Un entorno limpio para confirmar el fallo antes de cambiar nada |
+| Agentes que exploran | Entorno propio, herramientas de datos y cuentas por rol |
+| Agentes que comparan pantallas | Un entorno que se levanta igual dos veces, con los mismos datos |
+
+### ¿Está listo el proyecto?
+
+- ¿La aplicación se levanta en local con uno o dos comandos?
+- ¿El script de siembra deja siempre los mismos datos y verifica que
+  funcionó?
+- ¿Hay una cuenta de prueba por rol, y una aislada?
+- ¿Hay comandos para crear los datos de cada flujo crítico, y se niegan
+  a operar fuera de local?
+- ¿Las convenciones de datos están escritas en un contrato de setup?
+
+Lo que falte se arma de a una pieza, empezando por lo que necesita el
+primer sistema que el equipo quiere usar.
+
+## Cuándo usarlo
+
+Antes de dejar que un agente use la aplicación sin supervisión: para
+explorar, reproducir fallos, preparar datos o capturar pantallas.
+
+## Buenas prácticas
+
+- Un entorno propio y descartable por tarea, nunca el compartido.
+- Siembra repetible y verificada.
+- Cuentas fijas por rol, más una aislada.
+- Herramientas de datos con el control de «solo local» en el código.
+- Un contrato de setup escrito.
+
+## Anti-patrones
+
+- **Dejar que un agente cree datos en staging.**
+- **Cuentas personales** para un agente.
+- **Un «solo local» escrito en un documento** y no en la herramienta.
+- **Un script de siembra que no verifica** lo que creó.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<EnvPathActivity />
+
+<GuardFillActivity />
+
+<SetupMultiActivity />

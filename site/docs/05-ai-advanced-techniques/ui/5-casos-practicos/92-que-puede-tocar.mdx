@@ -1,0 +1,227 @@
+---
+title: "Qué puede tocar un auto-heal"
+sidebar_position: 92
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  DIFF_LINES,
+  DIFF_RULE_LABELS,
+  TABLE_QUIZ,
+  GAMING_QUESTIONS,
+} from '@site/src/content/lessons/92-que-puede-tocar';
+
+export const LESSON_SLUG = 'ai-ui-que-puede-tocar';
+
+export function DiffFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['difffind']);
+  return (
+    <Activity
+      title="Revisar el diff de una reparación"
+      kind="Buscar en el código"
+      goal="detectar cambios que aflojan verificaciones, que salen del alcance o que tocan la aplicación."
+      done={isDone('difffind')}
+      consigna="Son 7 cambios de un Pull Request de auto-heal de la rama «locator desactualizado» en la agenda. Cada línea dice qué archivo cambió, cómo era antes y, después de la flecha (→), cómo quedó. Elegí cada uno y decí qué problema tiene (afloja una verificación, fuera del alcance de la rama, o cambio no permitido en la aplicación), o si no tiene problema. Se completa cuando encontrás los 4 que tienen un problema."
+    >
+      <FindInCode
+        lines={DIFF_LINES}
+        ruleLabels={DIFF_RULE_LABELS}
+        okLabel="Sin problema"
+        prompt="¿qué problema tiene?"
+        itemLabel="Cambio"
+        counterLabel="cambios con problema encontrados"
+        alreadyDone={isDone('difffind')}
+        onSolved={() => markDone('difffind')}
+      />
+    </Activity>
+  );
+}
+
+export function TableQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['tablequiz']);
+  return (
+    <Activity
+      title="Leer la tabla de alcance"
+      kind="Elegí la opción"
+      goal="decidir qué puede tocar cada rama de reparación."
+      done={isDone('tablequiz')}
+      consigna="Son 3 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={TABLE_QUIZ}
+        onSolved={() => markDone('tablequiz')}
+      />
+    </Activity>
+  );
+}
+
+export function GamingMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['gamingmulti']);
+  return (
+    <Activity
+      title="La línea anti-gaming"
+      kind="Marcar todas"
+      goal="distinguir los cambios que angostan un locator de los que aflojan un test."
+      done={isDone('gamingmulti')}
+      consigna="Es 1 pregunta con 6 opciones. Marcá todos los cambios que un revisor rechaza siempre y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={GAMING_QUESTIONS}
+        alreadyDone={isDone('gamingmulti')}
+        onSolved={() => markDone('gamingmulti')}
+      />
+    </Activity>
+  );
+}
+
+El peor resultado de un auto-heal es una reparación «exitosa» que esconde un defecto. Esta entrada muestra la tabla de alcance que define qué puede tocar cada tipo de reparación, y la línea anti-gaming que ningún agente ni persona puede cruzar.
+
+## Conceptos
+
+### El riesgo de un agente que repara
+
+El auto-heal de la entrada anterior le pide a un agente que repare
+tests rotos. Un agente al que se le pide «que el test pase» tiene muchas
+formas de lograrlo, y la mayoría son malas: aflojar la assertion (por
+ejemplo, verificar que un elemento existe en lugar de que muestre
+«Libre»), agrandar un timeout, borrar un paso, elegir el primer elemento
+que aparezca. Todas
+ponen el test en verde y lo dejan sin verificar lo que verificaba. El
+peor resultado de un auto-heal no es una reparación fallida: es una
+reparación «exitosa» que esconde un defecto.
+
+Por eso, todo auto-heal necesita una definición explícita de qué puede
+tocar.
+
+### Un solo documento con el alcance
+
+La práctica que más vale la pena copiar es un documento corto, único,
+con el alcance de cada tipo de reparación. Lo citan **todos** los pedidos
+de los agentes y **todos** los revisores:
+
+- cada pedido de un agente de reparación termina con su fila de la tabla,
+  en lugar de su propia versión de «no rompas nada»;
+- cada revisor empieza por la misma pregunta: «¿el cambio se queda dentro
+  de lo permitido para esta rama?»;
+- una persona que revisa un Pull Request de auto-heal abre el mismo
+  documento.
+
+Sin un documento único, cada pedido termina con reglas ligeramente
+distintas, y con el tiempo se contradicen.
+
+### Los tipos de reparación
+
+Un locator desactualizado no es el único fallo que un agente puede
+reparar. Cuando los sistemas de reparación maduran, aparecen otros
+casos, que la entrada siguiente enseña a distinguir:
+
+- **Datos**: el test falla porque la fixture crea un turno para un
+  profesional que ya no existe en el entorno. El test está bien; el dato
+  que prepara, no.
+- **Cambio documentado**: la aplicación cambió a propósito un
+  comportamiento, y eso está escrito: en el caso de uso actualizado, en
+  el Pull Request que lo cambió o en un ticket. Por ejemplo, el mensaje
+  «Turno reservado» pasó a ser «Reserva confirmada».
+- **Defecto**: la aplicación hace algo que no debería. El test está bien
+  y no se toca.
+
+Cada tipo de reparación se llama una **rama**, en el sentido de una rama
+de una decisión: según el diagnóstico, el trabajo sigue por una rama o
+por otra. No tiene relación con las ramas de Git.
+
+### La tabla
+
+Cada fila es una rama; cada columna, un tipo de archivo de la suite. Los
+**helpers** son las funciones auxiliares de la suite, como las que crean
+datos para las fixtures (entrada de estructura del proyecto y capas):
+
+| Rama | Contrato y locators | Page Objects | Helpers | Tests | Assertions |
+| :- | :- | :- | :- | :- | :- |
+| Locator desactualizado | ✅ | ✅ | 🚫 | 🚫 | 🚫 |
+| Datos | ✅ | ✅ | ✅ | ✅ preparación y limpieza, con motivo | 🚫 aflojar |
+| Cambio documentado | ✅ | ✅ | ✅ | ✅ | ✅ solo para un comportamiento nuevo documentado |
+| Defecto | 🚫 | 🚫 | 🚫 | 🚫 | 🚫 |
+
+- **Locator desactualizado**: solo el contrato y los Page Objects.
+- **Datos**: el problema está en cómo se crean los datos; se corrige en su
+  origen (fixtures, helpers), y el test puede cambiar su preparación o su
+  limpieza, explicando por qué.
+- **Cambio documentado**: la aplicación cambió a propósito, y eso está
+  escrito: el caso de uso, el Pull Request que lo causó, un ticket. Es la
+  **única** rama que puede cambiar una assertion, y solo para que
+  verifique ese comportamiento nuevo.
+- **Defecto**: no se toca ningún archivo de test. Se reporta.
+
+Para el código de la aplicación, el máximo permitido suele ser agregar un
+atributo de test (un `data-testid`) a un elemento que ya existe: pocas
+líneas, sin imports nuevos y sin cambiar lógica.
+
+### La línea anti-gaming
+
+En inglés, *gaming* un sistema es cumplir la medida sin cumplir el
+objetivo: el test pasa a verde, pero ya no verifica nada. La regla que
+lo impide es el corazón del documento:
+
+> Angostar un locator para que encuentre exactamente el elemento que el
+> test ya quería encontrar está permitido en cualquier rama. Aflojar
+> cualquier cosa para que un rojo pase a verde no está permitido en
+> ninguna.
+
+Los cambios que un revisor rechaza siempre, venga de un agente o de una
+persona:
+
+- `toBeVisible()` cambiado por `toBeAttached()`, para esquivar que el
+  elemento no se ve (entrada de assertions);
+- un texto exacto que pasa a ser una expresión regular más laxa;
+- una assertion que desaparece;
+- un timeout más grande para tapar un cuelgue real;
+- un `.first()` o un `.nth()` agregado para esquivar un error de
+  *strict mode* (el error de Playwright cuando un locator encuentra varios
+  elementos y no sabe cuál usar, entrada de encadenar y filtrar), en
+  lugar de acotar el locator a la fila correcta.
+
+### Un test verde no prueba nada
+
+Cuando se revisa un Pull Request de auto-heal, la pregunta del alcance va
+**antes** que la de si los tests pasan. Un test verde no demuestra que una
+assertion nueva sea correcta. El cambio de una assertion se acepta solo
+si está en la rama de cambio documentado y la documentación citada lo
+respalda: se lee la documentación, no solo el diff.
+
+### Adaptarlo a otro proyecto
+
+Lo que cambia entre proyectos son los nombres de las columnas: tu
+equivalente a contrato, Page Objects, helpers y tests. Las cuatro filas y
+la línea anti-gaming sirven igual en Playwright, Appium, Selenium o
+Cypress.
+
+## Cuándo usarlo
+
+En cualquier auto-heal, desde el primer día: antes de que un agente
+repare algo, tiene que estar escrito qué puede tocar.
+
+## Buenas prácticas
+
+- Un documento único de alcance, citado por pedidos y revisores.
+- La pregunta del alcance, antes que la de si los tests pasan.
+- Un cambio de assertion, solo con documentación citada.
+
+## Anti-patrones
+
+- **Cada pedido con su propia lista** de lo prohibido.
+- **Aprobar una reparación porque los tests pasan.**
+- **Un `.first()`** para esquivar un error de strict mode.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<DiffFindActivity />
+
+<TableQuizActivity />
+
+<GamingMultiActivity />

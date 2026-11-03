@@ -1,0 +1,276 @@
+---
+title: "Repaso integrador: framework de UI"
+sidebar_position: 69.5
+---
+
+import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
+import Match from '@site/src/components/Match';
+import FindInCode from '@site/src/components/FindInCode';
+import Order from '@site/src/components/Order';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import SpotToken from '@site/src/components/SpotToken';
+import MultiSelect from '@site/src/components/MultiSelect';
+import Quiz from '@site/src/components/Quiz';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  FW_START,
+  FW_NODES,
+  FW_EXPLANATION,
+  PIECE_LEFT,
+  PIECE_RIGHT,
+  PIECE_WHY,
+  REV_LINES,
+  REV_RULE_LABELS,
+  RUN_ITEMS,
+  RUN_CORRECT,
+  RUN_RULES,
+  DEPS_ACCEPTED,
+  DEPS_HINTS,
+  DEPS_EXPLANATION,
+  DEPS_CODE,
+  DETAIL_ROUNDS,
+  DETAIL_PROMPT,
+  REPO_QUESTIONS,
+  READ_QUIZ,
+} from '@site/src/content/lessons/69b-repaso-integrador-framework-ui';
+
+export const LESSON_SLUG = 'framework-ui-repaso-integrador';
+
+export function FwPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['fwpath']);
+  return (
+    <Activity
+      title="De tests mezclados a un framework"
+      kind="Escenario encadenado"
+      goal="decidir, en orden, cómo ordenar una suite mezclada: capas, Page Objects, BasePage, fixtures, sesión y entornos (entradas 60, 61, 63, 64, 66 y 67)."
+      done={isDone('fwpath')}
+      consigna="Son 5 decisiones encadenadas sobre la suite de la agenda: cada una depende de la anterior. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la quinta."
+    >
+      <DecisionPath
+        startId={FW_START}
+        nodes={FW_NODES}
+        explanation={FW_EXPLANATION}
+        alreadyDone={isDone('fwpath')}
+        onSolved={() => markDone('fwpath')}
+      />
+    </Activity>
+  );
+}
+
+export function PieceMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['piecematch']);
+  return (
+    <Activity
+      title="Cada pieza en su archivo"
+      kind="Emparejar"
+      goal="ubicar cada pieza de código del framework en el archivo que le corresponde (entradas 60, 62, 64, 65, 66 y 67)."
+      done={isDone('piecematch')}
+      consigna="Son 8 pares. Elegí una pieza de código de la izquierda y después el archivo del framework donde va (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 8."
+    >
+      <Match
+        left={PIECE_LEFT}
+        right={PIECE_RIGHT}
+        why={PIECE_WHY}
+        leftLabel="Pieza"
+        rightLabel="Archivo"
+        alreadyDone={isDone('piecematch')}
+        onSolved={() => markDone('piecematch')}
+      />
+    </Activity>
+  );
+}
+
+export function RevFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['revfind']);
+  return (
+    <Activity
+      title="Revisión del framework"
+      kind="Buscar en el código"
+      goal="diagnosticar verificaciones y locators fuera de lugar, valores fijos y datos sin limpiar (entradas 61, 62, 65 y 66)."
+      done={isDone('revfind')}
+      consigna="Son 8 líneas del framework de la agenda. Elegí cada una y decí qué problema tiene (verifica dentro del Page Object, locator fuera del Page Object, valor que tiene que venir del entorno o dato que nadie limpia) o si respeta el framework. Se completa cuando encontrás las 5 que tienen un problema."
+    >
+      <FindInCode
+        lines={REV_LINES}
+        ruleLabels={REV_RULE_LABELS}
+        okLabel="Respeta el framework"
+        prompt="¿qué problema tiene?"
+        itemLabel="Línea"
+        counterLabel="líneas con problema encontradas"
+        alreadyDone={isDone('revfind')}
+        onSolved={() => markDone('revfind')}
+      />
+    </Activity>
+  );
+}
+
+export function RunOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['runorder']);
+  return (
+    <Activity
+      title="Una corrida, de punta a punta"
+      kind="Ordenar"
+      goal="ordenar lo que pasa en una corrida, desde el ingreso del setup hasta el reporte de Allure (entradas 64, 65, 67 y 69)."
+      done={isDone('runorder')}
+      consigna="Son 7 momentos de una corrida del test de reprogramar un turno, desordenados. Ordenalos y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={RUN_ITEMS}
+        correctOrder={RUN_CORRECT}
+        rules={RUN_RULES}
+        onSolved={() => markDone('runorder')}
+      />
+    </Activity>
+  );
+}
+
+export function DepsTypeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['depstype']);
+  return (
+    <Activity
+      title="La sesión que no existe"
+      kind="Respuesta escrita"
+      goal="leer un error de sesión guardada y generar la sesión corriendo solo el proyecto de setup (entradas 41 y 67)."
+      done={isDone('depstype')}
+      consigna="Clonaste el framework y corriste los tests de turnos salteando las dependencias. Escribí el comando que corre solo el proyecto que genera la sesión, y presioná Enter."
+    >
+      <CodeBlock language="text">{DEPS_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={DEPS_ACCEPTED}
+        hints={DEPS_HINTS}
+        explanation={DEPS_EXPLANATION}
+        placeholder="npx ..."
+        alreadyDone={isDone('depstype')}
+        onSolved={() => markDone('depstype')}
+      />
+    </Activity>
+  );
+}
+
+export function DetailSpotActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['detailspot']);
+  return (
+    <Activity
+      title="El detalle que rompe la pieza"
+      kind="Señalar en la línea"
+      goal="encontrar el detalle que hace fallar una fixture, una sesión, una plantilla y un Page Object (entradas 63, 65, 66 y 67)."
+      done={isDone('detailspot')}
+      consigna="Son 4 líneas del framework, cada una con un comentario que da el contexto. En cada una, hacé clic en la palabra que causa el problema. Si no es esa, aparece una pista y podés volver a elegir. Se completa al resolver las 4."
+    >
+      <SpotToken
+        rounds={DETAIL_ROUNDS}
+        prompt={DETAIL_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('detailspot')}
+        onSolved={() => markDone('detailspot')}
+      />
+    </Activity>
+  );
+}
+
+export function RepoMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['repomulti']);
+  return (
+    <Activity
+      title="Lo que va al repositorio"
+      kind="Marcar todas"
+      goal="distinguir los archivos del framework que se versionan de los que se generan o son secretos (entradas 66, 67, 68 y 69)."
+      done={isDone('repomulti')}
+      consigna="Es 1 pregunta con 7 opciones. Marcá todos los que se versionan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={REPO_QUESTIONS}
+        alreadyDone={isDone('repomulti')}
+        onSolved={() => markDone('repomulti')}
+      />
+    </Activity>
+  );
+}
+
+export function ReadQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['readquiz']);
+  return (
+    <Activity
+      title="Leer lo que dice la suite"
+      kind="Elegí la opción"
+      goal="interpretar un error de entorno en CI, un historial de Allure y un paso de Gherkin (entradas 66, 68 y 69)."
+      done={isDone('readquiz')}
+      consigna="Son 3 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={READ_QUIZ}
+        onSolved={() => markDone('readquiz')}
+      />
+    </Activity>
+  );
+}
+
+Ya viste, una por una, las 10 entradas del framework de UI: estructura y capas, Page Object Model, selectores centralizados, BasePage, fixtures y BaseTest, setup y cleanup, parametrización y entornos, sesión reutilizada, otras formas de escribir tests y reportes. En un framework real, esas piezas trabajan juntas: un test pide fixtures que usan Page Objects, siembran datos con builders y arrancan con la sesión guardada, y su resultado termina en un reporte.
+
+## El framework de la agenda de la clínica
+
+Varios de los ejercicios de abajo usan el mismo proyecto: el framework
+de UI de la agenda de turnos de una clínica, la misma aplicación del
+repaso de la sección II, ahora organizada por capas. Tiene esta
+estructura:
+
+```text
+agenda-e2e/
+├── .env.example
+├── allurerc.mjs
+├── playwright.config.ts
+├── features/
+│   └── reservar.feature
+├── helpers/
+│   ├── api.ts
+│   ├── entorno.ts
+│   └── turno.builder.ts
+├── pages/
+│   ├── BasePage.ts
+│   ├── AgendaPage.ts
+│   └── IngresoPage.ts
+├── steps/
+│   ├── fixtures.ts
+│   └── reservar.steps.ts
+└── tests/
+    ├── auth.setup.ts
+    ├── base-test.ts
+    ├── ingreso.spec.ts
+    └── turnos.spec.ts
+```
+
+- `BasePage` es la clase abstracta de la que heredan los Page Objects;
+  `AgendaPage` tiene `turno(hora)`, `estado(hora)`, `reservar(hora, dni)`,
+  `cancelar(hora)` y `reprogramar(hora, horaNueva)`.
+- `base-test.ts` define las fixtures `agendaPage`, `ingresoPage` y
+  `sembrarTurno`, que crea turnos por la API y los borra al terminar.
+- `turno.builder.ts` arma turnos con `unTurno().aLas(hora).build()`.
+- `entorno.ts` tiene `variable(nombre)`, que falla si falta una variable.
+- `auth.setup.ts` ingresa como recepcionista y guarda la sesión en
+  `playwright/.auth/recepcionista.json`.
+- `features/` y `steps/` tienen los escenarios en Gherkin y sus
+  definiciones de pasos, que `bddgen` convierte en tests.
+- Los reportes son `list`, `html` y Allure, con el historial en
+  `allure-history.jsonl`.
+
+## Práctica
+
+Son 8 ejercicios y entre todos cubren las 10 entradas del framework de UI: cada uno dice en su objetivo qué entradas repasa. Todos usan el framework de la agenda. Son independientes entre sí y cada bloque avisa cuándo está resuelto.
+
+<FwPathActivity />
+
+<PieceMatchActivity />
+
+<RevFindActivity />
+
+<RunOrderActivity />
+
+<DepsTypeActivity />
+
+<DetailSpotActivity />
+
+<RepoMultiActivity />
+
+<ReadQuizActivity />

@@ -1,0 +1,18 @@
+---
+title: Elegí tu track
+---
+
+import TrackPicker from '@site/src/components/TrackPicker';
+
+Cada track se integra al ciclo de entrega a su manera: cómo se ejecuta, se distribuye y se reporta una suite depende de qué prueba. Elegí el track que estás siguiendo.
+
+<TrackPicker
+  tracks={[
+    {id: 'ui', label: 'UI', description: 'Testing de interfaz', href: '/docs/04-delivery-infrastructure/ui/70-tags-anotaciones-y-subsets'},
+    {id: 'api', label: 'API', description: 'Testing de servicios', href: '/docs/04-delivery-infrastructure/api/01-proximamente'},
+    {id: 'mobile', label: 'Mobile', description: 'Testing de apps móviles', href: '/docs/04-delivery-infrastructure/mobile/01-proximamente'},
+    {id: 'performance', label: 'Performance', description: 'Testing de carga y estrés', href: '/docs/04-delivery-infrastructure/performance/01-proximamente'},
+  ]}
+/>
+
+Por ahora, solo UI tiene capítulos.

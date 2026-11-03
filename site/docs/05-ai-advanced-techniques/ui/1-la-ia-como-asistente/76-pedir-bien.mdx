@@ -1,0 +1,249 @@
+---
+title: "Pedirle bien: contexto y pedidos para QA"
+sidebar_position: 76
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import DecisionPath from '@site/src/components/DecisionPath';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  PART_LEFT,
+  PART_RIGHT,
+  PART_WHY,
+  PROMPT_PREFIX,
+  PROMPT_STEPS,
+  PROMPT_EXPLANATION,
+  ITER_START,
+  ITER_NODES,
+  ITER_EXPLANATION,
+} from '@site/src/content/lessons/76-pedir-bien';
+
+export const LESSON_SLUG = 'ai-ui-pedir-bien';
+
+export function PartMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['partmatch']);
+  return (
+    <Activity
+      title="Las partes de un pedido"
+      kind="Emparejar"
+      goal="reconocer el objetivo, el contexto, las restricciones, el formato y el criterio de terminado en un pedido real."
+      done={isDone('partmatch')}
+      consigna="Son 5 pares. Elegí una frase del pedido de la izquierda y después la parte del pedido que cumple (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={PART_LEFT}
+        right={PART_RIGHT}
+        why={PART_WHY}
+        leftLabel="Frase del pedido"
+        rightLabel="Parte"
+        alreadyDone={isDone('partmatch')}
+        onSolved={() => markDone('partmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function PromptBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['promptbuilder']);
+  return (
+    <Activity
+      title="Armar el pedido del fallo"
+      kind="Armar"
+      goal="construir un pedido completo para diagnosticar un test que falla."
+      done={isDone('promptbuilder')}
+      consigna="El test «cancelar un turno lo libera» falla en CI desde ayer. Tenés su error-context.md, y la regla de negocio dice que un turno cancelado vuelve a «Libre». Vas a pedirle a un agente que averigüe si el problema es del test o de la aplicación. Armá el pedido eligiendo un fragmento por paso; el siguiente se habilita cuando acertás. Son 4 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={PROMPT_PREFIX}
+        steps={PROMPT_STEPS}
+        explanation={PROMPT_EXPLANATION}
+        alreadyDone={isDone('promptbuilder')}
+        onSolved={() => markDone('promptbuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function IterPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['iterpath']);
+  return (
+    <Activity
+      title="Trabajar en pasos"
+      kind="Escenario encadenado"
+      goal="pedir un plan, corregir con el porqué, saber cuándo empezar de nuevo y exigir la verificación."
+      done={isDone('iterpath')}
+      consigna="Son 4 decisiones encadenadas sobre una sesión con un agente en la suite de la agenda. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={ITER_START}
+        nodes={ITER_NODES}
+        explanation={ITER_EXPLANATION}
+        alreadyDone={isDone('iterpath')}
+        onSolved={() => markDone('iterpath')}
+      />
+    </Activity>
+  );
+}
+
+La calidad de lo que produce un asistente depende, sobre todo, de la calidad de lo que se le pide. Esta entrada muestra las partes de un buen pedido, qué contexto rinde más en testing, y cómo trabajar en pasos: plan, correcciones y verificación.
+
+## Conceptos
+
+### Un pedido vago, una respuesta vaga
+
+El modelo responde con lo que tiene en su contexto (entrada de cómo
+funciona un asistente). Mirá este pedido desde su lado:
+
+```text
+Arreglá el test de cancelar.
+```
+
+No sabe qué test es, qué error da, desde cuándo falla, ni qué cuenta como
+«arreglado». Igual va a responder algo plausible. Quizás cambia el
+locator del botón; quizás agrega una espera; quizás cambia el valor
+esperado para que coincida con lo que muestra la aplicación. Las tres
+respuestas hacen que el test pase. Solo una puede ser correcta, y la
+tercera, si la aplicación tiene un defecto, lo esconde.
+
+La calidad de la respuesta depende, sobre todo, de la calidad del pedido.
+Un pedido útil se escribe como una tarea para una persona capaz que no
+conoce el proyecto: con todo lo que necesita para hacerla bien.
+
+### Las partes de un buen pedido
+
+- **Objetivo**: qué hay que lograr, en una oración concreta.
+- **Contexto**: lo que hace falta para lograrlo y el asistente no sabe:
+  el error, el código, la regla de negocio, el caso de test.
+- **Restricciones**: lo que no puede hacer, como cambiar las assertions o
+  tocar archivos fuera de `pages/`.
+- **Formato de la respuesta**: qué querés recibir: una explicación, una
+  lista de causas posibles, un test completo.
+- **Criterio de terminado**: cómo se sabe que la tarea está hecha.
+
+El mismo pedido, completo:
+
+```text
+El test «cancelar un turno lo libera» falla en CI desde ayer.
+Necesito saber si el problema es del test o de la aplicación.
+
+Adjunto el error-context.md de la falla y AgendaPage.ts.
+La regla de negocio: al cancelar, el turno vuelve a mostrarse «Libre».
+
+No cambies las assertions ni los valores esperados. Si el test está bien
+y la aplicación no, decímelo en lugar de cambiar el test.
+
+Respondé primero con la causa más probable y la evidencia que la
+sostiene. Si proponés un cambio, mostralo como diff.
+
+Está resuelto cuando el test pasa sin haber aflojado ninguna verificación.
+```
+
+Cada parte cierra una de las puertas del pedido vago: el asistente sabe
+qué test, tiene la evidencia, sabe qué está prohibido y sabe qué
+devolver.
+Un **diff** es la forma de mostrar un cambio que ya conocés de `git diff`
+(entrada de ver y entender el historial): las líneas que se quitan, con `-`, y
+las que se agregan, con `+`. Pedirlo así te deja revisar el cambio antes
+de aplicarlo.
+
+### El contexto que más rinde en testing
+
+- **El error completo y dónde ocurrió**: el mensaje entero, no un
+  resumen tuyo.
+- **El estado de la página en el momento del fallo.** Cuando un test
+  falla, Playwright guarda en `test-results/` un archivo
+  `error-context.md` (entrada de leer un fallo). Tiene el error y el
+  **snapshot** de la página: la lista de los elementos que había en
+  pantalla, con el rol y el nombre de cada uno, por ejemplo
+  `button "Cancelar turno"`. Con eso el asistente ve la página sin
+  abrirla.
+- **El código involucrado**: el test, su Page Object y la fixture que
+  crea los datos.
+- **La regla de negocio**: lo que la aplicación debería hacer. Sin ella,
+  el asistente toma lo que la aplicación hace como lo correcto.
+- **El caso de test diseñado**, cuando le pedís un test nuevo: pasos y
+  resultados esperados.
+
+Un agente puede buscar parte de ese contexto por su cuenta, leyendo
+archivos del repositorio. Igual conviene decirle dónde está: «el Page
+Object está en `pages/AgendaPage.ts`» le ahorra una búsqueda y evita que
+lea un archivo equivocado.
+
+### Primero el plan, después el código
+
+Para una tarea de más de un paso, como «automatizá los tres casos de
+cancelación», conviene pedir un plan antes de que escriba nada:
+
+```text
+Antes de escribir código, proponé un plan: qué casos vas a automatizar,
+qué Page Objects vas a crear o modificar y qué datos necesitás crear.
+Esperá mi confirmación.
+```
+
+Revisar un plan de diez líneas lleva un minuto; revisar quinientas
+líneas de código escritas sobre una idea equivocada lleva una tarde, y
+después hay que tirarlas. Claude Code tiene además un **modo plan**: un
+modo de trabajo en el que el agente solo puede leer y buscar, sin editar
+nada, hasta que aprobás el plan (entrada de tu primer agente en el
+proyecto).
+
+### Iterar con correcciones concretas
+
+Cuando la respuesta no es la que esperabas, la corrección también es un
+pedido, y vale lo mismo: concreta y con el porqué.
+
+- «Así no» no le dice qué cambiar.
+- «El locator tiene que buscar la fila por la hora del turno, porque en
+  la agenda hay varias filas con el mismo botón» sí.
+
+Si después de varias correcciones la conversación quedó llena de
+intentos fallidos, conviene empezar una conversación nueva y escribir en
+el primer pedido lo que aprendiste: el contexto viejo, con los intentos
+equivocados, confunde más de lo que ayuda (entrada de cómo funciona un
+asistente).
+
+### Pedirle que verifique
+
+Un agente puede correr lo que escribió. Pedírselo explícitamente cambia
+el resultado:
+
+```text
+Cuando termines, corré el test y mostrame la salida. Después cambiá a
+propósito el valor esperado, confirmá que el test falla y volvé a dejarlo
+como estaba.
+```
+
+La salida real de la ejecución es evidencia. «Ya lo probé», sin la
+salida, no lo es: un modelo puede afirmar que algo funciona sin haberlo
+corrido.
+
+## Cuándo usarlo
+
+En cualquier pedido a un asistente que vaya más allá de una pregunta
+puntual: arreglar, escribir, revisar o diseñar.
+
+## Buenas prácticas
+
+- Escribir el objetivo, el contexto, las restricciones, el formato y el
+  criterio de terminado.
+- Pasar la regla de negocio, no solo el código.
+- Pedir un plan antes del código en tareas largas.
+- Pedir la salida real de la verificación.
+
+## Anti-patrones
+
+- **«Arreglalo»** sin decir qué falla ni qué es correcto.
+- **Corregir con «así no»**, sin el porqué.
+- **Dejarle decidir** si se pueden cambiar las assertions.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<PartMatchActivity />
+
+<PromptBuilderActivity />
+
+<IterPathActivity />

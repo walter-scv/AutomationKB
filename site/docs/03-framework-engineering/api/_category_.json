@@ -1,0 +1,8 @@
+{
+  "label": "API",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Architecture, design patterns, fixtures, data, environments y observability, aplicados a cada track. Construir frameworks mantenibles y escalables."
+  }
+}

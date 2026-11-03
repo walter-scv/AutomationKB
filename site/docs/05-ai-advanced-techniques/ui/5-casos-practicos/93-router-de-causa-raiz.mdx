@@ -1,0 +1,316 @@
+---
+title: "Auto-heal nocturno: el router de causa raíz"
+sidebar_position: 93
+---
+
+import Activity from '@site/src/components/Activity';
+import Quiz from '@site/src/components/Quiz';
+import Match from '@site/src/components/Match';
+import DecisionPath from '@site/src/components/DecisionPath';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  WHY_QUIZ,
+  VERDICT_LEFT,
+  VERDICT_RIGHT,
+  VERDICT_WHY,
+  ROUTE_START,
+  ROUTE_NODES,
+  ROUTE_EXPLANATION,
+  REPORT_QUESTIONS,
+} from '@site/src/content/lessons/93-router-de-causa-raiz';
+
+export const LESSON_SLUG = 'ai-ui-router-de-causa-raiz';
+
+export function WhyQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['whyquiz']);
+  return (
+    <Activity
+      title="Por qué otro auto-heal"
+      kind="Elegí la opción"
+      goal="explicar por qué los fallos de la regresión nocturna necesitan un auto-heal distinto del del Pull Request."
+      done={isDone('whyquiz')}
+      consigna="Son 2 preguntas de opción única sobre la regresión nocturna de la agenda. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 2."
+    >
+      <Quiz
+        questions={WHY_QUIZ}
+        onSolved={() => markDone('whyquiz')}
+      />
+    </Activity>
+  );
+}
+
+export function VerdictMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['verdictmatch']);
+  return (
+    <Activity
+      title="Cada fallo con su veredicto"
+      kind="Emparejar"
+      goal="clasificar fallos nocturnos en los cinco veredictos del router."
+      done={isDone('verdictmatch')}
+      consigna="Son 5 pares. Elegí un fallo de la regresión nocturna de la agenda (izquierda) y después la acción que le corresponde según su veredicto (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={VERDICT_LEFT}
+        right={VERDICT_RIGHT}
+        why={VERDICT_WHY}
+        leftLabel="Fallo"
+        rightLabel="Veredicto"
+        alreadyDone={isDone('verdictmatch')}
+        onSolved={() => markDone('verdictmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function RoutePathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['routepath']);
+  return (
+    <Activity
+      title="Agrupar, adjudicar, reproducir"
+      kind="Escenario encadenado"
+      goal="agrupar fallos por causa, aplicar el gate de evidencia y reproducir de forma confiable."
+      done={isDone('routepath')}
+      consigna="Son 3 decisiones encadenadas sobre una noche con fallos en la agenda. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={ROUTE_START}
+        nodes={ROUTE_NODES}
+        explanation={ROUTE_EXPLANATION}
+        alreadyDone={isDone('routepath')}
+        onSolved={() => markDone('routepath')}
+      />
+    </Activity>
+  );
+}
+
+export function ReportMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['reportmulti']);
+  return (
+    <Activity
+      title="Cómo reporta"
+      kind="Marcar todas"
+      goal="reconocer las reglas de reporte del router: sin ruido, sin duplicados y sin reabrir."
+      done={isDone('reportmulti')}
+      consigna="Es 1 pregunta con 6 opciones. Marcá todas las que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={REPORT_QUESTIONS}
+        alreadyDone={isDone('reportmulti')}
+        onSolved={() => markDone('reportmulti')}
+      />
+    </Activity>
+  );
+}
+
+La regresión completa corre cada noche, y sus fallos no se parecen a los de un Pull Request: vienen de varios cambios ya mergeados y de más causas posibles. Esta entrada explica por qué eso necesita su propio auto-heal, y cómo funciona el que se usa: un router que agrupa los fallos, los atribuye, clasifica cada causa con evidencia y la manda a la reparación que corresponde.
+
+## Conceptos
+
+### La regresión de cada noche, en dos líneas
+
+En la sección IV (entrada de qué corre y cuándo) la suite quedó
+corriendo en dos momentos: en cada Pull Request, una selección rápida, y
+cada noche, la **regresión nocturna**: la suite completa, en todos los
+navegadores, sobre la rama principal con todo lo mergeado en el día. La
+nocturna existe para encontrar lo que se le escapa al Pull Request: tests
+fuera de su selección, cambios que se rompen al combinarse, cambios
+fuera del repositorio de tests. Y a la mañana, alguien sigue el orden de
+trabajo de esa entrada para atender cada rojo.
+
+Esta entrada automatiza parte de esa mañana.
+
+### Por qué hace falta otro auto-heal
+
+El auto-heal de la entrada anterior trabaja sobre la suite del Pull
+Request, y se apoya en tres cosas que la regresión nocturna no tiene:
+
+1. **Un solo cambio sospechoso.** En un Pull Request, la pregunta del
+   diagnóstico es simple: «¿estos fallos los causó este Pull Request?».
+   A la noche, la suite corre sobre la rama principal después de que se
+   mergearon todos los Pull Requests del día, por ejemplo seis. Si
+   fallan doce tests, no hay un único cambio al que preguntarle.
+2. **Un lugar donde dejar la corrección.** El auto-heal del Pull Request
+   sube su corrección a la rama del Pull Request, y la revisa quien lo
+   abrió. A la noche, esos Pull Requests ya están mergeados y cerrados:
+   la corrección necesita su propio Pull Request, o un issue si no hay
+   nada que corregir en los tests.
+3. **Una sola causa probable.** En un Pull Request, lo más común es que
+   el propio cambio haya dejado un locator desactualizado. A la noche
+   corren todos los tests, en todos los navegadores, sobre datos que
+   cambian de un día para otro, y aparecen causas que en un Pull Request
+   casi no se ven.
+
+Por eso, la regresión nocturna tiene su propio auto-heal. La idea es la
+misma, reparar con un agente lo que se puede reparar sin esconder nada,
+pero tiene que resolver lo que el del Pull Request daba por resuelto: a
+qué cambio atribuir cada fallo, qué tipo de fallo es y dónde dejar el
+resultado, para que el equipo lo encuentre listo para revisar al empezar
+el día.
+
+### El problema: muchas causas posibles
+
+Cuando se pone a trabajar un auto-heal sobre la regresión nocturna, con
+meses de fallos reales, aparecen otras causas tan frecuentes como el
+locator desactualizado:
+
+- **datos rotos**: la siembra o la limpieza dejaron el entorno en un
+  estado que los tests no esperan, por ejemplo un profesional borrado;
+- **cambios de comportamiento documentados**: la aplicación cambió a
+  propósito, el caso de uso se actualizó, y el test no;
+- **defectos**: la aplicación hace algo que no debería.
+
+Tratar todo como un locator produce correcciones que rompen otra cosa,
+o que esconden un defecto. Hace falta un paso previo que averigüe la
+causa de cada fallo y lo mande a la reparación que le corresponde. Ese
+paso se llama **router de causa raíz**: *router*, en inglés, es lo que
+decide hacia dónde va cada cosa, como el router de una red decide hacia
+dónde va cada paquete; y la **causa raíz** es el motivo de fondo de un
+fallo (entrada de vocabulario esencial).
+
+### Lo que tiene que existir antes
+
+| Qué | Para qué | Dónde se aprende |
+| :- | :- | :- |
+| La regresión nocturna en CI, con reintentos y reporte JSON como artefacto | Saber qué falló, con qué error y si pasó en un reintento | Entradas de CI, de reportes y de tests inestables |
+| Un entorno limpio que se levanta y se siembra con un comando | Reproducir cada fallo sin el ruido del entorno compartido | Entrada de entornos y datos para agentes |
+| El contrato de locators | Comprobar si un texto cambió en la aplicación | Entrada del contrato de locators |
+| Casos de uso actualizados | Decidir si un cambio de comportamiento está documentado | Entrada de casos de uso |
+| La tabla de lo que puede tocar cada reparación | Limitar cada rama | Entrada de qué puede tocar un auto-heal |
+| Agentes en CI y acceso al gestor de issues | Reproducir, reparar y reportar | Entrada de agentes en CI |
+| El auto-heal simple, funcionando | Haber aprendido con el caso más simple | Entrada de auto-heal en el Pull Request |
+
+Es el sistema más complejo de la sección. Se arma cuando todo lo
+anterior ya funciona, no como primer paso.
+
+### La arquitectura
+
+El auto-heal nocturno se dispara cuando la regresión programada termina
+en rojo: como un paso más al final de su mismo workflow, o como un
+workflow aparte con `workflow_run`, igual que en la entrada anterior. A
+partir de ahí, el trabajo pasa por tres etapas.
+
+**1. Análisis en CI, sin modelo de lenguaje.** Un script común, que da
+siempre el mismo resultado con los mismos datos (por eso se lo llama
+**determinístico**), prepara pistas a partir del reporte:
+
+- agrupa los fallos por **firma**: el mensaje de error y el paso donde
+  falló. Dieciocho tests que fallan con el mismo error en el ingreso son
+  un solo grupo, con una sola causa probable;
+- un test que falló y pasó en un reintento cuenta como inestable, no
+  como fallido;
+- para cada grupo, busca qué Pull Requests se mergearon desde la última
+  noche en verde y tocaron archivos relacionados: esos son los
+  **sospechosos**;
+- arma, por cada grupo, un archivo con la evidencia: errores, archivos y
+  sospechosos.
+
+**2. La válvula de seguridad.** Antes de gastar en agentes, una función
+corta decide si el problema le corresponde al router o si es una rotura
+amplia, con muchos grupos sin una causa común, que tiene que mirar una
+persona directamente (entrada de la válvula y los gates).
+
+**3. El router, en un entorno limpio.** Un agente:
+
+- levanta un entorno propio y lo siembra de cero;
+- reproduce cada grupo **en serie**, con un solo worker, para que los
+  grupos no se pisen los datos entre sí (entrada de paralelismo);
+- propone para cada grupo un veredicto, con su evidencia;
+- un **adjudicador**, otro agente que no participó de la clasificación,
+  revisa cada veredicto y lo aprueba o lo rechaza, como un revisor en un
+  pipeline (entrada de gates y revisores);
+- manda cada grupo aprobado a la rama de reparación que le corresponde.
+
+El job nocturno sigue terminando en rojo: averiguar la causa no es
+arreglar.
+
+### Los cinco veredictos
+
+| Veredicto | Qué hace | Qué te llega |
+| :- | :- | :- |
+| Locator desactualizado | Corrige el contrato y los Page Objects | Un Pull Request para revisar |
+| Datos | Corrige el dato donde se crea y comprueba que no rompe otros tests | Un Pull Request para revisar |
+| Cambio documentado | Adapta el test al comportamiento nuevo, citando la documentación | Un Pull Request; se lee la documentación citada |
+| Defecto | No toca ningún test: reproduce y abre un issue con pasos, esperado, actual y evidencia | Un issue para priorizar |
+| Sin corroborar | Abre un issue con la evidencia que sí tiene | Un issue para investigar a mano |
+
+Lo que puede tocar cada rama es la tabla de la entrada anterior. Cada
+reparación pasa por su propio revisor, con un tope de intentos, y nada
+se sube directo a la rama principal.
+
+### Clasificar con evidencia
+
+Clasificar no es una impresión. Cada veredicto que lleva a una acción
+exige evidencia concreta. Para «locator desactualizado», las tres cosas
+a la vez:
+
+- el grupo falla también en el entorno limpio, así que no es un problema
+  del entorno compartido;
+- lo que falla es que el locator no encuentra el elemento, no un valor
+  equivocado ni un paso posterior;
+- hay una diferencia concreta, citada, entre el valor del contrato de
+  locators y el valor actual en el componente.
+
+Ante la duda, la respuesta por defecto del adjudicador es «evidencia
+insuficiente, no actuar», y el grupo pasa a «sin corroborar». Un sistema
+que se equivoca hacia no actuar le da trabajo a una persona; uno que se
+equivoca hacia actuar puede esconder un defecto.
+
+### Cómo se reporta
+
+- **Una reparación exitosa no abre un issue**: su señal es el Pull
+  Request de la corrección.
+- **Un issue abierto por categoría**: los fallos que se repiten agregan un
+  comentario al issue abierto, en lugar de crear casi duplicados.
+- **Un issue cerrado no se reabre**: un fallo que vuelve después de
+  cerrado es una regresión nueva, y lleva un issue nuevo.
+- **Los defectos son la excepción**: cada defecto distinto tiene su
+  propio issue. Para no duplicarlo, el texto del issue lleva una **marca
+  oculta**, un comentario HTML como `<!-- defecto: agenda-doble-reserva -->`
+  que GitHub no muestra pero el agente puede buscar; cada repetición
+  agrega un comentario de «volvió a ocurrir».
+
+### Por qué no corre con cada merge
+
+El router no se dispara cada vez que se mergea un Pull Request a la rama
+principal: correr la suite completa y los agentes en cada merge
+multiplicaría el costo. Corre una vez por noche. A cambio, un defecto se
+encuentra a la mañana siguiente, y la lista de sospechosos nombra los
+Pull Requests de ese día.
+
+### Lo único que no se hace nunca
+
+No se «arregla» un fallo nocturno aflojando el test. Todo el sistema
+(pedidos, revisores, tabla de alcance) existe para evitarlo, y una
+persona que lo hace a mano es el único agujero que queda.
+
+## Cuándo usarlo
+
+Cuando la suite nocturna ya tiene un auto-heal simple funcionando y los
+fallos que no son locators empiezan a ser frecuentes.
+
+## Buenas prácticas
+
+- Agrupar por firma antes de analizar.
+- Reproducir en un entorno limpio, en serie.
+- Exigir evidencia por veredicto y un adjudicador independiente.
+- No duplicar issues ni reabrir los cerrados.
+
+## Anti-patrones
+
+- **Tratar todo fallo como un locator.**
+- **Actuar sin evidencia** porque «parece» un caso conocido.
+- **Un issue nuevo por cada noche** que falla lo mismo.
+- **Armar el router** antes de tener un auto-heal simple funcionando.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<WhyQuizActivity />
+
+<VerdictMatchActivity />
+
+<RoutePathActivity />
+
+<ReportMultiActivity />

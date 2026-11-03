@@ -1,0 +1,232 @@
+---
+title: "Comandos: pedidos que se reutilizan"
+sidebar_position: 80
+---
+
+import Activity from '@site/src/components/Activity';
+import FillBlank from '@site/src/components/FillBlank';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import MultiSelect from '@site/src/components/MultiSelect';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  CMD_TEMPLATE,
+  CMD_SLOTS,
+  CMD_BANK,
+  CMD_EXPLANATION,
+  INVOKE_ACCEPTED,
+  INVOKE_HINTS,
+  INVOKE_EXPLANATION,
+  INVOKE_CODE,
+  CONTENT_QUESTIONS,
+} from '@site/src/content/lessons/80-comandos';
+
+export const LESSON_SLUG = 'ai-ui-comandos';
+
+export function CmdFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['cmdfill']);
+  return (
+    <Activity
+      title="El comando de revisión de Page Objects"
+      kind="Completar huecos"
+      goal="escribir un comando con descripción, argumentos y una referencia a las reglas del repositorio."
+      done={isDone('cmdfill')}
+      consigna="El equipo de turnos quiere un comando que revise un Page Object, recibiendo el archivo como argumento, contra las reglas de .claude/rules/page-objects.md. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={CMD_TEMPLATE}
+        slots={CMD_SLOTS}
+        bank={CMD_BANK}
+        explanation={CMD_EXPLANATION}
+        alreadyDone={isDone('cmdfill')}
+        onSolved={() => markDone('cmdfill')}
+      />
+    </Activity>
+  );
+}
+
+export function InvokeTypeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['invoketype']);
+  return (
+    <Activity
+      title="Invocar el comando"
+      kind="Respuesta escrita"
+      goal="escribir la invocación de un comando guardado en una subcarpeta, con su argumento."
+      done={isDone('invoketype')}
+      consigna="Abajo está dónde quedó el comando. Escribí cómo lo invocás para revisar pages/AgendaPage.ts, y presioná Enter."
+    >
+      <CodeBlock language="text">{INVOKE_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={INVOKE_ACCEPTED}
+        hints={INVOKE_HINTS}
+        explanation={INVOKE_EXPLANATION}
+        placeholder="/..."
+        alreadyDone={isDone('invoketype')}
+        onSolved={() => markDone('invoketype')}
+      />
+    </Activity>
+  );
+}
+
+export function ContentMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['contentmulti']);
+  return (
+    <Activity
+      title="Qué lleva un comando"
+      kind="Marcar todas"
+      goal="distinguir lo que contiene un buen comando de lo que va en otro lado o no va."
+      done={isDone('contentmulti')}
+      consigna="Es 1 pregunta con 7 opciones. Marcá todas las que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={CONTENT_QUESTIONS}
+        alreadyDone={isDone('contentmulti')}
+        onSolved={() => markDone('contentmulti')}
+      />
+    </Activity>
+  );
+}
+
+Hay pedidos que se repiten cada semana con otros datos. Esta entrada muestra cómo guardarlos como comandos que se invocan con una barra: dónde van, cómo reciben argumentos, qué contienen y qué no.
+
+## Conceptos
+
+### El mismo pedido, cada semana
+
+En el equipo de la agenda hay pedidos que se repiten: «reportá este
+defecto en Jira con el formato del equipo» (Jira es el gestor de tickets
+que usa el equipo; cómo el agente crea un ticket ahí se ve en la entrada
+de MCP), «revisá este Page Object
+contra nuestras reglas», «armá el resumen de la regresión de anoche»
+(la corrida completa de la suite que el workflow programado hace cada
+noche, entrada de CI con GitHub Actions). Un buen pedido para cualquiera
+de ellos tiene diez líneas (entrada de pedirle bien). Escribirlo cada vez
+lleva tiempo, y cada persona lo escribe distinto: una se acuerda de pedir
+la evidencia, otra no.
+
+Un **comando** guarda ese pedido en un archivo, escrito con cuidado una
+sola vez, y lo convierte en un atajo: escribís `/reportar-defecto` en la
+sesión y el agente recibe el pedido completo.
+
+### Un comando es un archivo Markdown
+
+En Claude Code, cada archivo `.md` dentro de la carpeta
+`.claude/commands/` es un comando, y su nombre es el del archivo:
+
+```text
+.claude/commands/
+├── reportar-defecto.md      → /reportar-defecto
+└── qa/
+    └── resumen-nocturno.md  → /qa:resumen-nocturno
+```
+
+- Los de `.claude/commands/` del repositorio se suben al repositorio y
+  los usa todo el equipo.
+- Los de `~/.claude/commands/`, en tu carpeta personal, son solo tuyos y
+  están en todos tus proyectos.
+- Una subcarpeta agrega un prefijo al nombre, separado con dos puntos:
+  `qa/resumen-nocturno.md` se invoca como `/qa:resumen-nocturno`.
+
+El contenido del archivo es el pedido que recibe el agente cuando
+escribís el comando, como si lo hubieras tipeado vos.
+
+### Argumentos
+
+Muchas veces el pedido es el mismo y cambia un dato: qué test falló, qué
+archivo revisar. Esos datos se pasan al invocar el comando, después de su
+nombre, y se llaman **argumentos**. Dentro del archivo, `$ARGUMENTS` se
+reemplaza por todo lo que se escribió después del nombre, y `$0`, `$1`,
+etcétera, por cada argumento en orden, empezando desde cero.
+
+El comando completo, con su frontmatter (el bloque entre `---` del
+principio, entrada de instrucciones del proyecto):
+
+```markdown
+---
+description: Reporta un defecto en Jira con el formato del equipo
+argument-hint: "<test que falló> <ticket del Pull Request>"
+---
+
+Reportá un defecto encontrado por el test $0, relacionado con $1.
+
+1. Leé el error-context.md más reciente de ese test en test-results/.
+2. Seguí el formato de docs/guia-de-defectos.md: título
+   «[Componente]: descripción», pasos, resultado esperado, resultado
+   actual y evidencia.
+3. Mostrame el borrador antes de crearlo.
+```
+
+Se invoca así:
+
+```text
+/reportar-defecto "cancelar un turno lo libera" AGE-412
+```
+
+`$0` se reemplaza por `cancelar un turno lo libera` y `$1` por `AGE-412`.
+En el frontmatter, `description` es el texto que aparece en el menú al
+escribir `/`, y `argument-hint` le muestra a quien lo usa qué datos
+espera.
+
+### Qué contiene un buen comando
+
+Un comando es un pedido escrito con cuidado una sola vez, así que lleva
+sus mismas partes:
+
+- **qué recibe**: los argumentos, y de dónde sale el resto del contexto;
+- **pasos concretos y numerados**, en el orden en que hay que hacerlos;
+- **referencias a los documentos del repositorio** que definen el
+  formato, en lugar de copiarlos: «seguí `docs/guia-de-defectos.md`». Si
+  la guía cambia, el comando sigue al día;
+- **qué devuelve** y **cuándo termina**, incluido el punto en el que
+  tiene que esperar tu confirmación, como el paso 3 del ejemplo: crear un
+  ticket es una acción que otros ven, y se confirma antes.
+
+### Qué no va en un comando
+
+- **Secretos**: el archivo se sube al repositorio.
+- **Conocimiento general** que el agente ya tiene, como explicarle qué es
+  un Page Object.
+- **Reglas que valen para todo el proyecto**: esas van en el `CLAUDE.md`,
+  que se carga siempre (entrada de instrucciones del proyecto). Si cada
+  comando las copia, cuando una cambia hay que corregirla en diez
+  archivos.
+- **Un flujo enorme**: si el comando necesita una plantilla larga, una
+  lista de reglas o ejemplos de referencia, conviene una **skill**, que es
+  una carpeta con instrucciones y archivos de apoyo (entrada de skills).
+
+### Comandos y skills
+
+En las versiones actuales de Claude Code, comandos y skills comparten
+mecanismo: los dos crean un atajo con `/`. La skill agrega dos cosas que
+se ven en la entrada siguiente: puede llevar archivos de apoyo, y el
+agente puede usarla por su cuenta cuando la tarea coincide. Un comando de
+un solo archivo sigue siendo la forma más rápida de guardar un pedido que
+se repite.
+
+## Cuándo usarlo
+
+Para pedidos que se repiten igual, con datos que cambian: reportar un
+defecto, revisar un archivo contra las reglas, resumir una corrida.
+
+## Buenas prácticas
+
+- Pasos numerados, con un punto de confirmación antes de acciones que
+  cambian algo afuera, como crear un ticket.
+- Referenciar los documentos del repositorio en lugar de copiarlos.
+- Subir al repositorio los comandos del equipo, en `.claude/commands/`.
+
+## Anti-patrones
+
+- **Un comando con secretos** o datos de cuentas.
+- **Copiar en cada comando** las mismas reglas del proyecto.
+- **Un comando de cientos de líneas** que mezcla varias tareas.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<CmdFillActivity />
+
+<InvokeTypeActivity />
+
+<ContentMultiActivity />

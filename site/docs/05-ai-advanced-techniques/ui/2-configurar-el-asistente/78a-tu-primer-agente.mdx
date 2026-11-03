@@ -1,0 +1,312 @@
+---
+title: "Tu primer agente en el proyecto"
+sidebar_position: 78.5
+---
+
+import Activity from '@site/src/components/Activity';
+import Terminal from '@site/src/components/Terminal';
+import Match from '@site/src/components/Match';
+import DecisionPath from '@site/src/components/DecisionPath';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  START_STEPS,
+  START_EXPLANATION,
+  CMD_LEFT,
+  CMD_RIGHT,
+  CMD_WHY,
+  APPROVE_START,
+  APPROVE_NODES,
+  APPROVE_EXPLANATION,
+} from '@site/src/content/lessons/78a-tu-primer-agente';
+
+export const LESSON_SLUG = 'ai-ui-tu-primer-agente';
+
+export function StartTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['startterm']);
+  return (
+    <Activity
+      title="Antes de la primera tarea"
+      kind="Terminal"
+      goal="comprobar la instalación y dejar el repositorio listo para trabajar con un agente."
+      done={isDone('startterm')}
+      consigna="Son 3 pasos: comprobar la instalación y los dos primeros pasos del «primer día ordenado» de la teoría. Escribí el comando que pide cada instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar los 3."
+    >
+      <Terminal
+        steps={START_STEPS}
+        explanation={START_EXPLANATION}
+        alreadyDone={isDone('startterm')}
+        onSolved={() => markDone('startterm')}
+      />
+    </Activity>
+  );
+}
+
+export function CmdMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['cmdmatch']);
+  return (
+    <Activity
+      title="Un comando para cada momento"
+      kind="Emparejar"
+      goal="elegir el comando de sesión que corresponde a cada situación."
+      done={isDone('cmdmatch')}
+      consigna="Son 6 pares. Elegí una situación de la izquierda y después el comando que la resuelve (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={CMD_LEFT}
+        right={CMD_RIGHT}
+        why={CMD_WHY}
+        leftLabel="Situación"
+        rightLabel="Comando"
+        alreadyDone={isDone('cmdmatch')}
+        onSolved={() => markDone('cmdmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function ApprovePathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['approvepath']);
+  return (
+    <Activity
+      title="¿Lo aprobás?"
+      kind="Escenario encadenado"
+      goal="decidir qué aprobar, qué rechazar y cómo deshacer en una sesión con el agente."
+      done={isDone('approvepath')}
+      consigna="Son 3 situaciones encadenadas de una sesión en la suite de la agenda. En cada una elegí qué hacés; si no es lo correcto, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={APPROVE_START}
+        nodes={APPROVE_NODES}
+        explanation={APPROVE_EXPLANATION}
+        alreadyDone={isDone('approvepath')}
+        onSolved={() => markDone('approvepath')}
+      />
+    </Activity>
+  );
+}
+
+Antes de configurar un agente hay que tenerlo funcionando. Esta entrada muestra cómo instalar Claude Code, iniciar la primera sesión en la suite, aprobar o rechazar cada acción, elegir el modo de trabajo, deshacer lo que no querías y cuidar el contexto y el uso.
+
+## Conceptos
+
+### Qué vas a instalar
+
+**Claude Code** es el agente que se usa en el resto de la sección: un
+programa que corre en la terminal, dentro de la carpeta de tu
+repositorio, y que con tu permiso lee archivos, los edita y corre
+comandos (entrada de cómo funciona un asistente). El modelo de lenguaje
+no se instala: corre en los servidores de Anthropic, y Claude Code se
+comunica con él.
+
+Para usarlo hace falta una cuenta con acceso: una suscripción de Claude
+(planes Pro, Max, Team o Enterprise), una cuenta de Claude Console, que
+se paga por uso, o el acceso que haya configurado tu empresa. Antes de
+usarlo con el código de un cliente, se consulta la política de la
+empresa (entrada de qué no compartir).
+
+### Instalarlo
+
+En macOS, Linux o WSL:
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+En Windows, desde PowerShell:
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+El instalador no muestra el progreso mientras descarga. Al terminar, se
+abre una terminal nueva y se comprueba:
+
+```bash
+claude --version
+```
+
+```text
+2.1.308 (Claude Code)
+```
+
+Si la terminal responde que no encuentra `claude`, la carpeta donde se
+instaló todavía no está en el `PATH`, la lista de carpetas donde la
+terminal busca programas; la documentación oficial explica cómo
+agregarla. El número de versión cambia seguido: la instalación nativa se
+actualiza sola.
+
+### La primera sesión
+
+Una **sesión** es una conversación con el agente, que empieza al
+ejecutar `claude` y termina al salir. Se inicia desde la carpeta del
+repositorio, porque esa carpeta es la que el agente puede ver:
+
+```bash
+cd agenda-e2e
+claude
+```
+
+La primera vez pide iniciar sesión con tu cuenta en el navegador; después
+queda guardada. Arriba del lugar donde se escribe aparecen la versión, el
+modelo que está usando y la carpeta de trabajo.
+
+Un buen primer pedido no cambia nada; sirve para ver cómo trabaja:
+
+```text
+Explicame cómo está organizada esta suite: dónde están los tests, los
+Page Objects y las fixtures, y cómo se corren.
+```
+
+Vas a ver que el agente lee archivos por su cuenta, uno tras otro, y
+después responde. Leer no necesita tu permiso.
+
+### Aprobar una acción
+
+Editar un archivo o correr un comando, en cambio, sí lo necesita. Cuando
+el agente quiere hacerlo, se detiene y muestra un aviso con lo que va a
+hacer. Para un comando, el aviso se titula «Bash command», muestra una
+descripción («Run the test suite») y el comando exacto, por ejemplo
+`npx playwright test tests/agenda/cancelar.spec.ts`, y pregunta «Do you
+want to proceed?» con estas opciones:
+
+- **Yes**: lo hace esta vez.
+- **Yes, and don't ask again for…**: guarda una regla con el patrón del
+  comando, por ejemplo `npx playwright test *`, y no vuelve a preguntar
+  por comandos que empiecen así en este repositorio, ni en esta sesión
+  ni en las siguientes. Conviene solo para comandos que entendés y que
+  no modifican nada fuera de la suite, como correr los tests.
+- **No**: no lo hace. Con `Tab` podés agregarle un comentario que diga
+  qué hacer en su lugar.
+
+Según el modo, puede aparecer otra opción para pasar a un modo más
+automático; al principio, conviene no usarla. Para editar un archivo, la
+aprobación dura hasta el final de la sesión; para un comando, «don't ask
+again» queda guardado en el archivo `.claude/settings.local.json` del
+repositorio.
+
+Antes de aprobar, se lee lo que va a hacer. Un comando que borra
+archivos, que sube cambios con `git push` o que apunta a un entorno que
+no es el de pruebas se rechaza o se pregunta primero. Las reglas
+guardadas y cómo escribirlas a mano se ven en la entrada de permisos.
+
+### Los modos de trabajo
+
+Con `Shift+Tab` se cambia el **modo de permisos** de la sesión, que
+decide qué hace el agente sin preguntarte. La línea de abajo de la
+pantalla muestra cuál está activo. Los tres que vas a usar al principio:
+
+- **Manual** (`default`): pregunta antes de editar o correr comandos.
+  Es el modo para empezar.
+- **Aceptar ediciones** (`acceptEdits`): edita archivos sin preguntar;
+  los comandos los sigue preguntando.
+- **Plan** (`plan`): solo lee y propone un plan; no edita nada hasta que
+  lo aprobás (entrada de pedirle bien).
+
+### Deshacer
+
+Si el agente cambió algo que no querías, hay dos formas de volver atrás:
+
+- **`/rewind`**, o `Esc` dos veces con el campo de texto vacío: muestra
+  la lista de tus pedidos de la sesión y permite volver los archivos, la
+  conversación o los dos al momento de uno de ellos. Funciona sobre las
+  ediciones que hizo el agente con su herramienta de edición. Lo que
+  cambió un comando de la terminal, como un archivo generado por un
+  script, no siempre se puede volver así.
+- **Git**: la red de seguridad de siempre (entrada de deshacer cambios).
+  Para que sirva, la tarea tiene que empezar con el repositorio sin
+  cambios pendientes y en una rama propia. Así, todo lo que aparezca
+  cambiado al final lo hizo el agente. Cómo se prepara, en el primer día
+  ordenado de abajo.
+
+Si el agente está haciendo algo que no querés, `Esc` lo detiene en el
+momento.
+
+### Cuidar el contexto y el uso
+
+Todo lo que el agente lee y ejecuta queda en el contexto de la sesión
+(entrada de cómo funciona un asistente). Cinco comandos, que se escriben
+dentro de la sesión, ayudan a manejarlo:
+
+| Comando | Para qué |
+| :- | :- |
+| `/clear` | Empezar una conversación nueva, con el contexto vacío. Para cambiar de tarea |
+| `/compact` | Resumir la conversación para liberar contexto, sin perder el hilo |
+| `/context` | Ver cuánto del contexto está ocupado y por qué |
+| `/usage` | Ver el costo de la sesión y cuánto del límite del plan se usó |
+| `/model` | Cambiar el modelo: uno más chico para tareas simples |
+
+Y dos formas de retomar desde la terminal: `claude -c` continúa la última
+conversación de esa carpeta, y `claude -r` muestra una lista para elegir
+cuál retomar.
+
+### Un primer día ordenado
+
+Antes de la primera tarea, en la terminal, dentro de la carpeta de la
+suite (`agenda-e2e`):
+
+1. **Comprobar el estado del repositorio** con `git status`. Tiene que
+   decir:
+
+   ```text
+   On branch main
+   nothing to commit, working tree clean
+   ```
+
+   `working tree clean` significa que no hay cambios pendientes de
+   ningún tipo. Se usa `git status` y no `git diff` porque `git diff`
+   solo muestra cambios en archivos que Git ya conoce: un archivo nuevo
+   que nadie agregó no aparece, y el repositorio parecería limpio sin
+   estarlo (entrada de ver y entender el historial).
+
+2. **Crear una rama propia para la tarea** con
+   `git switch -c agente/cancelacion` (entrada de ramas). Responde
+   `Switched to a new branch 'agente/cancelacion'`. Si la tarea sale
+   mal, la rama `main` quedó intacta.
+
+3. **Iniciar el agente** con `claude`, en modo Manual.
+
+4. **Un pedido de lectura** para ver cómo entiende el proyecto.
+
+5. **Una tarea chica**, con un buen pedido (entrada de pedirle bien),
+   aprobando cada acción después de leerla.
+
+6. **Revisar lo que cambió**, como un Pull Request (entrada de revisar
+   lo que produce): `git status` lista los archivos modificados y los
+   nuevos; `git diff` muestra línea por línea los cambios en los
+   modificados.
+
+7. **`/clear`** antes de pasar a otra tarea.
+
+En la entrada siguiente vas a ver cómo hacer que el agente sepa, desde el
+primer pedido de cada sesión, cómo funciona tu suite.
+
+## Cuándo usarlo
+
+La primera vez que trabajás con un agente en un proyecto, y cada vez que
+empezás una tarea: rama propia, modo Manual y lectura antes de aprobar.
+
+## Buenas prácticas
+
+- Iniciar la sesión en la carpeta del repositorio, en una rama propia.
+- Leer cada acción antes de aprobarla.
+- «Don't ask again» solo para comandos que entendés y no modifican nada
+  fuera de la suite.
+- `/clear` al cambiar de tarea; `/usage` para ver lo que se está
+  consumiendo.
+
+## Anti-patrones
+
+- **Aprobar todo sin leer** para que el agente termine más rápido.
+- **Trabajar sobre cambios propios sin guardar**: después no se distingue
+  qué hizo el agente.
+- **Una sola sesión** para todas las tareas del día.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<StartTerminalActivity />
+
+<CmdMatchActivity />
+
+<ApprovePathActivity />

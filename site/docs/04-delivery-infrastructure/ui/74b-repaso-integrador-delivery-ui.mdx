@@ -1,0 +1,191 @@
+---
+title: "Repaso integrador: entrega de la suite de UI"
+sidebar_position: 74.5
+---
+
+import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
+import FindInCode from '@site/src/components/FindInCode';
+import Terminal from '@site/src/components/Terminal';
+import Classify from '@site/src/components/Classify';
+import Order from '@site/src/components/Order';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  CI_START,
+  CI_NODES,
+  CI_EXPLANATION,
+  WF_LINES,
+  WF_RULE_LABELS,
+  MIX_STEPS,
+  MIX_EXPLANATION,
+  TRIAGE_ITEMS,
+  TRIAGE_COLUMNS,
+  FLOW_ITEMS,
+  FLOW_CORRECT,
+  FLOW_RULES,
+  READ_QUIZ,
+} from '@site/src/content/lessons/74b-repaso-integrador-delivery-ui';
+
+export const LESSON_SLUG = 'delivery-ui-repaso-integrador';
+
+export function CiPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['cipath']);
+  return (
+    <Activity
+      title="De la suite local a CI"
+      kind="Escenario encadenado"
+      goal="decidir qué corre en cada momento, cómo acelerar la regresión, dónde van los secretos y cómo fijar el entorno (entradas 70, 71, 73, 73a y 74)."
+      done={isDone('cipath')}
+      consigna="Son 4 decisiones encadenadas sobre la suite de la agenda. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la cuarta."
+    >
+      <DecisionPath
+        startId={CI_START}
+        nodes={CI_NODES}
+        explanation={CI_EXPLANATION}
+        alreadyDone={isDone('cipath')}
+        onSolved={() => markDone('cipath')}
+      />
+    </Activity>
+  );
+}
+
+export function WfFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['wffind']);
+  return (
+    <Activity
+      title="Revisión de los workflows"
+      kind="Buscar en el código"
+      goal="diagnosticar secretos expuestos, pasos que no corren cuando hacen falta y versiones desalineadas (entradas 71, 73 y 74)."
+      done={isDone('wffind')}
+      consigna="Son 8 líneas de los workflows de la agenda. Elegí cada una y decí qué problema tiene (secreto expuesto, paso o job que no corre en el momento correcto, o versión de Playwright desalineada), o si no tiene problema. Se completa cuando encontrás las 5 que tienen un problema."
+    >
+      <FindInCode
+        lines={WF_LINES}
+        ruleLabels={WF_RULE_LABELS}
+        okLabel="Sin problema"
+        prompt="¿qué problema tiene?"
+        itemLabel="Línea del workflow"
+        counterLabel="líneas con problema encontradas"
+        alreadyDone={isDone('wffind')}
+        onSolved={() => markDone('wffind')}
+      />
+    </Activity>
+  );
+}
+
+export function MixTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['mixterm']);
+  return (
+    <Activity
+      title="Subsets, mediciones y contenedores"
+      kind="Terminal"
+      goal="combinar filtros con shards, medir un test inestable y listar tests dentro de un contenedor (entradas 70, 71, 72 y 74)."
+      done={isDone('mixterm')}
+      consigna="Son 3 pasos sobre la suite de la agenda. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el tercer paso."
+    >
+      <Terminal
+        steps={MIX_STEPS}
+        explanation={MIX_EXPLANATION}
+        alreadyDone={isDone('mixterm')}
+        onSolved={() => markDone('mixterm')}
+      />
+    </Activity>
+  );
+}
+
+export function TriageClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['triageclassify']);
+  return (
+    <Activity
+      title="¿Qué hacer con esta falla?"
+      kind="Clasificar"
+      goal="decidir, para cada falla de CI, si se corrige el test, se reporta un defecto o se revisa el entorno (entradas 70, 71, 72, 73a y 74)."
+      done={isDone('triageclassify')}
+      consigna="Son 7 fallas de la suite de la agenda. Arrastrá cada una a Corregir el test, Reportar un defecto o Revisar el entorno. Regla para los casos dudosos: preguntate qué tiene que cambiar para que el resultado sea correcto: el código del test, la aplicación o el lugar donde corre. Se completa cuando las 7 están en su caja."
+    >
+      <Classify
+        items={TRIAGE_ITEMS}
+        columns={TRIAGE_COLUMNS}
+        itemLabel="Falla"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('triageclassify')}
+        onSolved={() => markDone('triageclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function FlowOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['floworder']);
+  return (
+    <Activity
+      title="Una corrida con shards, de punta a punta"
+      kind="Ordenar"
+      goal="ordenar lo que pasa en un workflow con matriz de shards, desde las copias del job hasta el aviso (entradas 71 y 73)."
+      done={isDone('floworder')}
+      consigna="Son 7 momentos de una corrida del workflow e2e.yml, desordenados. Ordenalos y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={FLOW_ITEMS}
+        correctOrder={FLOW_CORRECT}
+        rules={FLOW_RULES}
+        onSolved={() => markDone('floworder')}
+      />
+    </Activity>
+  );
+}
+
+export function ReadQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['readquiz']);
+  return (
+    <Activity
+      title="Leer lo que pasó en la entrega"
+      kind="Elegí la opción"
+      goal="explicar un shard vacío, decidir qué hacer con los flaky y resolver una sesión que falta en un contenedor (entradas 71, 72 y 74)."
+      done={isDone('readquiz')}
+      consigna="Son 3 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={READ_QUIZ}
+        onSolved={() => markDone('readquiz')}
+      />
+    </Activity>
+  );
+}
+
+Ya viste, una por una, las 6 entradas de la entrega de la suite de UI: tags, anotaciones y subsets; paralelismo y sharding; tests inestables; CI con GitHub Actions; qué corre y cuándo; y Docker. En la práctica se combinan: un workflow que corre en una imagen fija, reparte la suite en shards, elige qué correr según el momento y deja evidencia para el triage.
+
+## La suite de la agenda en CI
+
+Todos los ejercicios de abajo usan el mismo proyecto: la suite de la
+agenda de turnos de la sección III, ahora integrada a la entrega. Así
+está armada:
+
+- Los tests tienen tags de alcance (`@smoke`), prioridad (`@p0`, `@p1`,
+  `@p2`) y funcionalidad (`@agenda`, `@pacientes`), y algunos son `@lento`.
+- La configuración tiene `fullyParallel: true` y `retries: 2` en CI.
+- El workflow `e2e.yml` corre en cada Pull Request, dentro de la imagen
+  `mcr.microsoft.com/playwright:v1.64.1-noble`, en tres shards con una
+  matriz que corren con `--reporter=blob`; un job une los reportes y otro
+  avisa si algo falló.
+- El workflow `regresion.yml` corre todas las noches con `schedule`, lee
+  `BASE_URL` como variable y la contraseña de la recepcionista como
+  secreto, guarda el reporte y avisa en Slack si algo falla.
+- La imagen propia `agenda-e2e` se arma con el Dockerfile de la raíz.
+
+## Práctica
+
+Son 6 ejercicios y entre todos cubren las 6 entradas de la entrega: cada uno dice en su objetivo qué entradas repasa. Todos usan el proyecto de la agenda en CI. Son independientes entre sí y cada bloque avisa cuándo está resuelto.
+
+<CiPathActivity />
+
+<WfFindActivity />
+
+<MixTerminalActivity />
+
+<TriageClassifyActivity />
+
+<FlowOrderActivity />
+
+<ReadQuizActivity />

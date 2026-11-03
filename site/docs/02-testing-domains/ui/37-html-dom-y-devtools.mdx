@@ -1,0 +1,435 @@
+---
+title: "La página por dentro: HTML, DOM y DevTools"
+sidebar_position: 37
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import SpotToken from '@site/src/components/SpotToken';
+import FillBlank from '@site/src/components/FillBlank';
+import MultiSelect from '@site/src/components/MultiSelect';
+import Quiz from '@site/src/components/Quiz';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  ROLE_LEFT,
+  ROLE_RIGHT,
+  ROLE_WHY,
+  NAME_ROUNDS,
+  NAME_PROMPT,
+  LABEL_TEMPLATE,
+  LABEL_SLOTS,
+  LABEL_BANK,
+  LABEL_EXPLANATION,
+  VISIBLE_QUESTIONS,
+  VISIBLE_HTML,
+  DOM_QUIZ,
+  DOM_TREE,
+} from '@site/src/content/lessons/37-html-dom-y-devtools';
+
+export const LESSON_SLUG = 'domains-ui-html-dom-devtools';
+
+export function RoleMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['rolematch']);
+  return (
+    <Activity
+      title="Del HTML al árbol de accesibilidad"
+      kind="Emparejar"
+      goal="predecir el rol y el nombre con que aparece cada elemento de una pantalla de turnos en el árbol de accesibilidad."
+      done={isDone('rolematch')}
+      consigna="Son 7 pares. Elegí un fragmento de HTML de la izquierda y después la línea con que aparece en el árbol de accesibilidad (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 7."
+    >
+      <Match
+        left={ROLE_LEFT}
+        right={ROLE_RIGHT}
+        why={ROLE_WHY}
+        leftLabel="HTML"
+        rightLabel="En el árbol"
+        alreadyDone={isDone('rolematch')}
+        onSolved={() => markDone('rolematch')}
+      />
+    </Activity>
+  );
+}
+
+export function NameSpotActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['namespot']);
+  return (
+    <Activity
+      title="¿De dónde sale el nombre?"
+      kind="Señalar en la línea"
+      goal="identificar qué parte del HTML le da a cada elemento su nombre accesible."
+      done={isDone('namespot')}
+      consigna="Son 5 líneas de HTML. En cada una, hacé click en la parte que le da el nombre accesible al campo o al botón. Si no es esa, leé la pista y probá otra. Se completa al resolver las 5."
+    >
+      <SpotToken
+        rounds={NAME_ROUNDS}
+        prompt={NAME_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('namespot')}
+        onSolved={() => markDone('namespot')}
+      />
+    </Activity>
+  );
+}
+
+export function LabelFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['labelfill']);
+  return (
+    <Activity
+      title="Ponerle nombre a tres elementos"
+      kind="Completar huecos"
+      goal="asociar un texto a un campo y darle nombre a dos botones que no tienen texto."
+      done={isDone('labelfill')}
+      consigna="El campo DNI, el botón de la cruz y el botón de la lupa no tienen nombre accesible. Completá los 4 huecos con las fichas del banco para que se llamen DNI, Cerrar y Buscar, y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={LABEL_TEMPLATE}
+        slots={LABEL_SLOTS}
+        bank={LABEL_BANK}
+        explanation={LABEL_EXPLANATION}
+        alreadyDone={isDone('labelfill')}
+        onSolved={() => markDone('labelfill')}
+      />
+    </Activity>
+  );
+}
+
+export function VisibleActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['visible']);
+  return (
+    <Activity
+      title="Presentes, pero ¿visibles?"
+      kind="Marcar todas"
+      goal="aplicar la regla de visibilidad de Playwright a elementos que están en el DOM."
+      done={isDone('visible')}
+      consigna="Es 1 pregunta con 5 opciones sobre el HTML de arriba. Marcá todos los párrafos que Playwright considera visibles y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <CodeBlock language="html">{VISIBLE_HTML}</CodeBlock>
+      <MultiSelect
+        questions={VISIBLE_QUESTIONS}
+        alreadyDone={isDone('visible')}
+        onSolved={() => markDone('visible')}
+      />
+    </Activity>
+  );
+}
+
+export function DomQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['domquiz']);
+  return (
+    <Activity
+      title="Leer el DOM y DevTools"
+      kind="Elegí la opción"
+      goal="interpretar lo que muestran el código fuente, la búsqueda de Elements, la pestaña Accessibility y un árbol del DOM."
+      done={isDone('domquiz')}
+      consigna="Son 4 preguntas de opción única. La tercera usa el árbol de arriba. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 4."
+    >
+      <CodeBlock language="text">{DOM_TREE}</CodeBlock>
+      <Quiz
+        questions={DOM_QUIZ}
+        onSolved={() => markDone('domquiz')}
+      />
+    </Activity>
+  );
+}
+
+Un test de UI encuentra un campo o un botón y actúa sobre él, igual que una persona. Para decirle cuál, hace falta saber cómo está hecha la página por dentro: qué elementos tiene, cómo se llaman y cómo los ve el navegador.
+
+## Conceptos
+
+### Lo que recibe el navegador: HTML
+
+Una página web llega al navegador como un archivo de texto en **HTML**, un
+lenguaje que describe qué hay en la página: un título, un campo, un botón,
+un enlace. Cada pieza es un **elemento**, y casi todos se escriben con una
+etiqueta de apertura, un contenido y una etiqueta de cierre:
+
+```html
+<button>Ingresar</button>
+```
+
+`<button>` abre el elemento, `Ingresar` es su contenido y `</button>` lo
+cierra. Algunos elementos no tienen contenido ni etiqueta de cierre, como
+`<input>`, que es un campo donde se escribe.
+
+Los elementos se anidan unos dentro de otros. Este es el formulario de
+ingreso de la biblioteca online de la entrada anterior:
+
+```html
+<form id="login">
+  <h1>Ingresar</h1>
+  <label for="email">Email</label>
+  <input id="email" name="email" type="email" placeholder="tu@mail.com">
+  <label for="pass">Contraseña</label>
+  <input id="pass" name="password" type="password">
+  <label><input type="checkbox" name="remember"> Recordarme</label>
+  <button type="submit" class="btn btn-primary" data-testid="login-submit">Ingresar</button>
+  <a href="/recuperar">Olvidé mi contraseña</a>
+  <p class="error" hidden>Email o contraseña incorrectos</p>
+</form>
+```
+
+Los elementos que aparecen en casi cualquier pantalla son pocos:
+
+- `<form>`: agrupa los campos de un formulario.
+- `<h1>` a `<h6>`: títulos, de mayor a menor nivel.
+- `<label>`: el texto que describe un campo.
+- `<input>`: un campo. Su atributo `type` define cuál: texto, email,
+  contraseña, casilla de verificación (`checkbox`), opción única (`radio`).
+- `<select>` y `<option>`: una lista desplegable y sus opciones.
+- `<textarea>`: un campo de texto de varias líneas.
+- `<button>`: un botón.
+- `<a>`: un enlace a otra página.
+- `<nav>`: un bloque de navegación, como el menú principal.
+- `<p>`, `<span>` y `<div>`: un párrafo, un fragmento de texto y un
+  contenedor genérico, sin significado propio.
+- `<ul>`, `<ol>` y `<li>`: listas y sus ítems.
+- `<table>`, `<tr>`, `<th>` y `<td>`: una tabla, sus filas, sus
+  encabezados y sus celdas.
+
+### Atributos
+
+Dentro de la etiqueta de apertura van los **atributos**: pares
+`nombre="valor"` que agregan información al elemento. En el botón del
+formulario, `type="submit"` indica que envía el formulario,
+`class="btn btn-primary"` le asigna dos clases y
+`data-testid="login-submit"` es un atributo propio.
+
+Los atributos que más se leen al automatizar:
+
+- `id`: identificador del elemento. Tiene que ser único en la página.
+- `class`: una o varias clases separadas por espacios. Las usa el diseño
+  visual, y varios elementos pueden compartir la misma.
+- `name`: el nombre con el que se envía el valor de un campo.
+- `type`: el tipo de `<input>` o de `<button>`.
+- `placeholder`: el texto de ejemplo que se ve dentro de un campo vacío.
+- `href`: el destino de un enlace.
+- `hidden`: oculta el elemento.
+- `aria-label`: un nombre para el elemento, pensado para tecnologías de
+  asistencia como los lectores de pantalla.
+- `data-*`: atributos propios del equipo, como `data-testid`. No cambian
+  nada visible; existen para que el código los lea.
+
+Un atributo no siempre es confiable para encontrar un elemento. La clase
+`btn-primary` describe cómo se ve el botón, no qué es: el día que diseño
+cambie el estilo, la clase cambia y el botón sigue siendo el mismo. Ese
+criterio se desarrolla en las entradas de locators.
+
+### El DOM
+
+Al recibir el HTML, el navegador lo convierte en un árbol de objetos: el
+**DOM** (Document Object Model). Cada elemento es un nodo, y el
+anidamiento define las relaciones:
+
+```text
+form#login
+├── h1 "Ingresar"
+├── label "Email"
+├── input#email
+├── label "Contraseña"
+├── input#pass
+├── label "Recordarme"
+│   └── input (checkbox)
+├── button "Ingresar"
+├── a "Olvidé mi contraseña"
+└── p.error (oculto)
+```
+
+`form` es el **padre** de `h1`, de los `label`, del `button` y del resto:
+todos ellos son sus **hijos**, y **hermanos** entre sí. El `input` de la
+casilla es hijo del tercer `label`, no del `form` directamente. En la
+notación del árbol, `#login` indica el `id` y `.error`, la clase.
+
+El DOM no es una copia fija del HTML original. El código JavaScript de la
+página lo modifica mientras la persona la usa. En la biblioteca, el
+párrafo de error llega con el atributo `hidden`; al presionar «Ingresar»
+con datos incorrectos, un script se lo quita. El archivo HTML sigue
+diciendo `hidden`, pero el DOM pasa a tener esto:
+
+```html
+<p class="error">Email o contraseña incorrectos</p>
+```
+
+Una herramienta de automatización trabaja sobre el DOM, el árbol vivo, no
+sobre el archivo que llegó. Por eso un elemento que no aparece en el
+código fuente de la página puede aparecer en el DOM unos segundos después,
+y al revés.
+
+### Roles y nombre accesible
+
+Además del DOM, el navegador arma un **árbol de accesibilidad**: la
+versión de la página que reciben los lectores de pantalla. En ese árbol,
+cada elemento tiene un **rol** (qué es: un botón, un campo, un enlace) y
+un **nombre accesible** (cuál es: «Ingresar», «Email»).
+
+El rol sale del elemento HTML. Los que más aparecen al automatizar:
+
+- `button`: `<button>`.
+- `link`: `<a>` con `href`.
+- `heading`: `<h1>` a `<h6>`, con su nivel.
+- `textbox`: `<input>` de texto, email o contraseña, y `<textarea>`.
+- `searchbox`: `<input type="search">`, un campo de búsqueda.
+- `checkbox` y `radio`: `<input type="checkbox">` y `<input type="radio">`.
+- `combobox` y `option`: `<select>` y cada una de sus `<option>`.
+- `list` y `listitem`: `<ul>` u `<ol>`, y cada `<li>`.
+- `navigation`: `<nav>`.
+- `table`, `row`, `columnheader` y `cell`: `<table>`, `<tr>`, `<th>` y
+  `<td>`.
+- `img`: `<img>` con `alt`.
+- `paragraph`: `<p>`.
+
+Un `<div>` o un `<span>` no tienen rol propio: son contenedores genéricos.
+Así describe Playwright el formulario de la biblioteca:
+
+```text
+- heading "Ingresar" [level=1]
+- text: Email
+- textbox "Email":
+  - /placeholder: tu@mail.com
+- text: Contraseña
+- textbox "Contraseña"
+- checkbox "Recordarme"
+- text: Recordarme
+- button "Ingresar"
+- link "Olvidé mi contraseña":
+  - /url: /recuperar
+```
+
+Línea por línea: el `<h1>` es un `heading` de nivel 1; los dos `<input>`
+de texto son `textbox` (el de contraseña también, aunque oculte lo que se
+escribe); la casilla es un `checkbox`; el `<button>`, un `button`; y el
+`<a>`, un `link` con su destino. Las líneas `text` son los textos sueltos
+de los `label`. El párrafo de error no figura: está oculto, y lo oculto no
+forma parte del árbol de accesibilidad.
+
+El nombre accesible sale, según el elemento, de distintas fuentes:
+
+- **El contenido**: un `<button>Ingresar</button>` se llama «Ingresar».
+- **Un `<label>` asociado**: `<label for="email">` se conecta con el
+  campo que tiene `id="email"`, y el campo se llama «Email». Si el
+  `<input>` está dentro del `<label>`, como la casilla «Recordarme», la
+  asociación es directa.
+- **`aria-label`**: `<button aria-label="Cerrar">×</button>` se llama
+  «Cerrar», no «×».
+- **El `alt` de una imagen**: un botón que solo contiene
+  `<img alt="Buscar">` se llama «Buscar».
+- **`aria-labelledby`**: apunta al `id` de otro elemento, y el texto de
+  ese elemento pasa a ser el nombre. `<select aria-labelledby="t-pago">`
+  se llama como el título `<h2 id="t-pago">Medio de pago</h2>`.
+- **`title`** o **`placeholder`**, como último recurso, cuando no hay
+  ninguna de las anteriores. `<input title="Código postal">` se llama
+  «Código postal».
+
+Si nada de eso existe, el elemento no tiene nombre. Un campo con un texto
+al lado que no está asociado figura como un `textbox` sin nombre, y un
+`<div>` con un evento de click no figura como botón, sino como texto
+suelto:
+
+```html
+<input type="text" id="socio"> <span>N.º de socio</span>
+<div class="btn" onclick="buscar()">Buscar</div>
+```
+
+```text
+- textbox
+- text: N.º de socio Buscar
+```
+
+El campo es un `textbox` sin nombre, y «Buscar» quedó mezclado con el
+texto de al lado, como un texto más. Para una persona que ve la pantalla, los dos funcionan igual que un campo
+con su etiqueta y un botón. Para un lector de pantalla, y para una
+herramienta que busca "el campo llamado N.º de socio" o "el botón
+Buscar", no existen. Por eso el árbol de accesibilidad importa al
+automatizar: es la forma en que Playwright recomienda encontrar los
+elementos (entrada de locators orientados al usuario).
+
+### Presente no es lo mismo que visible
+
+Un elemento puede estar en el DOM y no verse. Playwright considera
+**visible** a un elemento que ocupa un espacio en la pantalla (su caja no
+está vacía) y que no tiene `visibility: hidden`. Según esa regla:
+
+- `hidden` o `display: none`: no visible. El elemento no ocupa espacio.
+- `visibility: hidden`: no visible. Ocupa su espacio, pero no se muestra.
+- `opacity: 0`: **visible**. Es transparente, pero ocupa su espacio y
+  recibe clicks.
+
+El párrafo de error de la biblioteca está presente desde que carga la
+página, pero no es visible hasta que falla un ingreso. Un test que solo
+comprobara que el párrafo existe pasaría siempre, aunque el mensaje nunca
+se mostrara; lo que hay que verificar es que sea visible. Esa diferencia
+vuelve en la entrada de assertions.
+
+### Inspeccionar con DevTools
+
+Las herramientas de desarrollo del navegador (**DevTools**) muestran el
+DOM vivo de la página. En Chrome se abren con `F12`, o con
+`Cmd+Option+I` en macOS y `Ctrl+Shift+I` en Windows y Linux. Tres
+herramientas cubren casi todo lo que se necesita al automatizar:
+
+- **Seleccionar un elemento** (`Cmd+Shift+C` o `Ctrl+Shift+C`): al pasar
+  el mouse por la página, resalta cada elemento; al hacer click, lo
+  muestra en el panel **Elements**, con sus atributos.
+- **Buscar en Elements** (`Cmd+F` o `Ctrl+F` con el panel abierto): acepta
+  un texto, un selector CSS o un XPath, y muestra cuántas coincidencias
+  hay. Si `[data-testid="login-submit"]` da «1 of 1», ese atributo
+  identifica a un único elemento. Como la búsqueda también compara texto
+  plano, un término corto como `button` puede coincidir además con
+  atributos como `type="button"`: para contar elementos conviene un
+  selector específico.
+- **Accessibility** (pestaña dentro de Elements): muestra el rol y el
+  nombre accesible que calculó el navegador para el elemento
+  seleccionado.
+
+Un ejemplo de uso: en la biblioteca, el campo de búsqueda del catálogo no
+aparece cuando se lo busca como "el campo llamado Buscar libro". Al
+seleccionarlo con DevTools, la pestaña Accessibility muestra rol
+`textbox` y ningún nombre: el texto «Buscar libro» que se ve al lado es
+un `<span>` sin asociar. El problema no está en la búsqueda sino en la
+página, y se reporta como un defecto de accesibilidad: el campo necesita
+un `<label>` o un `aria-label`.
+
+`Ver código fuente` (`Cmd+Option+U` o `Ctrl+U`) muestra otra cosa: el HTML
+tal como llegó del servidor, sin los cambios que hizo JavaScript después.
+
+## Cuándo usarlo
+
+Cada vez que hay que automatizar algo sobre una pantalla: antes de
+escribir un test se inspecciona cada elemento que el test va a usar, su
+rol, su nombre y sus atributos. También al investigar un test que no
+encuentra un elemento, para ver qué tiene el DOM en ese momento.
+
+## Buenas prácticas
+
+- Mirar el DOM con DevTools, no el código fuente, para saber qué hay en la
+  página en un momento dado.
+- Revisar en la pestaña Accessibility el rol y el nombre de cada elemento
+  que el test va a usar.
+- Reportar los campos sin etiqueta asociada y los botones sin nombre: son
+  defectos de accesibilidad, no un problema del test.
+- Verificar que un elemento sea visible, no solo que esté presente.
+
+## Anti-patrones
+
+- **Leer el código fuente** para saber qué hay en la página después de que
+  la persona interactuó.
+- **Tomar una clase de estilo** (`btn-primary`) como identidad de un
+  elemento.
+- **Dar por visible** un elemento porque está en el DOM.
+- **Asumir que algo con forma de botón es un botón**: un `<div>` con un
+  click no tiene rol `button`.
+
+## Práctica
+
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<RoleMatchActivity />
+
+<NameSpotActivity />
+
+<LabelFillActivity />
+
+<VisibleActivity />
+
+<DomQuizActivity />

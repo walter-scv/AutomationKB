@@ -1,0 +1,294 @@
+---
+title: "Repaso integrador: UI"
+sidebar_position: 59.5
+---
+
+import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
+import FindInCode from '@site/src/components/FindInCode';
+import Order from '@site/src/components/Order';
+import Terminal from '@site/src/components/Terminal';
+import Match from '@site/src/components/Match';
+import FillBlank from '@site/src/components/FillBlank';
+import SpotToken from '@site/src/components/SpotToken';
+import MultiSelect from '@site/src/components/MultiSelect';
+import Quiz from '@site/src/components/Quiz';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  SUITE_START,
+  SUITE_NODES,
+  SUITE_EXPLANATION,
+  DIAG_LINES,
+  DIAG_RULE_LABELS,
+  FILE_ITEMS,
+  FILE_CORRECT,
+  FILE_RULES,
+  RUN_STEPS,
+  RUN_EXPLANATION,
+  MECH_LEFT,
+  MECH_RIGHT,
+  MECH_WHY,
+  CFG_TEMPLATE,
+  CFG_SLOTS,
+  CFG_BANK,
+  CFG_EXPLANATION,
+  MIX_ROUNDS,
+  MIX_PROMPT,
+  CHECK_QUESTIONS,
+  FAIL_QUIZ,
+  FAIL_OUTPUT,
+  ROW_PREFIX,
+  ROW_STEPS,
+  ROW_EXPLANATION,
+} from '@site/src/content/lessons/59b-repaso-integrador-ui';
+
+export const LESSON_SLUG = 'domains-ui-repaso-integrador';
+
+export function SuitePathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['suitepath']);
+  return (
+    <Activity
+      title="De la primera suite al primer fallo de CI"
+      kind="Escenario encadenado"
+      goal="decidir qué automatizar, completar la instalación, conservar la evidencia de un fallo de CI, corregirlo y ubicar la preparación común (entradas 36, 38, 39, 42, 47, 48, 54 y 55)."
+      done={isDone('suitepath')}
+      consigna="Son 5 decisiones encadenadas sobre la suite de la agenda: cada una depende de la anterior. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la quinta."
+    >
+      <DecisionPath
+        startId={SUITE_START}
+        nodes={SUITE_NODES}
+        explanation={SUITE_EXPLANATION}
+        alreadyDone={isDone('suitepath')}
+        onSolved={() => markDone('suitepath')}
+      />
+    </Activity>
+  );
+}
+
+export function DiagFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['diagfind']);
+  return (
+    <Activity
+      title="Revisión de un test de la agenda"
+      kind="Clasificar"
+      goal="diagnosticar locators, assertions y esperas de un test de la agenda (entradas 43, 44, 45, 46, 47, 48 y 52)."
+      done={isDone('diagfind')}
+      consigna="Son 8 líneas de tests de la agenda. Elegí cada una y decí qué problema tiene (locator frágil o ambiguo, assertion que no reintenta o aflojada, o espera fija), o si no tiene problema. Se completa cuando encontrás las 5 que tienen un problema."
+    >
+      <FindInCode
+        lines={DIAG_LINES}
+        ruleLabels={DIAG_RULE_LABELS}
+        okLabel="Sin problema"
+        prompt="¿qué problema tiene?"
+        itemLabel="Línea"
+        counterLabel="líneas con problema encontradas"
+        alreadyDone={isDone('diagfind')}
+        onSolved={() => markDone('diagfind')}
+      />
+    </Activity>
+  );
+}
+
+export function FileOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['fileorder']);
+  return (
+    <Activity
+      title="Armar el test de cancelar un turno"
+      kind="Ordenar"
+      goal="ordenar un test completo con importación, grupo, tag, pasos, un diálogo y su verificación (entradas 40, 47 y 51)."
+      done={isDone('fileorder')}
+      consigna="Son las 8 líneas principales de un archivo de test de la agenda (sin los cierres de llaves). Ordenalas y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={FILE_ITEMS}
+        correctOrder={FILE_CORRECT}
+        rules={FILE_RULES}
+        onSolved={() => markDone('fileorder')}
+      />
+    </Activity>
+  );
+}
+
+export function RunTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['runterm']);
+  return (
+    <Activity
+      title="Correr justo lo necesario"
+      kind="Terminal"
+      goal="filtrar la suite por tag, proyecto y línea, y abrir el reporte de un fallo (entradas 41 y 54)."
+      done={isDone('runterm')}
+      consigna="Son 3 pasos sobre la suite de la agenda. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el tercer paso."
+    >
+      <Terminal
+        steps={RUN_STEPS}
+        explanation={RUN_EXPLANATION}
+        alreadyDone={isDone('runterm')}
+        onSolved={() => markDone('runterm')}
+      />
+    </Activity>
+  );
+}
+
+export function MechMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['mechmatch']);
+  return (
+    <Activity
+      title="Cada situación con su mecanismo"
+      kind="Emparejar"
+      goal="elegir el mecanismo de Playwright para cada situación especial de la agenda (entradas 49, 50, 51, 53 y 56)."
+      done={isDone('mechmatch')}
+      consigna="Son 7 pares. Elegí una situación de la izquierda y después el mecanismo que la resuelve (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 7."
+    >
+      <Match
+        left={MECH_LEFT}
+        right={MECH_RIGHT}
+        why={MECH_WHY}
+        leftLabel="Situación"
+        rightLabel="Mecanismo"
+        alreadyDone={isDone('mechmatch')}
+        onSolved={() => markDone('mechmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function CfgFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['cfgfill']);
+  return (
+    <Activity
+      title="La configuración de la suite"
+      kind="Completar huecos"
+      goal="completar la configuración de reintentos, trace, atributo de test, zona horaria y dispositivo (entradas 39, 46, 55 y 57)."
+      done={isDone('cfgfill')}
+      consigna="La suite reintenta 2 veces solo en CI, graba el trace en el primer reintento, usa data-qa como atributo de test, fija la zona horaria de Buenos Aires y suma un perfil de iPhone 13. Completá los 5 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={CFG_TEMPLATE}
+        slots={CFG_SLOTS}
+        bank={CFG_BANK}
+        explanation={CFG_EXPLANATION}
+        alreadyDone={isDone('cfgfill')}
+        onSolved={() => markDone('cfgfill')}
+      />
+    </Activity>
+  );
+}
+
+export function MixSpotActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['mixspot']);
+  return (
+    <Activity
+      title="El detalle que rompe la línea"
+      kind="Señalar en la línea"
+      goal="detectar el detalle que hace fallar cada línea: un await, un nombre accesible, una ruta o una captura (entradas 40, 43, 53 y 58)."
+      done={isDone('mixspot')}
+      consigna="Son 4 líneas de la suite de la agenda, cada una con un comentario de contexto. En cada una, hacé click en la parte que causa el problema. Si no es esa, leé la pista y probá otra. Se completa al resolver las 4."
+    >
+      <SpotToken
+        rounds={MIX_ROUNDS}
+        prompt={MIX_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('mixspot')}
+        onSolved={() => markDone('mixspot')}
+      />
+    </Activity>
+  );
+}
+
+export function CheckMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['checkmulti']);
+  return (
+    <Activity
+      title="Qué le falta al test del pago"
+      kind="Marcar todas"
+      goal="elegir qué tipos de verificación suman información a un test que ya verifica textos (entradas 47, 56, 58 y 59)."
+      done={isDone('checkmulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todas las que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={CHECK_QUESTIONS}
+        alreadyDone={isDone('checkmulti')}
+        onSolved={() => markDone('checkmulti')}
+      />
+    </Activity>
+  );
+}
+
+export function FailQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['failquiz']);
+  return (
+    <Activity
+      title="Un botón que cambió de nombre"
+      kind="Elegí la opción"
+      goal="leer una salida de error con su snapshot y decidir la causa y la corrección (entradas 37, 43 y 54)."
+      done={isDone('failquiz')}
+      consigna="Son 2 preguntas de opción única sobre la salida de arriba. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 2."
+    >
+      <CodeBlock language="text">{FAIL_OUTPUT}</CodeBlock>
+      <Quiz
+        questions={FAIL_QUIZ}
+        onSolved={() => markDone('failquiz')}
+      />
+    </Activity>
+  );
+}
+
+export function RowBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['rowbuilder']);
+  return (
+    <Activity
+      title="Verificar el estado de un turno"
+      kind="Armar"
+      goal="construir una assertion sobre una celda de la agenda, eligiendo fila y columna (entradas 45, 47 y 52)."
+      done={isDone('rowbuilder')}
+      consigna="La agenda tiene las columnas Hora, Profesional, Sede y Estado. Armá la assertion que verifica que el turno de las 10:30 está Libre. Elegí un fragmento por paso; el siguiente se habilita cuando acertás. Son 3 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={ROW_PREFIX}
+        steps={ROW_STEPS}
+        explanation={ROW_EXPLANATION}
+        alreadyDone={isDone('rowbuilder')}
+        onSolved={() => markDone('rowbuilder')}
+      />
+    </Activity>
+  );
+}
+
+Ya viste, una por una, las 24 entradas del track de UI: qué automatizar, el HTML y el DOM, la instalación y la configuración, la anatomía de un test, cómo correrlo, hooks, locators, assertions, esperas, formularios, mouse y teclado, diálogos, iframes y pestañas, tablas y componentes, archivos, leer un fallo, debugging, red, varios navegadores, visual testing y accesibilidad. En una suite real, esos temas aparecen juntos: un fallo de CI se resuelve leyendo la salida, mirando el trace y corrigiendo un locator o una espera.
+
+## El proyecto de la agenda de la clínica
+
+Varios de los ejercicios de abajo usan el mismo proyecto: la suite de UI
+de la agenda de turnos de una clínica. La agenda es una tabla con hora,
+profesional, sede y estado de cada turno; se puede reservar, cancelar
+(con una confirmación del navegador) y reprogramar; el pago de la
+consulta está en un formulario incrustado de otra empresa; y cada turno
+tiene un comprobante descargable. La suite tiene los archivos
+`turnos.spec.ts` y `perfil.spec.ts`, y corre en los proyectos `chromium`
+y `firefox`.
+
+## Práctica
+
+Son 10 ejercicios y entre todos cubren las 24 entradas del track: cada uno dice en su objetivo qué entradas repasa. Todos usan el proyecto de la agenda. Son independientes entre sí y cada bloque avisa cuándo está resuelto.
+
+<SuitePathActivity />
+
+<DiagFindActivity />
+
+<FileOrderActivity />
+
+<RunTerminalActivity />
+
+<MechMatchActivity />
+
+<CfgFillActivity />
+
+<MixSpotActivity />
+
+<CheckMultiActivity />
+
+<FailQuizActivity />
+
+<RowBuilderActivity />

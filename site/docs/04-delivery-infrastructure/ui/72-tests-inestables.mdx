@@ -1,0 +1,305 @@
+---
+title: "Tests inestables: reintentos y triage"
+sidebar_position: 72
+---
+
+import Activity from '@site/src/components/Activity';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import Match from '@site/src/components/Match';
+import DecisionPath from '@site/src/components/DecisionPath';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  MEASURE_PREFIX,
+  MEASURE_BUILD,
+  MEASURE_EXPLANATION,
+  CAUSE_LEFT,
+  CAUSE_RIGHT,
+  CAUSE_WHY,
+  TRIAGE_START,
+  TRIAGE_NODES,
+  TRIAGE_EXPLANATION,
+  RETRY_QUESTIONS,
+} from '@site/src/content/lessons/72-tests-inestables';
+
+export const LESSON_SLUG = 'delivery-ui-tests-inestables';
+
+export function MeasureBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['measurebuilder']);
+  return (
+    <Activity
+      title="Medir un test inestable"
+      kind="Armar"
+      goal="armar el comando que mide cuántas veces falla un test inestable."
+      done={isDone('measurebuilder')}
+      consigna="El test de reservar a veces falla en CI. Armá el comando que lo corre 30 veces en una sola corrida, sin que ningún reintento esconda las fallas. Elegí un fragmento por paso; el siguiente se habilita cuando acertás. Son 2 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={MEASURE_PREFIX}
+        steps={MEASURE_BUILD}
+        explanation={MEASURE_EXPLANATION}
+        alreadyDone={isDone('measurebuilder')}
+        onSolved={() => markDone('measurebuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function CauseMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['causematch']);
+  return (
+    <Activity
+      title="Cada síntoma con su causa"
+      kind="Emparejar"
+      goal="clasificar la causa de un test inestable a partir de la evidencia."
+      done={isDone('causematch')}
+      consigna="Son 5 pares. Elegí un síntoma de la izquierda y después la causa que muestra (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={CAUSE_LEFT}
+        right={CAUSE_RIGHT}
+        why={CAUSE_WHY}
+        leftLabel="Síntoma"
+        rightLabel="Causa"
+        alreadyDone={isDone('causematch')}
+        onSolved={() => markDone('causematch')}
+      />
+    </Activity>
+  );
+}
+
+export function TriagePathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['triagepath']);
+  return (
+    <Activity
+      title="El triage de cancelar un turno"
+      kind="Escenario encadenado"
+      goal="seguir el triage de un test inestable: evidencia, corrección de la causa y medición."
+      done={isDone('triagepath')}
+      consigna="Son 3 decisiones encadenadas sobre un test inestable de la agenda. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={TRIAGE_START}
+        nodes={TRIAGE_NODES}
+        explanation={TRIAGE_EXPLANATION}
+        alreadyDone={isDone('triagepath')}
+        onSolved={() => markDone('triagepath')}
+      />
+    </Activity>
+  );
+}
+
+export function RetryMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['retrymulti']);
+  return (
+    <Activity
+      title="Lo que esconden los reintentos"
+      kind="Marcar todas"
+      goal="distinguir lo que los reintentos resuelven de lo que esconden."
+      done={isDone('retrymulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todas las afirmaciones correctas y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={RETRY_QUESTIONS}
+        alreadyDone={isDone('retrymulti')}
+        onSolved={() => markDone('retrymulti')}
+      />
+    </Activity>
+  );
+}
+
+Un test que a veces pasa y a veces falla le enseña al equipo a ignorar el rojo. Esta entrada muestra cómo medir la inestabilidad, qué hacen y qué esconden los reintentos, y cómo clasificar y corregir la causa en lugar del síntoma.
+
+## Conceptos
+
+### Qué es un test inestable
+
+Un test **inestable** (en inglés, *flaky*) es uno que, con el mismo código
+de la aplicación y del test, a veces pasa y a veces falla. En la entrada
+de configuración apareció el resultado `flaky`: un test que falló y pasó
+en un reintento.
+
+El daño no es una falla suelta: es lo que el equipo aprende. Si el rojo
+aparece seguido sin que haya un defecto, la gente deja de mirarlo, y el
+día que el rojo es un defecto real, tampoco lo mira. Una suite con tests
+inestables pierde su valor aunque la mayoría de sus tests estén bien.
+
+### Medir antes de opinar
+
+«A veces falla» no alcanza para trabajar. Lo primero es saber cuánto.
+`--repeat-each` corre cada test varias veces en la misma corrida, y
+`--retries=0` asegura que ningún reintento esconda las fallas:
+
+```bash
+npx playwright test renovar --repeat-each=20 --retries=0
+```
+
+```text
+Running 20 tests using 5 workers
+  3 failed
+  17 passed (4.5s)
+```
+
+Falla 3 de cada 20 veces. Con ese número se puede comparar: después de un
+cambio, otra corrida igual dice si mejoró. Las 20 repeticiones se reparten
+entre los workers, así que además corren en paralelo, como en CI.
+
+### Lo que hacen los reintentos
+
+Con `retries` (entrada de configuración), un test que falla vuelve a
+correr. Si un reintento pasa, el resultado es `flaky`:
+
+```text
+  ✘  1 [chromium] › tests/renovar.spec.ts:3:5 › renovar muestra el vencimiento nuevo (634ms)
+  ✓  2 [chromium] › tests/renovar.spec.ts:3:5 › renovar muestra el vencimiento nuevo (retry #1) (610ms)
+  1 flaky
+```
+
+Todo comando devuelve al terminar un **código de salida**: 0 si salió bien,
+otro número si no. CI decide con ese número si el paso pasó o falló. Esa
+corrida termina con código 0, el mismo de una corrida que pasó entera:
+para CI, todo está verde. Los
+reintentos sirven para que una falla del entorno, como una demora de red
+en un servidor compartido, no frene a todo el equipo. Pero también
+esconden los tests inestables, y por eso cada `flaky` es una tarea
+pendiente, no un éxito.
+
+`--fail-on-flaky-tests` hace que una corrida con algún resultado `flaky`
+termine con código 1, como si hubiera fallado:
+
+```bash
+npx playwright test --retries=2 --fail-on-flaky-tests
+```
+
+Sirve cuando el equipo decide no aceptar tests inestables nuevos: los
+reintentos siguen mostrando cuáles son, pero ya no dejan pasar la
+corrida.
+
+### La evidencia del intento que falló
+
+Para investigar hace falta el trace del intento que **falló** (entrada de
+debugging). El modo del trace decide cuál se guarda:
+
+- `on-first-retry` graba el primer reintento. Si el reintento pasa, el
+  trace muestra una ejecución correcta, y la que falló no tiene trace.
+- `retain-on-failure` graba todos los intentos y conserva los que
+  fallaron.
+- `retain-on-first-failure` conserva solo el primer intento que falló:
+  menos archivos, y justo el que hace falta.
+
+Para investigar tests inestables, conviene uno de los dos últimos. La
+salida de la falla dice dónde quedó el trace:
+
+```text
+    npx playwright show-trace test-results/renovar-renovar-muestra-el-vencimiento-nuevo-chromium/trace.zip
+```
+
+### Clasificar la causa
+
+Con el trace del intento que falló, el triage clasifica la causa antes de
+tocar nada. Las causas habituales:
+
+- **Una espera mal hecha**: el test lee la página antes de que termine de
+  cambiar. Es la más común. Aparece con `waitForTimeout`, con lecturas
+  como `textContent()` o `isVisible()` seguidas de un `expect` común, o
+  con assertions que no reintentan (entradas de assertions y de esperas y
+  timeouts).
+- **Datos compartidos**: el test choca con datos de otro test o de otra
+  corrida. Suele aparecer al subir los workers (entrada de paralelismo).
+- **Dependencia del orden**: el test pasa solo si otro corrió antes y dejó
+  algo preparado (entrada de hooks y aislamiento).
+- **El entorno**: el servidor de pruebas respondió con error o tardó más
+  que el timeout, por falta de recursos o de red. La pestaña Network del
+  trace muestra el pedido y su respuesta.
+- **Un defecto intermitente de la aplicación**: la aplicación misma a
+  veces se comporta mal, por ejemplo cuando dos acciones se pisan. El test
+  está bien: encontró un defecto que no ocurre siempre.
+
+La última es la razón por la que un test inestable no se borra sin
+investigar: puede estar mostrando un defecto real.
+
+### Corregir la causa, no el síntoma
+
+El test de renovación espera medio segundo y lee el texto una sola vez:
+
+```ts
+await page.getByRole('button', { name: 'Renovar' }).click();
+await page.waitForTimeout(500);
+const vence = await page.getByText(/^Vence el/).textContent();
+expect(vence).toBe('Vence el 24/11');
+```
+
+```text
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Vence el 24/11"
+    Received: "Vence el 10/11"
+```
+
+El servidor tarda entre 100 y 600 milisegundos en renovar. Cuando tarda
+más de 500, el test lee el vencimiento viejo. Subir la espera a un
+segundo bajaría las fallas, hasta el día que el servidor tarde más. La
+causa es leer una sola vez: una assertion web-first reintenta hasta que
+el texto cambia o vence su timeout (entrada de assertions).
+
+```ts
+await page.getByRole('button', { name: 'Renovar' }).click();
+await expect(page.getByText(/^Vence el/)).toHaveText('Vence el 24/11');
+```
+
+La misma medición, con `--repeat-each=20 --retries=0`, confirma la
+corrección:
+
+```text
+Running 20 tests using 5 workers
+  20 passed (5.2s)
+```
+
+### Mientras se investiga
+
+A veces la causa no se encuentra en el día. Mientras tanto, el test no
+puede seguir tiñendo de rojo las corridas que deciden si un cambio se
+integra. La práctica habitual es la **cuarentena**: el test se marca con
+un tag, por ejemplo `@cuarentena`, se excluye de las corridas que deciden
+con `--grep-invert @cuarentena`, y sigue corriendo en la regresión
+nocturna para juntar datos (entrada de tags y subsets). Tiene un
+responsable y un plazo: una cuarentena sin dueño termina siendo un test
+borrado.
+
+Si la causa resulta ser un defecto intermitente de la aplicación, se
+reporta como defecto, con el trace como evidencia, y el test queda como
+está.
+
+## Cuándo usarlo
+
+Cada vez que aparece un `flaky` en un reporte, o que un test falla en CI y
+pasa en tu computadora. Primero se mide, después se mira el trace del
+intento que falló, se clasifica la causa y recién entonces se corrige.
+
+## Buenas prácticas
+
+- Tratar cada resultado `flaky` como una tarea pendiente.
+- Medir con `--repeat-each` y `--retries=0`, antes y después de corregir.
+- Guardar el trace del intento que falló.
+- Poner en cuarentena con dueño y plazo, sin sacar el test de la
+  regresión.
+
+## Anti-patrones
+
+- **Subir `retries`** hasta que la corrida dé verde.
+- **Subir un timeout o una espera fija** sin conocer la causa.
+- **Borrar el test inestable** sin investigar: puede estar mostrando un
+  defecto.
+- **Mirar solo el trace del intento que pasó.**
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<MeasureBuilderActivity />
+
+<CauseMatchActivity />
+
+<TriagePathActivity />
+
+<RetryMultiActivity />

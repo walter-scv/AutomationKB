@@ -1,0 +1,263 @@
+---
+title: "Leer un fallo"
+sidebar_position: 54
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import Terminal from '@site/src/components/Terminal';
+import Quiz from '@site/src/components/Quiz';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  CAUSE_ITEMS,
+  CAUSE_COLUMNS,
+  INVESTIGATE_STEPS,
+  INVESTIGATE_EXPLANATION,
+  TURNO_QUIZ,
+  TURNO_OUTPUT,
+} from '@site/src/content/lessons/54-leer-un-fallo';
+
+export const LESSON_SLUG = 'domains-ui-leer-un-fallo';
+
+export function CauseClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['causeclassify']);
+  return (
+    <Activity
+      title="¿De quién es el problema?"
+      kind="Clasificar"
+      goal="clasificar la causa de cada fallo de la suite de turnos a partir de la evidencia."
+      done={isDone('causeclassify')}
+      consigna="Son 7 fallos con su evidencia. Arrastrá cada uno a Defecto de la aplicación, Error del test o Problema del entorno o los datos. Regla para los casos dudosos: decidí con la evidencia que describe cada fallo, no solo con el mensaje de error. Se completa cuando los 7 están en su caja."
+    >
+      <Classify
+        items={CAUSE_ITEMS}
+        columns={CAUSE_COLUMNS}
+        itemLabel="Fallo"
+        counterLabel="ubicados en su causa"
+        alreadyDone={isDone('causeclassify')}
+        onSolved={() => markDone('causeclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function InvestigateTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['investigate']);
+  return (
+    <Activity
+      title="Reproducir y abrir el reporte"
+      kind="Terminal"
+      goal="comprobar que un fallo se repite y abrir el reporte para investigarlo."
+      done={isDone('investigate')}
+      consigna="Son 2 pasos. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el segundo paso."
+    >
+      <Terminal
+        steps={INVESTIGATE_STEPS}
+        explanation={INVESTIGATE_EXPLANATION}
+        alreadyDone={isDone('investigate')}
+        onSolved={() => markDone('investigate')}
+      />
+    </Activity>
+  );
+}
+
+export function TurnoQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['turnoquiz']);
+  return (
+    <Activity
+      title="El paso que falló y el paso que tuvo la culpa"
+      kind="Elegí la opción"
+      goal="leer una salida de error con su page snapshot y ubicar la causa real del fallo."
+      done={isDone('turnoquiz')}
+      consigna="Son 3 preguntas de opción única sobre la salida de arriba, del test reservar el primer horario libre muestra la confirmación. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <CodeBlock language="text">{TURNO_OUTPUT}</CodeBlock>
+      <Quiz
+        questions={TURNO_QUIZ}
+        onSolved={() => markDone('turnoquiz')}
+      />
+    </Activity>
+  );
+}
+
+Un test en rojo no dice por sí solo si hay un defecto en la aplicación, un error en el test o un problema del entorno. Esta entrada recorre lo que informa Playwright cuando un test falla y cómo llegar a la causa antes de tocar el código.
+
+## Conceptos
+
+### Un fallo es información, no un veredicto
+
+Cuando un test falla, la pregunta no es "¿cómo hago que pase?" sino
+"¿qué pasó?". Un test en rojo puede indicar tres cosas distintas, igual
+que un caso manual que no da el resultado esperado (entradas de testing y
+debugging, y de vocabulario esencial):
+
+- **Un defecto de la aplicación**: hace algo distinto de lo especificado.
+  Es lo que el test existe para encontrar, y se reporta.
+- **Un error del test**: un locator equivocado, un dato mal escrito, una
+  espera que falta. Se corrige el test.
+- **Un problema del entorno o de los datos**: el servidor de pruebas no
+  respondía, un dato que el test asume ya no existe. Se corrige el
+  entorno o la preparación de datos.
+
+Decidir cuál es exige leer lo que Playwright informa. Esta entrada recorre
+cada pieza con un fallo real de la biblioteca.
+
+### El test que falla
+
+```ts
+test.describe('Préstamos', () => {
+  test('renovar un préstamo vigente extiende el vencimiento al 24/11', async ({ page }) => {
+    await test.step('1- La socia ingresa con su cuenta', async () => {
+      await page.goto('/login');
+      await page.getByLabel('Email').fill('lucia@biblio.test');
+      await page.getByLabel('Contraseña').fill('clave1234');
+      await page.getByRole('button', { name: 'Ingresar' }).click();
+    });
+    await test.step('2- Renueva el préstamo de Rayuela', async () => {
+      await page.getByRole('button', { name: 'Renovar' }).click();
+    });
+  });
+});
+```
+
+La configuración tiene `screenshot: 'only-on-failure'` (entrada de
+configuración).
+
+### La salida, de arriba abajo
+
+```text
+  ✘  1 [chromium] › tests/prestamos.spec.ts:4:7 › Préstamos › renovar un préstamo vigente extiende el vencimiento al 24/11 (30.0s)
+
+  1) [chromium] › tests/prestamos.spec.ts:4:7 › Préstamos › renovar un préstamo vigente extiende el vencimiento al 24/11 › 2- Renueva el préstamo de Rayuela
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Renovar' })
+
+      10 |     });
+      11 |     await test.step('2- Renueva el préstamo de Rayuela', async () => {
+    > 12 |       await page.getByRole('button', { name: 'Renovar' }).click();
+         |                                                           ^
+      13 |     });
+
+    attachment #1: screenshot (image/png) ──────────────
+    test-results/prestamos-Préstamos-renova-e1236-nde-el-vencimiento-al-24-11-chromium/test-failed-1.png
+
+    Error Context: test-results/prestamos-Préstamos-renova-e1236-nde-el-vencimiento-al-24-11-chromium/error-context.md
+```
+
+Cada bloque responde una pregunta:
+
+1. **¿Qué test y en qué paso?** La línea `1)` encadena proyecto, archivo
+   y línea, grupo, título y paso (entrada de anatomía de un test). Falló
+   en el paso 2. La duración, 30.0s, ya avisa que se agotó un plazo.
+2. **¿Qué tipo de error?** `locator.click: Test timeout of 30000ms
+   exceeded` es una **acción** que esperó hasta el límite del test. Si
+   fuera `expect(locator).toHaveText(expected) failed`, sería una
+   **assertion** que no se cumplió, con su `Expected` y `Received`
+   (entrada de assertions). Un `strict mode violation` sería un locator
+   ambiguo (entrada de locators).
+3. **¿Qué estaba esperando?** El call log: una sola línea `waiting for`,
+   sin ninguna `locator resolved to`. El botón nunca apareció (entrada de
+   esperas).
+4. **¿Dónde, en el código?** El fragmento con `>` marca la línea 12 y el
+   `^`, la columna exacta.
+5. **¿Qué evidencia quedó?** La captura de la página al momento del fallo
+   y el archivo `error-context.md`.
+
+### La línea del error no siempre es la causa
+
+Con todo lo anterior, la conclusión rápida sería "el botón Renovar no
+aparece: defecto de la pantalla de préstamos". La evidencia dice otra
+cosa. El archivo `error-context.md` incluye una foto del árbol de
+accesibilidad de la página en el momento del fallo (`Page snapshot`):
+
+```yaml
+- generic [ref=e2]:
+  - heading "Ingresar" [level=1] [ref=e3]
+  - text: Email
+  - textbox "Email" [ref=e4]: lucia@biblio.test
+  - text: Contraseña
+  - textbox "Contraseña" [ref=e5]: clave1234
+  - button "Ingresar" [active] [ref=e6]
+  - paragraph [ref=e7]: Email o contraseña incorrectos
+```
+
+(Los `[ref=...]` son identificadores internos de cada elemento, y
+`[active]` marca el que tiene el foco.)
+
+La página nunca salió del login: «Email o contraseña incorrectos». El
+paso 1 no falló, porque escribir y hacer click funcionaron, pero no logró
+lo que se esperaba. La contraseña del test es `clave1234`, y la de la
+cuenta de prueba es `clave123`. Es un **error del test**, y el arreglo va
+en el paso 1, no en el 2. La captura de pantalla muestra lo mismo, como
+imagen.
+
+Esta es la razón para verificar el resultado de cada paso importante: con
+`await expect(page.getByRole('heading', { name: 'Mis préstamos' })).toBeVisible()`
+al final del paso 1, el test habría fallado en el lugar correcto, con un
+mensaje que apuntaba a la causa.
+
+El mismo archivo trae, además, la información del test y el código con la
+línea marcada: está pensado para pegarlo entero en un asistente de
+inteligencia artificial y pedirle una explicación, y por eso empieza con
+instrucciones para ese asistente.
+
+### El reporte HTML
+
+Con el reporter `html`, `npx playwright show-report` (entrada de cómo
+correr los tests) muestra lo mismo de forma navegable: el test fallado, su
+error, el código con la línea marcada, cada paso con su duración y las
+evidencias adjuntas, como la captura. Si el test tiene trace (entrada de
+configuración), el reporte permite abrirlo; se ve en la entrada de
+debugging.
+
+### Reproducir antes de concluir
+
+Antes de reportar un defecto o cambiar un test, conviene comprobar que el
+fallo se repite. `npx playwright test --last-failed` (entrada de cómo
+correr los tests) lo vuelve a correr solo. Si falla igual, el
+comportamiento es consistente y se puede investigar. Si pasa, el test es
+inestable, y eso es otro problema, con su propio tratamiento (sección IV).
+
+Si la causa parece estar en la aplicación, se reproduce **a mano**, con
+los mismos datos y pasos. Un defecto que una persona puede reproducir se
+reporta con los pasos manuales, el resultado esperado, el obtenido y la
+evidencia del test (entrada de vocabulario esencial).
+
+## Cuándo usarlo
+
+Cada vez que un test falla, antes de tocar el código: leer la salida
+completa, mirar la evidencia, reproducir y clasificar la causa. Recién
+después se corrige el test, se reporta el defecto o se arregla el
+entorno.
+
+## Buenas prácticas
+
+- Leer la salida en orden: test y paso, tipo de error, call log, línea y
+  evidencia.
+- Mirar la captura o el page snapshot antes de concluir.
+- Verificar el resultado de los pasos que preparan el escenario, para que
+  un fallo apunte a su causa.
+- Reproducir el fallo, y a mano si parece un defecto de la aplicación.
+
+## Anti-patrones
+
+- **Arreglar la línea marcada** sin preguntarse si la causa está antes.
+- **Subir el timeout** ante un `Test timeout exceeded` sin leer el call
+  log.
+- **Reportar un defecto** sin haberlo reproducido.
+- **Correr el test hasta que pase** y seguir de largo.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<CauseClassifyActivity />
+
+<InvestigateTerminalActivity />
+
+<TurnoQuizActivity />

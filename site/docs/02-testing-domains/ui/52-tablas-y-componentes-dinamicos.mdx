@@ -1,0 +1,297 @@
+---
+title: "Tablas y componentes dinámicos"
+sidebar_position: 52
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import MultiSelect from '@site/src/components/MultiSelect';
+import Order from '@site/src/components/Order';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  WIDGET_LEFT,
+  WIDGET_RIGHT,
+  WIDGET_WHY,
+  CELL_ACCEPTED,
+  CELL_HINTS,
+  CELL_EXPLANATION,
+  AGENDA_TABLE,
+  PRICE_QUESTIONS,
+  FILTER_ITEMS,
+  FILTER_CORRECT,
+  FILTER_RULES,
+} from '@site/src/content/lessons/52-tablas-y-componentes-dinamicos';
+
+export const LESSON_SLUG = 'domains-ui-tablas-componentes';
+
+export function WidgetMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['widgetmatch']);
+  return (
+    <Activity
+      title="Cada componente con su manejo"
+      kind="Emparejar"
+      goal="elegir cómo se maneja cada componente de un buscador de turnos, nativo o propio."
+      done={isDone('widgetmatch')}
+      consigna="Son 6 pares. Elegí un componente de la izquierda y después cómo lo maneja el test (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={WIDGET_LEFT}
+        right={WIDGET_RIGHT}
+        why={WIDGET_WHY}
+        leftLabel="Componente"
+        rightLabel="En el test"
+        alreadyDone={isDone('widgetmatch')}
+        onSolved={() => markDone('widgetmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function CellTypeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['celltype']);
+  return (
+    <Activity
+      title="¿Qué celda devuelve?"
+      kind="Respuesta escrita"
+      goal="seguir un locator de fila y celda sobre una tabla y decir qué texto devuelve."
+      done={isDone('celltype')}
+      consigna="Con la agenda de arriba, escribí el texto de la celda que encuentra page.getByRole('row').filter({ hasText: 'Dr. Ruiz' }).getByRole('cell').nth(2), y presioná Enter."
+    >
+      <CodeBlock language="html">{AGENDA_TABLE}</CodeBlock>
+      <TypeAnswer
+        accepted={CELL_ACCEPTED}
+        hints={CELL_HINTS}
+        explanation={CELL_EXPLANATION}
+        placeholder="Texto de la celda"
+        alreadyDone={isDone('celltype')}
+        onSolved={() => markDone('celltype')}
+      />
+    </Activity>
+  );
+}
+
+export function StateMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['statemulti']);
+  return (
+    <Activity
+      title="La celda del estado de las 10:00"
+      kind="Marcar todas"
+      goal="evaluar qué combinaciones de fila y celda encuentran el dato correcto sin depender del orden."
+      done={isDone('statemulti')}
+      consigna="Es 1 pregunta con 6 opciones sobre la misma agenda. Marcá todos los locators que encuentran solo esa celda y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={PRICE_QUESTIONS}
+        alreadyDone={isDone('statemulti')}
+        onSolved={() => markDone('statemulti')}
+      />
+    </Activity>
+  );
+}
+
+export function FilterOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['filterorder']);
+  return (
+    <Activity
+      title="Buscar turnos con todos los filtros"
+      kind="Ordenar"
+      goal="ordenar las acciones sobre componentes propios cuyas opciones dependen de las anteriores."
+      done={isDone('filterorder')}
+      consigna="En el buscador de turnos, los profesionales que se sugieren dependen de la especialidad elegida, y la fecha se habilita recién con la profesional elegida. Ordená las 7 líneas y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={FILTER_ITEMS}
+        correctOrder={FILTER_CORRECT}
+        rules={FILTER_RULES}
+        onSolved={() => markDone('filterorder')}
+      />
+    </Activity>
+  );
+}
+
+Las pantallas de gestión están llenas de tablas, filtros y controles hechos a medida: listas desplegables propias, campos que sugieren mientras se escribe, calendarios y deslizadores. Esta entrada muestra cómo leer una tabla y cómo manejar cada componente.
+
+## Conceptos
+
+### Tablas: fila por contenido, celda por columna
+
+Una tabla HTML tiene roles propios (entrada de HTML, DOM y DevTools):
+`row` para cada fila, `columnheader` para los encabezados y `cell` para
+las celdas. El historial de préstamos de la biblioteca:
+
+```html
+<table>
+  <thead><tr><th>Libro</th><th>Retirado</th><th>Devuelto</th><th>Multa</th></tr></thead>
+  <tbody>
+    <tr><td>Rayuela</td><td>01/09</td><td>15/09</td><td>$ 0</td></tr>
+    <tr><td>Ficciones</td><td>03/09</td><td>25/09</td><td>$ 500</td></tr>
+    <tr><td>El Aleph</td><td>10/09</td><td>—</td><td>$ 1.000</td></tr>
+  </tbody>
+</table>
+```
+
+Para leer un dato, primero se elige la fila por su contenido, igual que un
+ítem de una lista (entrada de encadenar y filtrar), y después la celda:
+
+```ts
+const ficciones = page.getByRole('row').filter({ hasText: 'Ficciones' });
+await ficciones.getByRole('cell').allTextContents();
+// [ 'Ficciones', '03/09', '25/09', '$ 500' ]
+```
+
+Las celdas de una fila no tienen nombre propio que diga a qué columna
+pertenecen; las distingue su posición. Acá elegir por posición sí es
+correcto, porque la posición **es** la columna: `nth(3)` es la cuarta
+celda, la de la multa.
+
+```ts
+await expect(ficciones.getByRole('cell').nth(3)).toHaveText('$ 500');
+```
+
+Si el orden de las columnas puede cambiar, conviene nombrar el índice:
+`const MULTA = 3;`, así el cambio se hace en un solo lugar. Y cuando lo
+que importa es que el dato esté en la fila, sin importar la columna,
+alcanza con `toContainText` sobre la fila:
+
+```ts
+await expect(page.getByRole('row').filter({ hasText: 'El Aleph' })).toContainText('—');
+```
+
+La fila de encabezados también es una `row`: `getByRole('row')` encuentra
+cuatro filas en esta tabla. Para contar solo las filas de datos se
+filtran las que tienen celdas:
+
+```ts
+const filasDeDatos = page.getByRole('row').filter({ has: page.getByRole('cell') });
+await expect(filasDeDatos).toHaveCount(3);
+```
+
+### Listas desplegables propias
+
+Muchas aplicaciones no usan `<select>`, sino un componente propio: un
+elemento con rol `combobox` que, al hacer click, muestra una lista
+(`listbox`) de opciones (`option`). Un `<select>` nativo también tiene
+rol `combobox` (entrada de HTML, DOM y DevTools); la diferencia está en
+la etiqueta, que se ve en DevTools. Sobre uno propio, `selectOption` no
+sirve, porque no es un `<select>` (entrada de formularios). Se maneja como lo haría
+una persona, con dos clicks:
+
+```ts
+await page.getByRole('combobox', { name: 'Sede' }).click();
+await page.getByRole('option', { name: 'Belgrano' }).click();
+await expect(page.getByRole('combobox', { name: 'Sede' })).toHaveText('Belgrano');
+```
+
+Si el componente está bien hecho, sus roles aparecen en el árbol de
+accesibilidad y los locators por rol funcionan. Si no los tiene (un
+`<div>` que se abre con un click, con `<div>` adentro), queda buscar por
+texto o pedir un `data-testid`, y vale la pena reportarlo como defecto de
+accesibilidad.
+
+### Autocompletado
+
+Un campo de autocompletado muestra sugerencias mientras se escribe, y
+suele reaccionar a cada tecla. Se escribe con `pressSequentially`, se
+espera la sugerencia y se elige:
+
+```ts
+await page.getByRole('combobox', { name: 'Autor' }).pressSequentially('Co');
+await page.getByRole('option', { name: 'Cortázar' }).click();
+await expect(page.getByLabel('Autor')).toHaveValue('Cortázar');
+```
+
+No hace falta esperar a mano: el click espera a que la opción aparezca
+(entrada de esperas). Si lo que se prueba es el filtro de sugerencias,
+se verifica la lista antes de elegir: con «Co», tiene que quedar solo
+Cortázar, y Castellani, que empieza con «Ca», no.
+
+```ts
+await page.getByRole('combobox', { name: 'Autor' }).pressSequentially('Co');
+await expect(page.getByRole('option')).toHaveText(['Cortázar']);
+```
+
+### Fechas
+
+Un campo `<input type="date">` acepta `fill` con la fecha en formato
+**año-mes-día**, el formato interno del campo, aunque en pantalla se vea
+como día/mes/año:
+
+```ts
+await page.getByLabel('Desde').fill('2026-11-15');
+await expect(page.getByLabel('Desde')).toHaveValue('2026-11-15');
+```
+
+Con otro formato, la acción falla:
+
+```text
+locator.fill: Error: Malformed value
+```
+
+Los calendarios propios, que muestran una grilla de días, se manejan
+como una persona: los botones para cambiar de mes y un click en el día,
+buscado con `exact: true` para que «1» no coincida con «10» u «11». Si el
+calendario tiene además un campo de texto donde se puede escribir la
+fecha, escribirla es más simple y más estable que recorrer meses.
+
+### Sliders
+
+Un `<input type="range">` (un control deslizante nativo) acepta `fill`
+con el valor:
+
+```ts
+await page.getByLabel('Días de préstamo').fill('21');
+await expect(page.getByLabel('Días de préstamo')).toHaveValue('21');
+```
+
+Un slider propio, con `role="slider"`, se maneja con el teclado, como lo
+haría quien no usa mouse: con el foco en el control, las flechas cambian
+el valor. Su valor está en el atributo `aria-valuenow`:
+
+```ts
+const valoracion = page.getByRole('slider', { name: 'Valoración mínima' });
+await valoracion.press('ArrowRight');
+await valoracion.press('ArrowRight');
+await expect(valoracion).toHaveAttribute('aria-valuenow', '5');
+```
+
+Arrastrarlo con el mouse por coordenadas también funciona, pero depende
+del tamaño de pantalla (entrada de mouse y teclado).
+
+## Cuándo usarlo
+
+En pantallas con datos tabulares, filtros y componentes hechos a medida.
+La regla general: si el componente es nativo, usar la acción que le
+corresponde (`fill`, `selectOption`); si es propio, manejarlo como una
+persona, por sus roles.
+
+## Buenas prácticas
+
+- Elegir la fila por su contenido y la celda por su columna, con el
+  índice nombrado si se repite.
+- Usar los roles `combobox`, `option` y `slider` de los componentes
+  propios.
+- Escribir las fechas en formato año-mes-día en los campos de fecha
+  nativos.
+- Reportar como defecto de accesibilidad un componente sin roles.
+
+## Anti-patrones
+
+- **Elegir una fila por su posición** en lugar de su contenido.
+- **`selectOption` sobre una lista desplegable propia.**
+- **Recorrer un calendario mes por mes** cuando se puede escribir la
+  fecha.
+- **Mover sliders con coordenadas** cuando el teclado funciona.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<WidgetMatchActivity />
+
+<CellTypeActivity />
+
+<StateMultiActivity />
+
+<FilterOrderActivity />

@@ -1,0 +1,395 @@
+---
+title: "Anatomía de un test"
+sidebar_position: 40
+---
+
+import Activity from '@site/src/components/Activity';
+import FillBlank from '@site/src/components/FillBlank';
+import Classify from '@site/src/components/Classify';
+import Order from '@site/src/components/Order';
+import Quiz from '@site/src/components/Quiz';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  SKELETON_TEMPLATE,
+  SKELETON_SLOTS,
+  SKELETON_BANK,
+  SKELETON_EXPLANATION,
+  AAA_ITEMS,
+  AAA_COLUMNS,
+  BOOK_ITEMS,
+  BOOK_CORRECT,
+  BOOK_RULES,
+  OUTPUT_QUIZ,
+  STEP_OUTPUT,
+} from '@site/src/content/lessons/40-anatomia-de-un-test';
+
+export const LESSON_SLUG = 'domains-ui-anatomia-de-un-test';
+
+export function SkeletonActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['skeleton']);
+  return (
+    <Activity
+      title="Completar el primer test"
+      kind="Completar huecos"
+      goal="armar la estructura mínima de un test de Playwright: import, función async, fixture y verificación."
+      done={isDone('skeleton')}
+      consigna="El test de abajo reserva un turno y verifica la confirmación. Completá los 5 huecos con las fichas del banco y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={SKELETON_TEMPLATE}
+        slots={SKELETON_SLOTS}
+        bank={SKELETON_BANK}
+        explanation={SKELETON_EXPLANATION}
+        alreadyDone={isDone('skeleton')}
+        onSolved={() => markDone('skeleton')}
+      />
+    </Activity>
+  );
+}
+
+export function AaaActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['aaa']);
+  return (
+    <Activity
+      title="Arrange, Act o Assert"
+      kind="Clasificar"
+      goal="ubicar cada línea de un test en la parte de AAA a la que pertenece."
+      done={isDone('aaa')}
+      consigna="Son las 8 líneas del test cancelar un turno lo saca de la lista, mezcladas. Arrastrá cada una a Arrange, Act o Assert. Regla para los casos dudosos: una línea es Act solo si forma parte de la acción que da título al test; todo lo que lleva la aplicación al punto de partida es Arrange, aunque sea un click. Se completa cuando las 8 están en su lugar."
+    >
+      <Classify
+        items={AAA_ITEMS}
+        columns={AAA_COLUMNS}
+        itemLabel="Línea"
+        counterLabel="ubicadas en su parte"
+        alreadyDone={isDone('aaa')}
+        onSolved={() => markDone('aaa')}
+      />
+    </Activity>
+  );
+}
+
+export function BookOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['bookorder']);
+  return (
+    <Activity
+      title="Ordenar el test de pedir un turno"
+      kind="Ordenar"
+      goal="ordenar las líneas de un test para que reproduzcan el flujo y terminen en la verificación."
+      done={isDone('bookorder')}
+      consigna="Son las 8 líneas del test pedir un turno de Dermatología muestra la confirmación, desordenadas. Ordenalas con las flechas o arrastrando, y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={BOOK_ITEMS}
+        correctOrder={BOOK_CORRECT}
+        rules={BOOK_RULES}
+        onSolved={() => markDone('bookorder')}
+      />
+    </Activity>
+  );
+}
+
+export function OutputQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['outputquiz']);
+  return (
+    <Activity
+      title="Leer lo que informa Playwright"
+      kind="Elegí la opción"
+      goal="interpretar en una salida de Playwright el grupo, el paso, el tag y el efecto de un await faltante."
+      done={isDone('outputquiz')}
+      consigna="Son 4 preguntas de opción única. Las tres primeras usan la salida de arriba, de un test que falló. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 4."
+    >
+      <CodeBlock language="text">{STEP_OUTPUT}</CodeBlock>
+      <Quiz
+        questions={OUTPUT_QUIZ}
+        onSolved={() => markDone('outputquiz')}
+      />
+    </Activity>
+  );
+}
+
+Con el proyecto instalado y configurado, toca escribir el primer test. Esta entrada recorre sus partes: el archivo, el título, la fixture que entrega la página, las líneas que navegan, actúan y verifican, y cómo agruparlas para que un fallo diga dónde ocurrió.
+
+## Conceptos
+
+### El archivo de test
+
+Los tests de Playwright viven en archivos que terminan en `.spec.ts` (o
+`.test.ts`, que Playwright también reconoce), dentro de la carpeta que la
+configuración indica con la opción `testDir`. El instalador la crea con el
+nombre `tests/`, y es la convención de este curso. Cada archivo agrupa los
+tests de una funcionalidad: `prestamos.spec.ts` para
+los préstamos de la biblioteca, `catalogo.spec.ts` para el catálogo.
+
+Este es un archivo completo, con un test, que automatiza el caso de
+renovar un préstamo de la primera entrada del track:
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('renovar un préstamo vigente extiende el vencimiento al 24/11', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill('lucia@biblio.test');
+  await page.getByLabel('Contraseña').fill('clave123');
+  await page.getByRole('button', { name: 'Ingresar' }).click();
+
+  await page.getByRole('button', { name: 'Renovar' }).click();
+
+  await expect(page.getByText('Préstamo renovado')).toBeVisible();
+  await expect(page.getByRole('cell', { name: '24/11' })).toBeVisible();
+});
+```
+
+La primera línea importa dos cosas del paquete `@playwright/test`, con la
+sintaxis de módulos de la entrada de módulos: `test`, para declarar
+tests, y `expect`, para verificar resultados.
+
+### `test`: título y cuerpo
+
+`test` recibe dos argumentos: un **título** y una **función** con los
+pasos.
+
+El título es un texto que dice qué comprueba el test, y es lo primero que
+se lee en el reporte cuando falla. «renovar un préstamo vigente extiende
+el vencimiento al 24/11» dice la acción y el resultado esperado; «test
+renovación» o «prueba 3» obligan a abrir el código para saber qué falló.
+El título se escribe como una oración completa, y no se repite entre tests
+del mismo archivo: si dos tests se llaman igual, la corrida se detiene
+antes de empezar con `Error: duplicate test title`.
+
+La función es `async`, porque todo lo que hace un test sobre el navegador
+tarda: cargar una página, esperar un botón, leer un texto (entrada de
+funciones asíncronas). Recibe un objeto del que se toma `page` con
+desestructuración: `async ({ page }) =>`. `page` es una **fixture**: un
+recurso que Playwright prepara antes de cada test y entrega listo. En este
+caso, una pestaña nueva del navegador, vacía y separada de las de los
+demás tests. El test no la crea ni la cierra; solo la pide por su nombre.
+
+### Navegar, actuar y verificar
+
+Dentro del cuerpo, cada línea es una de tres cosas.
+
+**Navegar**: `page.goto('/login')` abre una dirección. La ruta empieza en
+`/` porque la parte del servidor (`http://localhost:4321`) se define una
+sola vez en la configuración del proyecto, con la opción `baseURL`
+(entrada de configuración).
+
+**Actuar**: primero se indica sobre qué elemento y después qué hacer con
+él.
+
+- `page.getByLabel('Email')` encuentra el campo cuyo nombre accesible es
+  «Email», el que le da su `<label>` (entrada anterior).
+- `page.getByRole('button', { name: 'Ingresar' })` encuentra el elemento
+  con rol `button` y nombre «Ingresar».
+- `page.getByText('Préstamo renovado')` encuentra el elemento que muestra
+  ese texto.
+
+Esas expresiones se llaman **locators**, y tienen su propio bloque de
+entradas. Sobre un locator se ejecuta una acción: `.fill('...')` escribe
+en un campo y `.click()` hace click. Antes de actuar, la acción espera a
+que el elemento exista y se pueda usar. No tiene un plazo propio por
+defecto: el límite es el del test completo, 30 segundos. Si el elemento
+no aparece nunca, el test falla con `Test timeout of 30000ms exceeded`.
+
+**Verificar**: `expect(locator)` seguido de una comprobación.
+`.toBeVisible()` comprueba que el elemento sea visible, con la regla de la
+entrada anterior. La verificación no mira una sola vez: reintenta durante
+un tiempo (5 segundos por defecto) hasta que se cumple o se agota el
+plazo. Por eso funciona aunque el mensaje aparezca unos milisegundos
+después del click. Las demás verificaciones se ven en la entrada de
+assertions.
+
+### `await` en cada línea
+
+Cada navegación, acción y verificación devuelve una Promise, así que
+lleva `await` delante. Sin `await`, el test no espera esa línea: la deja
+corriendo y sigue con la siguiente. Si era la última línea, el test
+termina antes de que la verificación se cumpla.
+
+```ts
+await page.getByRole('button', { name: 'Renovar' }).click();
+
+expect(page.getByText('Préstamo renovado')).toBeVisible();
+```
+
+La biblioteca muestra «Préstamo renovado» 300 milisegundos después del
+click. Con el `await` olvidado, el test falla aunque la renovación
+funcione:
+
+```text
+Error: expect(locator).toBeVisible() failed
+
+Locator: getByText('Préstamo renovado')
+Expected: visible
+Error: Test ended.
+
+Call log:
+  - Expect "toBeVisible" getByText('Préstamo renovado') with timeout 5000ms
+  - waiting for getByText('Préstamo renovado')
+  - Test ended.
+```
+
+`Test ended` es la pista: la verificación todavía estaba esperando el
+texto cuando el test terminó. Si el texto hubiera aparecido al instante,
+el mismo test habría pasado. Un `await` faltante produce resultados que
+dependen de cuánto tarda la aplicación, la receta de un test flaky.
+
+### Arrange, Act, Assert
+
+Un test se organiza en tres partes, conocidas como **AAA**:
+
+- **Arrange** (preparar): llevar la aplicación al estado de partida. En el
+  test de la biblioteca, ingresar con la cuenta de la socia.
+- **Act** (actuar): ejecutar la acción que el test prueba. Presionar
+  «Renovar».
+- **Assert** (verificar): comprobar el resultado. El mensaje y la fecha
+  nueva.
+
+Un click no es siempre Act: el click en «Ingresar» es Arrange, porque
+ingresar no es lo que este test prueba, sino la condición para llegar a
+la renovación. La pregunta para clasificar una línea es si forma parte de
+la acción que da título al test.
+
+AAA es un orden de ideas, no tres bloques rígidos. Un test puede leer un
+valor durante el Arrange para compararlo después, o comprobar una
+precondición antes de actuar. Si un test no se puede dividir así, porque
+actúa, verifica, vuelve a actuar sobre otra cosa y verifica de nuevo,
+suele estar probando dos cosas, y conviene partirlo en dos tests.
+
+### Agrupar con `test.describe`
+
+`test.describe` agrupa tests relacionados bajo un nombre:
+
+```ts
+test.describe('Préstamos', () => {
+  test('renovar un préstamo vigente extiende el vencimiento al 24/11', async ({ page }) => {
+    // ...
+  });
+
+  test('un préstamo renovado dos veces no se puede renovar otra vez', async ({ page }) => {
+    // ...
+  });
+});
+```
+
+El nombre del grupo aparece en el reporte delante del título de cada
+test: `Préstamos › renovar un préstamo vigente...`. Los grupos también
+permiten compartir preparación entre los tests que contienen, algo que se
+ve en la entrada de hooks.
+
+### Pasos con `test.step`
+
+Cuando un test falla, el reporte indica la línea. En un test largo,
+conviene además saber en qué parte del flujo. `test.step` divide el test
+en pasos con nombre:
+
+```ts
+test.describe('Préstamos', () => {
+  test('renovar un préstamo vigente extiende el vencimiento al 24/11', async ({ page }) => {
+    await test.step('1- La socia ingresa con su cuenta', async () => {
+      await page.goto('/login');
+      await page.getByLabel('Email').fill('lucia@biblio.test');
+      await page.getByLabel('Contraseña').fill('clave123');
+      await page.getByRole('button', { name: 'Ingresar' }).click();
+    });
+
+    await test.step('2- Renueva el préstamo de Rayuela', async () => {
+      await page.getByRole('button', { name: 'Renovar' }).click();
+    });
+
+    await test.step('3- Ve la confirmación y el vencimiento nuevo', async () => {
+      await expect(page.getByText('Préstamo renovado')).toBeVisible();
+      await expect(page.getByRole('cell', { name: '01/12' })).toBeVisible();
+    });
+  });
+});
+```
+
+Cada paso recibe un nombre y una función `async` con sus líneas, y lleva
+`await` como cualquier otra operación. En este ejemplo, la fecha esperada
+del paso 3 está mal escrita a propósito (`01/12` en lugar de `24/11`).
+Así lo informa Playwright:
+
+```text
+1) [chromium] › tests/prestamos.spec.ts:4:7 › Préstamos › renovar un préstamo vigente extiende el vencimiento al 24/11 › 3- Ve la confirmación y el vencimiento nuevo
+
+  Error: expect(locator).toBeVisible() failed
+
+  Locator: getByRole('cell', { name: '01/12' })
+  Expected: visible
+  Timeout: 5000ms
+  Error: element(s) not found
+```
+
+La primera línea encadena, separados por `›`, el navegador, el archivo y
+la línea, el grupo, el título del test y el paso que falló. Antes de leer
+el código ya se sabe que el ingreso y la renovación funcionaron y que el
+problema está en la verificación final. Las líneas siguientes dicen qué
+se esperaba (que la celda «01/12» fuera visible), durante cuánto tiempo
+se esperó (5000 ms) y qué pasó (no se encontró ningún elemento).
+
+Playwright no exige numerar los pasos ni darles un formato. En este curso
+se numeran (`1- `, `2- `) para que el reporte diga de un vistazo en qué
+punto del flujo se cortó el test, y se nombran desde el punto de vista de
+quien usa la aplicación («La socia ingresa con su cuenta»), no del código
+(«Llenar campos y clickear»). Cada paso agrupa una etapa del flujo, y
+suelen coincidir con las partes de AAA.
+
+### Tags
+
+Un **tag** es una etiqueta que empieza con `@` y clasifica al test:
+`@smoke` para los tests críticos que se corren primero, `@regresion` para
+la suite completa. Se agregan con un objeto de detalles entre el título y
+la función:
+
+```ts
+test('renovar un préstamo vigente extiende el vencimiento al 24/11', { tag: '@smoke' }, async ({ page }) => {
+  // ...
+});
+```
+
+Para varios tags, una lista: `{ tag: ['@smoke', '@prestamos'] }`.
+Playwright también reconoce como tag una palabra con `@` escrita dentro
+del título (`'renovar un préstamo @smoke'`), una forma que se encuentra en
+suites existentes. En el reporte, los tags aparecen al final del título:
+`renovar un préstamo vigente extiende el vencimiento al 24/11 @smoke`.
+Correr solo los tests de un tag se ve en la entrada de cómo correr los
+tests.
+
+## Cuándo usarlo
+
+Esta estructura es la de cualquier test de Playwright. En este curso,
+`test.describe` se usa en cuanto un archivo tiene más de un test, y
+`test.step` en todo test de más de un par de líneas, para que el reporte
+diga en qué parte del flujo falló.
+
+## Buenas prácticas
+
+- Escribir el título como una oración que dice la acción y el resultado
+  esperado.
+- Poner `await` delante de cada navegación, acción, verificación y paso.
+- Ordenar el cuerpo según AAA, con una sola acción bajo prueba.
+- Numerar los pasos y nombrarlos desde el punto de vista de quien usa la
+  aplicación.
+- Agrupar con `test.describe` los tests de una misma funcionalidad.
+
+## Anti-patrones
+
+- **Títulos genéricos** como «test 1» o «prueba login».
+- **Olvidar un `await`**: el resultado pasa a depender de cuánto tarda la
+  aplicación.
+- **Un test que prueba varias acciones**, con verificaciones intercaladas.
+- **Pasos sin número o nombrados según el código** («click y fill»).
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<SkeletonActivity />
+
+<AaaActivity />
+
+<BookOrderActivity />
+
+<OutputQuizActivity />

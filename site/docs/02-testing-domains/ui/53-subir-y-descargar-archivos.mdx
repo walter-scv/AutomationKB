@@ -1,0 +1,298 @@
+---
+title: "Subir y descargar archivos"
+sidebar_position: 53
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import FillBlank from '@site/src/components/FillBlank';
+import Order from '@site/src/components/Order';
+import SpotToken from '@site/src/components/SpotToken';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  FILE_ITEMS,
+  FILE_COLUMNS,
+  UPLOAD_TEMPLATE,
+  UPLOAD_SLOTS,
+  UPLOAD_BANK,
+  UPLOAD_EXPLANATION,
+  DOWNLOAD_ITEMS,
+  DOWNLOAD_CORRECT,
+  DOWNLOAD_RULES,
+  FILE_ROUNDS,
+  FILE_PROMPT,
+} from '@site/src/content/lessons/53-subir-y-descargar-archivos';
+
+export const LESSON_SLUG = 'domains-ui-archivos';
+
+export function FileClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['fileclassify']);
+  return (
+    <Activity
+      title="¿Cómo entra o sale el archivo?"
+      kind="Clasificar"
+      goal="decidir qué mecanismo usa el test para cada situación con archivos en una app de turnos."
+      done={isDone('fileclassify')}
+      consigna="Son 6 situaciones. Arrastrá cada una a setInputFiles en el campo, Evento filechooser o Evento download. Regla para los casos dudosos: pensá qué haría una persona en esa pantalla, y si el test puede llegar a lo mismo con un locator. Se completa cuando las 6 están en su caja."
+    >
+      <Classify
+        items={FILE_ITEMS}
+        columns={FILE_COLUMNS}
+        itemLabel="Situación"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('fileclassify')}
+        onSolved={() => markDone('fileclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function UploadFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['uploadfill']);
+  return (
+    <Activity
+      title="Subir dos estudios y quitarlos"
+      kind="Completar huecos"
+      goal="cargar varios archivos con rutas portables y quitarlos del campo."
+      done={isDone('uploadfill')}
+      consigna="El test carga dos estudios en el campo Estudios previos, verifica la lista y después los quita. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={UPLOAD_TEMPLATE}
+        slots={UPLOAD_SLOTS}
+        bank={UPLOAD_BANK}
+        explanation={UPLOAD_EXPLANATION}
+        alreadyDone={isDone('uploadfill')}
+        onSolved={() => markDone('uploadfill')}
+      />
+    </Activity>
+  );
+}
+
+export function DownloadOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['downloadorder']);
+  return (
+    <Activity
+      title="Descargar y leer el comprobante"
+      kind="Ordenar"
+      goal="ordenar un test que descarga un archivo, lo guarda y verifica su contenido."
+      done={isDone('downloadorder')}
+      consigna="El test descarga el comprobante del turno del 12/11 y verifica que mencione Dermatología. Ordená las 8 líneas y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={DOWNLOAD_ITEMS}
+        correctOrder={DOWNLOAD_CORRECT}
+        rules={DOWNLOAD_RULES}
+        onSolved={() => markDone('downloadorder')}
+      />
+    </Activity>
+  );
+}
+
+export function FileSpotActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['filespot']);
+  return (
+    <Activity
+      title="Lo que va a fallar en otra computadora"
+      kind="Señalar en la línea"
+      goal="detectar rutas no portables y esperas en el orden equivocado en tests con archivos."
+      done={isDone('filespot')}
+      consigna="Son 3 líneas de tests de la app de turnos. En cada una, hacé click en la parte que hace fallar el test, que no funcionaría en otra computadora o que deja archivos donde no corresponde. Si no es esa, leé la pista y probá otra. Se completa al resolver las 3."
+    >
+      <SpotToken
+        rounds={FILE_ROUNDS}
+        prompt={FILE_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('filespot')}
+        onSolved={() => markDone('filespot')}
+      />
+    </Activity>
+  );
+}
+
+Subir una foto o un comprobante, descargar un reporte o un historial: los archivos entran y salen de la aplicación por ventanas del sistema operativo, que ningún locator alcanza. Esta entrada muestra cómo los maneja Playwright y cómo verificar lo que se descarga.
+
+## Conceptos
+
+### Subir un archivo: `setInputFiles`
+
+Un campo para subir archivos es un `<input type="file">`. Al hacer click,
+el navegador abre la ventana del sistema operativo para elegir un archivo,
+y esa ventana no es parte de la página: ningún locator llega a ella.
+Playwright la evita con `setInputFiles`, que carga el archivo directamente
+en el campo:
+
+```ts
+import path from 'path';
+
+await page.getByLabel('Foto de perfil').setInputFiles(path.join(__dirname, '../archivos/lucia.png'));
+await expect(page.getByText('Foto: lucia.png')).toBeVisible();
+```
+
+La ruta tiene que apuntar a un archivo real del proyecto. Los archivos de
+prueba se guardan en una carpeta propia del repositorio, como
+`archivos/`, junto a los tests. `path.join` (del módulo `path` de
+Node.js) une partes de una ruta con el separador del sistema operativo, y
+`__dirname` es la carpeta del archivo de test. Así la ruta funciona igual
+en cualquier computadora, sin depender de desde dónde se corre el
+comando.
+
+Si el archivo no existe, el test falla antes de tocar la página:
+
+```text
+Error: ENOENT: no such file or directory, stat '/.../archivos/no-existe.png'
+```
+
+`ENOENT` es el error de Node.js para "no existe ese archivo o carpeta".
+
+### Varios archivos, quitar y archivos en memoria
+
+Un campo con `multiple` acepta varios archivos, que se pasan en una
+lista:
+
+```ts
+await page.getByLabel('Documentación').setInputFiles([
+  path.join(__dirname, '../archivos/dni-frente.pdf'),
+  path.join(__dirname, '../archivos/dni-dorso.pdf'),
+]);
+await expect(page.getByRole('listitem')).toHaveText(['dni-frente.pdf', 'dni-dorso.pdf']);
+```
+
+Una lista vacía quita los archivos elegidos:
+
+```ts
+await page.getByLabel('Foto de perfil').setInputFiles([]);
+await expect(page.getByText('Sin foto')).toBeVisible();
+```
+
+Cuando el contenido del archivo no importa, se puede crear en el momento,
+sin guardarlo en el repositorio, con su nombre, su tipo y su contenido:
+
+```ts
+await page.getByLabel('Foto de perfil').setInputFiles({
+  name: 'avatar.png',
+  mimeType: 'image/png',
+  buffer: Buffer.from('png'),
+});
+```
+
+`mimeType` es el tipo del archivo (`image/png`, `application/pdf`,
+`text/csv`), y `Buffer.from` arma su contenido a partir de un texto. Sirve
+para probar, por ejemplo, que la aplicación rechaza un tipo de archivo no
+permitido, sin tener que guardar uno de verdad.
+
+### Cuando no hay un campo visible: `filechooser`
+
+Muchas pantallas esconden el `<input type="file">` y muestran un botón
+propio («Adjuntar comprobante») que lo abre por código. Si el campo
+oculto no se puede encontrar con un locator útil, el test espera el
+evento `filechooser`, el que ocurre cuando la página abre la ventana de
+selección:
+
+```ts
+const selector = page.waitForEvent('filechooser');
+await page.getByRole('button', { name: 'Adjuntar comprobante' }).click();
+const fileChooser = await selector;
+await fileChooser.setFiles(path.join(__dirname, '../archivos/dni-frente.pdf'));
+await expect(page.getByText('Comprobante: dni-frente.pdf')).toBeVisible();
+```
+
+Es el mismo patrón que las pestañas nuevas (entrada de diálogos, iframes
+y pestañas): empezar a esperar el evento antes del click que lo provoca,
+sin `await`, y recibirlo después. Con `await` antes del click, el test se
+quedaría esperando un evento que solo el click puede provocar.
+
+### Descargar un archivo
+
+Al hacer click en un enlace de descarga, el navegador guarda el archivo.
+El test lo recibe con el evento `download`, otra vez esperándolo antes
+del click:
+
+```ts
+test('el historial se descarga en CSV con los préstamos', async ({ page }, testInfo) => {
+  await page.goto('/perfil');
+  const descargaPromise = page.waitForEvent('download');
+  await page.getByRole('link', { name: 'Descargar historial' }).click();
+  const descarga = await descargaPromise;
+
+  expect(descarga.suggestedFilename()).toBe('historial-prestamos.csv');
+  const destino = testInfo.outputPath(descarga.suggestedFilename());
+  await descarga.saveAs(destino);
+});
+```
+
+- `suggestedFilename()` es el nombre que propone la aplicación para el
+  archivo.
+- `saveAs(ruta)` lo guarda. Playwright lo descarga a una ubicación
+  temporal que se borra al terminar; para conservarlo o leerlo, se guarda
+  con `saveAs`.
+- `testInfo` es un segundo parámetro que reciben los tests, con datos del
+  test que está corriendo. `testInfo.outputPath(nombre)` devuelve una ruta
+  dentro de la carpeta de resultados de ese test, en `test-results/`: el
+  archivo queda junto a la evidencia del test y no ensucia el
+  repositorio.
+
+### Verificar el contenido
+
+Que la descarga ocurra no prueba que el archivo sea correcto. Con el
+módulo `fs` de Node.js se lee el archivo guardado y se verifica su
+contenido:
+
+```ts
+import fs from 'fs';
+
+const contenido = fs.readFileSync(destino, 'utf-8');
+expect(contenido).toContain('Rayuela,01/09,15/09');
+```
+
+`readFileSync(ruta, 'utf-8')` devuelve el texto del archivo. El contenido
+descargado era:
+
+```text
+libro,retirado,devuelto
+Rayuela,01/09,15/09
+Ficciones,03/09,25/09
+```
+
+`toContain` es una assertion genérica: el texto ya está en una variable,
+no hay nada que reintentar (entrada de assertions).
+
+## Cuándo usarlo
+
+`setInputFiles` en cada campo de archivos, con archivos de prueba del
+repositorio o creados en memoria. `filechooser` cuando el campo está
+oculto detrás de un botón propio. El evento `download` cuando la
+funcionalidad bajo prueba genera un archivo: reportes, comprobantes,
+exportaciones.
+
+## Buenas prácticas
+
+- Guardar los archivos de prueba en una carpeta del repositorio y armar
+  la ruta con `path.join(__dirname, ...)`.
+- Crear en memoria los archivos cuyo contenido no importa.
+- Esperar el evento (`filechooser`, `download`) antes del click que lo
+  provoca.
+- Verificar el nombre y el contenido de lo descargado, no solo que hubo
+  una descarga.
+- Guardar las descargas con `testInfo.outputPath`.
+
+## Anti-patrones
+
+- **Rutas absolutas de una computadora** (`/Users/ana/Escritorio/foto.png`):
+  fallan en cualquier otra.
+- **Hacer click en el campo de archivo** esperando poder elegir en la
+  ventana del sistema.
+- **Dar por buena una descarga** sin leer su contenido.
+- **Guardar las descargas dentro del repositorio.**
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<FileClassifyActivity />
+
+<UploadFillActivity />
+
+<DownloadOrderActivity />
+
+<FileSpotActivity />

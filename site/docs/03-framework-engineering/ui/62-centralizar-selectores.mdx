@@ -1,0 +1,239 @@
+---
+title: "Centralizar los selectores"
+sidebar_position: 62
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  WHERE_ITEMS,
+  WHERE_COLUMNS,
+  FACTORY_PREFIX,
+  FACTORY_STEPS,
+  FACTORY_EXPLANATION,
+  CENTRAL_QUESTIONS,
+} from '@site/src/content/lessons/62-centralizar-selectores';
+
+export const LESSON_SLUG = 'framework-ui-centralizar-selectores';
+
+export function WhereClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['whereclassify']);
+  return (
+    <Activity
+      title="¿Dónde vive este locator?"
+      kind="Clasificar"
+      goal="decidir si cada elemento de la agenda va como propiedad, como método fábrica o en un componente compartido."
+      done={isDone('whereclassify')}
+      consigna="Son 7 elementos de la aplicación de turnos. Arrastrá cada uno a Propiedad del Page Object, Método fábrica o Componente compartido. Regla para los casos dudosos: primero preguntate si aparece en más de una pantalla, y después si depende de un dato. Se completa cuando los 7 están en su caja."
+    >
+      <Classify
+        items={WHERE_ITEMS}
+        columns={WHERE_COLUMNS}
+        itemLabel="Elemento"
+        counterLabel="ubicados en su lugar"
+        alreadyDone={isDone('whereclassify')}
+        onSolved={() => markDone('whereclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function FactoryBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['factorybuilder']);
+  return (
+    <Activity
+      title="Escribir el método fábrica de la fila"
+      kind="Armar"
+      goal="construir un método que arma el locator de una fila a partir de un dato."
+      done={isDone('factorybuilder')}
+      consigna="Armá, dentro de AgendaPage, el método que devuelve la fila de un turno según su hora. Elegí un fragmento por paso; el siguiente se habilita cuando acertás. Son 4 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={FACTORY_PREFIX}
+        steps={FACTORY_STEPS}
+        explanation={FACTORY_EXPLANATION}
+        alreadyDone={isDone('factorybuilder')}
+        onSolved={() => markDone('factorybuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function CentralMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['centralmulti']);
+  return (
+    <Activity
+      title="Un locator repetido cuatro veces"
+      kind="Marcar todas"
+      goal="elegir los cambios que dejan un locator repetido en un solo lugar sin volverlo frágil."
+      done={isDone('centralmulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todas las que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={CENTRAL_QUESTIONS}
+        alreadyDone={isDone('centralmulti')}
+        onSolved={() => markDone('centralmulti')}
+      />
+    </Activity>
+  );
+}
+
+Un Page Object evita que los tests repitan locators, pero puede repetirlos por dentro, o entre pantallas que comparten partes. Esta entrada ordena dónde vive cada locator para que cada uno exista en un solo lugar.
+
+## Conceptos
+
+### El problema: el mismo locator, escrito varias veces
+
+Un Page Object ya evita que el test toque el DOM, pero por dentro puede
+repetir lo mismo que repetían los tests:
+
+```ts
+export class PrestamosPage {
+  constructor(private readonly page: Page) {}
+
+  async estaVacia(): Promise<boolean> {
+    return this.page.getByText('No tenés préstamos activos').isVisible();
+  }
+
+  async renovar(tituloLibro: string): Promise<void> {
+    await this.page.getByRole('listitem').filter({ hasText: tituloLibro }).getByRole('button', { name: 'Renovar' }).click();
+  }
+
+  vencimiento(tituloLibro: string): Locator {
+    return this.page.getByRole('listitem').filter({ hasText: tituloLibro }).getByText(/^Vence el/);
+  }
+}
+```
+
+La forma de encontrar un préstamo en la lista aparece dos veces, escrita
+a mano. Para saber qué elementos usa la pantalla hay que leer la clase
+entera, método por método. Y si cambia la lista, hay que encontrar todas
+las copias.
+
+### Locators fijos: una propiedad, una vez
+
+Un locator que siempre apunta al mismo elemento se declara una vez, como
+propiedad, y se arma en el constructor (entrada de Page Object Model):
+
+```ts
+export class PrestamosPage {
+  readonly titulo: Locator;
+  readonly mensaje: Locator;
+  readonly sinPrestamos: Locator;
+
+  constructor(private readonly page: Page) {
+    this.titulo = page.getByRole('heading', { name: 'Mis préstamos' });
+    this.mensaje = page.getByRole('status');
+    this.sinPrestamos = page.getByText('No tenés préstamos activos');
+  }
+}
+```
+
+Las propiedades al principio de la clase son el inventario de la
+pantalla: quien abre el archivo ve de un vistazo qué elementos usa. En
+una pantalla grande, se agrupan por zona con un comentario por grupo
+(`// Filtros`, `// Lista de resultados`, `// Pie`).
+
+### Locators que dependen de un dato: métodos fábrica
+
+Algunos locators no se pueden armar en el constructor, porque dependen de
+un dato que llega recién cuando el test lo pide: el préstamo de **qué**
+libro. Para esos, un método que construye y devuelve el locator:
+
+```ts
+prestamo(tituloLibro: string): Locator {
+  return this.page.getByRole('listitem').filter({ has: this.page.getByRole('heading', { name: tituloLibro }) });
+}
+
+async renovar(tituloLibro: string): Promise<void> {
+  await this.prestamo(tituloLibro).getByRole('button', { name: 'Renovar' }).click();
+}
+
+vencimiento(tituloLibro: string): Locator {
+  return this.prestamo(tituloLibro).getByText(/^Vence el/);
+}
+```
+
+`prestamo(libro)` es un **método fábrica**: no ejecuta ninguna acción,
+arma un locator a partir del dato. Los demás métodos lo reutilizan, así
+que la forma de encontrar un préstamo existe en un solo lugar. Sigue
+siendo un locator centralizado: no está repetido, solo depende de un
+parámetro.
+
+La distinción es una sola pregunta: ¿el locator apunta siempre al mismo
+elemento, o depende de un dato que cambia en cada llamada? Lo primero es
+una propiedad; lo segundo, un método fábrica.
+
+### Lo que comparten varias pantallas: componentes
+
+En una aplicación con varias pantallas, algunas partes se repiten en
+todas: el menú de navegación, el encabezado con el nombre de la socia y
+el botón «Cerrar sesión». Si cada Page Object declara esos locators, el
+problema de la repetición vuelve, ahora entre clases.
+
+La solución es un **componente**: una clase como un Page Object, pero
+para una parte de la pantalla, que las páginas incluyen:
+
+```ts
+export class Encabezado {
+  readonly nombreSocia: Locator;
+  readonly cerrarSesion: Locator;
+
+  constructor(page: Page) {
+    const zona = page.getByRole('banner');
+    this.nombreSocia = zona.getByTestId('nombre-socia');
+    this.cerrarSesion = zona.getByRole('button', { name: 'Cerrar sesión' });
+  }
+}
+
+export class PrestamosPage {
+  readonly encabezado: Encabezado;
+  // ...
+  constructor(private readonly page: Page) {
+    this.encabezado = new Encabezado(page);
+    // ...
+  }
+}
+```
+
+`getByRole('banner')` encuentra el encabezado de la página (`<header>`) y
+los locators del componente buscan solo adentro (entrada de encadenar y
+filtrar). El test escribe `prestamosPage.encabezado.cerrarSesion.click()`,
+y si el botón cambia, se corrige en `Encabezado`, para todas las
+pantallas a la vez.
+
+Un componente se extrae cuando la misma parte aparece en más de una
+pantalla; con una sola pantalla, alcanza con el Page Object.
+
+## Cuándo usarlo
+
+Siempre que se escribe un Page Object: los locators fijos como
+propiedades, los que dependen de un dato como métodos fábrica, y las
+partes repetidas entre pantallas como componentes.
+
+## Buenas prácticas
+
+- Declarar cada locator fijo una sola vez, al principio de la clase.
+- Agrupar los locators por zona de la pantalla en las pantallas grandes.
+- Reutilizar los métodos fábrica dentro de los métodos de acción.
+- Extraer un componente cuando una parte se repite en varias pantallas.
+
+## Anti-patrones
+
+- **El mismo locator escrito en varios métodos.**
+- **Un método fábrica** para un elemento que no depende de ningún dato.
+- **Copiar los locators del menú** en cada Page Object.
+- **Componentes para todo**, aunque aparezcan en una sola pantalla.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<WhereClassifyActivity />
+
+<FactoryBuilderActivity />
+
+<CentralMultiActivity />

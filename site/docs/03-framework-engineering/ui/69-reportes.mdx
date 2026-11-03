@@ -1,0 +1,376 @@
+---
+title: "Reportes: HTML, JUnit y Allure"
+sidebar_position: 69
+---
+
+import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import Terminal from '@site/src/components/Terminal';
+import FindInCode from '@site/src/components/FindInCode';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  REP_START,
+  REP_NODES,
+  REP_EXPLANATION,
+  ATTACH_PREFIX,
+  ATTACH_STEPS,
+  ATTACH_EXPLANATION,
+  ALLURE_STEPS,
+  ALLURE_EXPLANATION,
+  PR_LINES,
+  PR_RULE_LABELS,
+} from '@site/src/content/lessons/69-reportes';
+
+export const LESSON_SLUG = 'framework-ui-reportes';
+
+export function RepPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['reppath']);
+  return (
+    <Activity
+      title="Los reportes de la suite de turnos"
+      kind="Escenario encadenado"
+      goal="elegir y configurar reporters según quién lee los resultados y dónde."
+      done={isDone('reppath')}
+      consigna="Son 3 decisiones encadenadas sobre los reportes de la suite de turnos. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={REP_START}
+        nodes={REP_NODES}
+        explanation={REP_EXPLANATION}
+        alreadyDone={isDone('reppath')}
+        onSolved={() => markDone('reppath')}
+      />
+    </Activity>
+  );
+}
+
+export function AttachBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['attachbuilder']);
+  return (
+    <Activity
+      title="Adjuntar el turno reservado"
+      kind="Armar"
+      goal="escribir un adjunto con el dato que ayuda a entender un fallo."
+      done={isDone('attachbuilder')}
+      consigna="El test de reserva recibe de la API un objeto turno. Armá la línea que lo adjunta al reporte con el nombre turno reservado, en formato JSON legible. Son 4 partes: elegí una opción en cada una. Si no es la correcta, aparece una pista y podés volver a elegir."
+    >
+      <CommandBuilder
+        prefix={ATTACH_PREFIX}
+        steps={ATTACH_STEPS}
+        explanation={ATTACH_EXPLANATION}
+        alreadyDone={isDone('attachbuilder')}
+        onSolved={() => markDone('attachbuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function AllureTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['allureterm']);
+  return (
+    <Activity
+      title="Generar y abrir el reporte de Allure"
+      kind="Terminal"
+      goal="generar un reporte de Allure limpio desde los resultados crudos y abrirlo."
+      done={isDone('allureterm')}
+      consigna="Son 2 pasos. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el segundo paso."
+    >
+      <Terminal
+        steps={ALLURE_STEPS}
+        explanation={ALLURE_EXPLANATION}
+        alreadyDone={isDone('allureterm')}
+        onSolved={() => markDone('allureterm')}
+      />
+    </Activity>
+  );
+}
+
+export function AllurePrActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['allurepr']);
+  return (
+    <Activity
+      title="Revisar el Pull Request de Allure"
+      kind="Buscar en el código"
+      goal="detectar problemas de severidad, datos sensibles y archivos generados al sumar Allure."
+      done={isDone('allurepr')}
+      consigna="Son 7 líneas de un Pull Request que suma Allure a la suite de turnos. Elegí cada una y decí qué problema tiene (severidad que no refleja el impacto, dato sensible en el reporte o archivo generado en el repositorio), o si no tiene problema. Se completa cuando encontrás las 4 que tienen un problema."
+    >
+      <FindInCode
+        lines={PR_LINES}
+        ruleLabels={PR_RULE_LABELS}
+        okLabel="Sin problema"
+        prompt="¿qué problema tiene?"
+        itemLabel="Línea"
+        counterLabel="líneas con problema encontradas"
+        alreadyDone={isDone('allurepr')}
+        onSolved={() => markDone('allurepr')}
+      />
+    </Activity>
+  );
+}
+
+Los resultados de una corrida los leen personas que no estaban frente a la terminal. Esta entrada muestra cómo configurar un reporte para cada lector, qué evidencia sumarle y cómo generar un reporte de Allure con filtros e historial.
+
+## Conceptos
+
+### Un reporte para cada lector
+
+La salida de la terminal le sirve a quien corrió la suite, en el momento.
+Pero los resultados también los leen otras personas: quien revisa un
+Pull Request, quien decide si una versión sale, quien investiga un fallo
+de la noche anterior en CI. Ninguna de ellas va a tener esa terminal
+abierta.
+
+Un **reporte** es el registro de una corrida que queda después de que
+termina: qué tests corrieron, cuáles fallaron, en qué paso y con qué
+evidencia. Playwright trae varios formatos, que se llaman **reporters**,
+y se pueden usar varios en la misma corrida, uno para cada lector.
+
+### Varios reporters en la misma corrida
+
+`reporter` en la configuración (entrada de configuración) acepta una
+lista. Cada elemento es el nombre del reporter y, opcionalmente, sus
+opciones:
+
+```ts
+reporter: [
+  ['list'],
+  ['html', { open: 'never' }],
+  ['junit', { outputFile: 'resultados/junit.xml' }],
+],
+```
+
+- `list` imprime una línea por test en la terminal, para quien corre.
+- `html` genera `playwright-report/`, el reporte navegable que se abre con
+  `npx playwright show-report` (entrada de cómo correr los tests). Por
+  defecto (`open: 'on-failure'`), si algún test falla y la corrida se
+  lanzó desde una terminal interactiva, el comando abre el reporte en el
+  navegador y se queda sirviéndolo hasta que se presiona Ctrl+C. En CI no
+  pasa, porque no hay terminal interactiva. `open: 'never'` lo evita
+  también en tu computadora: sirve cuando un script corre los tests y
+  después otro paso, que de lo contrario quedaría esperando.
+- `junit` escribe un archivo XML con un formato estándar que leen las
+  plataformas de CI para mostrar los resultados en su propia pantalla.
+
+El XML de una corrida de la biblioteca:
+
+```xml
+<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="1.3625890000000003">
+<testsuite name="auth.setup.ts" timestamp="2026-10-29T18:12:02.823Z" hostname="setup" tests="1" failures="0" skipped="0" time="0.335" errors="0">
+<testcase name="ingresar con la socia de prueba" classname="auth.setup.ts" time="0.335">
+</testcase>
+</testsuite>
+<testsuite name="reporte.spec.ts" timestamp="2026-10-29T18:12:02.823Z" hostname="chromium" tests="1" failures="0" skipped="0" time="0.357" errors="0">
+<testcase name="un préstamo renovado dos veces ya no se puede renovar" classname="reporte.spec.ts" time="0.357">
+</testcase>
+</testsuite>
+</testsuites>
+```
+
+Cada `testsuite` es un archivo de tests (`hostname` dice de qué proyecto)
+y cada `testcase`, un test, con su tiempo. En el archivo real, el
+`testcase` también guarda lo que el test imprimió en la consola. Si un test falla, su `testcase` incluye el mensaje de error. Con
+`--reporter=line` en el comando se reemplaza la lista entera para esa
+corrida.
+
+### Lo que hace útil a un reporte
+
+Un reporte que solo dice «falló» obliga a reproducir el fallo para
+entenderlo. Tres cosas, ya vistas, lo convierten en un diagnóstico:
+
+- **Pasos con nombre**: cada `test.step('1- ...')` aparece en el reporte
+  como un bloque, con su estado. Se ve en qué paso del caso falló, no solo
+  en qué línea (entrada de anatomía de un test).
+- **Evidencia del fallo**: con `screenshot: 'only-on-failure'` y
+  `trace: 'retain-on-failure'` en el `use` de la configuración, Playwright
+  guarda la captura y el trace solo de los tests que fallan, y los
+  reporters los adjuntan (entradas de leer un fallo y de debugging).
+- **Adjuntos propios**: `testInfo.attach` agrega al reporte un dato que
+  ayude a entender el caso, como el préstamo que creó la siembra.
+  `testInfo` es el segundo parámetro de la función del test (entrada de
+  subir y descargar archivos):
+
+```ts
+test('un préstamo renovado dos veces ya no se puede renovar', async ({ prestamosPage, sembrarPrestamo }, testInfo) => {
+  await test.step('1- La socia tiene Ficciones y lo renueva dos veces', async () => {
+    const prestamo = await sembrarPrestamo(unPrestamo().deLibro('Ficciones').build());
+    await testInfo.attach('préstamo sembrado', {
+      body: JSON.stringify(prestamo, null, 2),
+      contentType: 'application/json',
+    });
+    // ...
+  });
+});
+```
+
+`body` es el contenido (acá, el objeto convertido a JSON con
+`JSON.stringify`, entrada de JSON) y `contentType`, su tipo. El adjunto
+aparece dentro del paso en el que se creó.
+
+### Allure
+
+**Allure** es una herramienta de reportes independiente del framework:
+recibe resultados de Playwright, de otras herramientas y de otros
+lenguajes, y arma un reporte con más funciones que el HTML de Playwright:
+filtros por severidad o por funcionalidad, el historial de cada test a
+lo largo de las corridas y gráficos de tendencia. Se usa sobre todo
+cuando los resultados los consulta gente fuera del equipo que escribe los
+tests, o cuando importa ver la evolución y no solo la última corrida.
+
+Se instalan dos paquetes: el reporter que escribe los resultados de
+Playwright en formato Allure, y la herramienta que genera el reporte
+(Allure 3, que funciona con Node.js):
+
+```bash
+npm install -D allure-playwright allure
+```
+
+El reporter se suma a la lista:
+
+```ts
+reporter: [
+  ['list'],
+  ['allure-playwright', { resultsDir: 'allure-results' }],
+],
+```
+
+Cada corrida deja en `allure-results/` los resultados crudos: un JSON por
+test y un archivo por adjunto. No es el reporte todavía, es su materia
+prima:
+
+```text
+allure-results/
+├── 6c658f29-...-result.json
+├── 7d8744ac-...-attachment.json
+├── dfdf96aa-...-result.json
+└── e223fa13-...-attachment.txt
+```
+
+El reporte se genera desde esa carpeta y se abre con el servidor de
+Allure, que elige un puerto libre en cada apertura:
+
+```bash
+npx allure generate allure-results
+npx allure open
+```
+
+```text
+Allure is running on http://localhost:54399. Press CTRL+C to stop.
+```
+
+`generate` escribe el reporte en `allure-report/`. Si la carpeta ya tiene
+un reporte anterior, avisa:
+
+```text
+The output directory ".../allure-report" is not empty. Files of a previous report may break the layout of the new one. Use the --clean option to remove the directory before generating.
+```
+
+`npx allure generate allure-results --clean` borra el reporte anterior
+antes de generar el nuevo. `allure-results/` también conviene vaciarla
+entre corridas: si no, el reporte mezcla resultados viejos con los
+nuevos.
+
+Con un test que falla, Allure muestra los pasos con su estado y, al
+final, la captura, el contexto del error y el trace como adjuntos. El
+adjunto de `testInfo.attach` queda dentro del paso 1.
+
+### Metadatos para filtrar
+
+Allure clasifica los tests con etiquetas que el propio test declara, con
+el paquete `allure-js-commons` (que se instala junto con
+`allure-playwright`):
+
+```ts
+import * as allure from 'allure-js-commons';
+
+test('un préstamo renovado dos veces ya no se puede renovar', async ({ prestamosPage }) => {
+  await allure.feature('Préstamos');
+  await allure.severity('critical');
+  await allure.owner('Equipo Biblioteca');
+  // ...
+});
+```
+
+- `feature` agrupa los tests por funcionalidad.
+- `severity` indica qué tan grave es si falla: `blocker`, `critical`,
+  `normal` (la que se asume si no se declara), `minor` o `trivial`. Es la
+  severidad del modelo de defectos (entrada de severidad y prioridad),
+  aplicada al test.
+- `owner` dice a quién avisar.
+
+En el reporte, cada una se convierte en un filtro: «mostrar solo los
+críticos que fallaron». `import * as allure` trae todas las funciones del
+paquete bajo el nombre `allure`.
+
+### El historial entre corridas
+
+Una corrida sola no dice si un test es inestable: hace falta ver sus
+resultados anteriores. Allure 3 guarda el historial en un archivo que se
+declara en su configuración, `allurerc.mjs`, en la raíz del proyecto:
+
+```js
+import { defineConfig } from 'allure';
+
+export default defineConfig({
+  name: 'Biblioteca',
+  output: './allure-report',
+  historyPath: './allure-history.jsonl',
+});
+```
+
+Cada `generate` agrega una línea a `allure-history.jsonl` con los
+resultados de esa corrida. Con dos corridas, el archivo tiene dos líneas,
+y el reporte muestra para cada test sus resultados anteriores y si
+alterna entre pasar y fallar. En CI, ese archivo tiene que conservarse
+entre corridas, y el reporte se publica para que lo vea el equipo: se ve
+en la sección IV.
+
+### Lo que no se versiona
+
+Los reportes y los resultados crudos se generan en cada corrida: no van
+al repositorio. El instalador de Playwright ya excluye
+`/test-results/` y `/playwright-report/` (entrada de instalación); con
+Allure y JUnit se agregan sus carpetas:
+
+```text
+/allure-results/
+/allure-report/
+/resultados/
+```
+
+## Cuándo usarlo
+
+`list` para la terminal y `html` para investigar un fallo, siempre. JUnit
+cuando la plataforma de CI muestra los resultados. Allure cuando los
+resultados los leen personas fuera del equipo o cuando hace falta el
+historial entre corridas.
+
+## Buenas prácticas
+
+- Nombrar los pasos para que el reporte cuente el caso.
+- Guardar captura y trace solo de los fallos.
+- Adjuntar los datos que ayudan a entender un fallo.
+- Declarar severidad y funcionalidad para poder filtrar.
+- Generar el reporte desde resultados limpios, con `--clean`.
+
+## Anti-patrones
+
+- **Un único reporte para todos**: la terminal no le sirve a quien no
+  corrió la suite.
+- **Un reporte que se abre solo** en medio de un script que tiene que
+  seguir.
+- **Versionar** reportes o resultados crudos.
+- **Mezclar resultados** de corridas viejas en el reporte nuevo.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<RepPathActivity />
+
+<AttachBuilderActivity />
+
+<AllureTerminalActivity />
+
+<AllurePrActivity />

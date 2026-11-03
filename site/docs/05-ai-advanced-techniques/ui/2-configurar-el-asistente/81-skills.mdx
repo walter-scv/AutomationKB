@@ -1,0 +1,281 @@
+---
+title: "Skills: tareas empaquetadas"
+sidebar_position: 81
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import FindInCode from '@site/src/components/FindInCode';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  FIELD_LEFT,
+  FIELD_RIGHT,
+  FIELD_WHY,
+  SKILL_LINES,
+  SKILL_RULE_LABELS,
+  DESC_QUESTIONS,
+} from '@site/src/content/lessons/81-skills';
+
+export const LESSON_SLUG = 'ai-ui-skills';
+
+export function FieldMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['fieldmatch']);
+  return (
+    <Activity
+      title="Cada necesidad con su campo"
+      kind="Emparejar"
+      goal="elegir el campo del frontmatter de una skill que resuelve cada necesidad."
+      done={isDone('fieldmatch')}
+      consigna="Son 5 pares. Elegí una necesidad del equipo de turnos (izquierda) y después el campo del SKILL.md que la resuelve (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={FIELD_LEFT}
+        right={FIELD_RIGHT}
+        why={FIELD_WHY}
+        leftLabel="Necesidad"
+        rightLabel="Campo"
+        alreadyDone={isDone('fieldmatch')}
+        onSolved={() => markDone('fieldmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function SkillFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['skillfind']);
+  return (
+    <Activity
+      title="Revisar una skill"
+      kind="Buscar en el código"
+      goal="detectar descripciones inútiles, contenido que no va en una skill y efectos externos sin control."
+      done={isDone('skillfind')}
+      consigna="Son 7 líneas del SKILL.md de una skill de la suite de turnos. Elegí cada una y decí qué problema tiene (descripción que no sirve para elegirla, contenido que no va en una skill o efecto externo sin control), o si no tiene problema. Se completa cuando encontrás las 4 que tienen un problema."
+    >
+      <FindInCode
+        lines={SKILL_LINES}
+        ruleLabels={SKILL_RULE_LABELS}
+        okLabel="Sin problema"
+        prompt="¿qué problema tiene?"
+        itemLabel="Línea del SKILL.md"
+        counterLabel="líneas con problema encontradas"
+        alreadyDone={isDone('skillfind')}
+        onSolved={() => markDone('skillfind')}
+      />
+    </Activity>
+  );
+}
+
+export function DescMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['descmulti']);
+  return (
+    <Activity
+      title="Descripciones, contexto dinámico y mantenimiento"
+      kind="Marcar todas"
+      goal="reconocer descripciones útiles, cómo se habilita el contexto dinámico y dónde va lo aprendido."
+      done={isDone('descmulti')}
+      consigna="Son 2 preguntas de 5 opciones cada una. Marcá todas las que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={DESC_QUESTIONS}
+        alreadyDone={isDone('descmulti')}
+        onSolved={() => markDone('descmulti')}
+      />
+    </Activity>
+  );
+}
+
+Una skill empaqueta una tarea con sus instrucciones, sus archivos de apoyo y la descripción que le dice al agente cuándo usarla. Esta entrada muestra su estructura, su formato, cómo se escribe una descripción útil, y qué contiene y qué no.
+
+## Conceptos
+
+### Cuando un comando no alcanza
+
+El equipo de la agenda tiene un comando para revisar Page Objects. Con
+el tiempo creció: las reglas de la suite ocupan sesenta líneas, hay un
+Page Object de ejemplo que muestra cómo tiene que quedar, y una lista de
+errores que se repiten. Todo eso adentro de un solo archivo de comando
+es difícil de leer y de mantener.
+
+Además, aparece otro problema: el comando solo se usa si alguien se
+acuerda de escribirlo. Si el agente acaba de modificar
+`pages/AgendaPage.ts`, lo ideal sería que la revisión ocurriera sin que
+nadie lo pida.
+
+Una **skill** resuelve las dos cosas. Es un paquete de instrucciones
+para una tarea, como un comando, con tres diferencias:
+
+- **Es una carpeta**, no un archivo: además de las instrucciones, puede
+  llevar archivos de apoyo, como las reglas, un ejemplo o una plantilla.
+- **El agente puede usarla por su cuenta**: al empezar la sesión ve el
+  nombre y la descripción de cada skill, y cuando una tarea coincide con
+  una descripción, la carga.
+- **Se carga solo cuando se usa**: hasta entonces, del contenido solo
+  ocupa contexto la descripción. Se pueden tener muchas skills sin llenar
+  el contexto (entrada de cómo funciona un asistente).
+
+Las skills siguen un estándar abierto, Agent Skills, que entienden varios
+agentes además de Claude Code: una skill bien escrita sirve en otras
+herramientas.
+
+### La estructura
+
+```text
+.claude/skills/
+└── revisar-pom/
+    ├── SKILL.md          ← instrucciones, obligatorio
+    ├── reglas.md         ← las reglas, se leen cuando hacen falta
+    └── ejemplo-bueno.ts  ← un Page Object de referencia
+```
+
+- Las de `.claude/skills/` del repositorio son del equipo; las de
+  `~/.claude/skills/`, en tu carpeta personal, son solo tuyas.
+- Se invocan con `/` y su nombre, como un comando: `/revisar-pom`. O las
+  usa el agente cuando la descripción coincide con lo que está haciendo.
+
+### El archivo SKILL.md
+
+Empieza con un frontmatter (el bloque entre `---` de la primera línea,
+entrada de instrucciones del proyecto) y sigue con las instrucciones:
+
+```markdown
+---
+name: revisar-pom
+description: Revisa un Page Object contra las reglas de la suite. Usala cuando se crea o modifica un archivo en pages/, o cuando piden revisar un Page Object.
+argument-hint: "<archivo del Page Object>"
+context: fork
+---
+
+# Revisar un Page Object
+
+1. Leé el archivo $ARGUMENTS.
+2. Comparalo contra cada regla de [reglas.md](reglas.md).
+3. Si dudás de un locator, compará con [ejemplo-bueno.ts](ejemplo-bueno.ts).
+4. Respondé con APROBADO o RECHAZADO y, por cada incumplimiento, la línea,
+   la regla y la corrección.
+
+No edites el archivo: esta skill solo revisa.
+```
+
+Los enlaces a `reglas.md` y `ejemplo-bueno.ts` le dicen al agente que
+esos archivos existen; los lee cuando llega a ese paso, no antes.
+
+Los campos más usados del frontmatter:
+
+- `name`: el nombre del atajo. Si falta, se usa el de la carpeta.
+- `description`: qué hace y cuándo usarla. Es lo único que el agente lee
+  para decidir si la carga.
+- `argument-hint`: qué datos espera al invocarla, como en un comando.
+- `disable-model-invocation: true`: la skill solo corre cuando la
+  invocás vos; el agente nunca la usa por su cuenta.
+- `allowed-tools`: acciones que el agente puede hacer sin mostrarte el
+  aviso de permiso mientras ejecuta la skill (entrada de tu primer
+  agente), por ejemplo `Bash(npx playwright test *)` para correr los
+  tests. Leer archivos no hace falta incluirlo, porque nunca pide
+  permiso. No habilita lo que una regla de permisos prohíbe (entrada de
+  permisos).
+- `context: fork`: la skill no corre en tu conversación, sino en un
+  agente aparte que arranca con el contexto vacío, hace la tarea y
+  devuelve solo el resultado. Ese agente aparte se llama **subagente**, y
+  es el tema de la entrada siguiente. La skill del ejemplo lo usa porque
+  revisa: si corriera en la misma conversación en la que se escribió el
+  Page Object, revisaría con los mismos supuestos con los que se
+  escribió.
+
+### La descripción decide cuándo se usa
+
+El agente no lee las skills enteras para elegir una: lee las
+descripciones. Una descripción vaga hace que la skill no se use cuando
+hace falta, o que se use cuando no.
+
+- Vaga: «Ayuda con Page Objects».
+- Útil: «Revisa un Page Object contra las reglas de la suite. Usala
+  cuando se crea o modifica un archivo en pages/, o cuando piden revisar
+  un Page Object.»
+
+La útil dice qué hace y en qué situaciones, con las palabras que
+aparecen en esas situaciones: «pages/», «revisar», «Page Object».
+
+### Qué contiene y qué no
+
+Una buena skill hace **una** tarea, y contiene:
+
+- los pasos, en orden, con un formato de salida definido, como APROBADO
+  o RECHAZADO con el detalle;
+- referencias a archivos de apoyo para lo largo, como reglas, ejemplos o
+  plantillas, que se leen solo cuando hacen falta;
+- lo que no tiene que hacer, como «no edites el archivo».
+
+No contiene:
+
+- **secretos**, por la misma razón que un comando;
+- **todo en un solo archivo**: la documentación recomienda que
+  `SKILL.md` tenga menos de 500 líneas y que el detalle vaya a archivos de
+  apoyo;
+- **varias tareas mezcladas**: «revisar, corregir y documentar» son tres
+  skills;
+- **uso automático en tareas con efectos afuera**: una skill que crea
+  tickets o publica algo lleva `disable-model-invocation: true`, para que
+  solo corra cuando vos la pedís.
+
+### Contexto dinámico
+
+Una skill puede ejecutar un comando de la terminal antes de que el
+agente la lea, e incluir la salida en sus instrucciones. Se escribe con
+un signo de exclamación y el comando entre comillas invertidas:
+
+```markdown
+---
+name: resumen-pr
+description: Resume los cambios de un Pull Request de la suite.
+allowed-tools: Bash(gh pr diff *)
+---
+
+## Cambios del Pull Request
+- Archivos cambiados: !`gh pr diff --name-only`
+```
+
+`gh` es la herramienta de GitHub para la terminal, y `gh pr diff
+--name-only` lista los archivos que cambió el Pull Request actual.
+Cuando alguien invoca la skill, esa línea ya llega con la lista, sin que
+el agente tenga que pedirla. Ese comando no muestra el aviso de permiso:
+si las reglas de permisos no lo permiten, la skill directamente no se
+ejecuta. Por eso el ejemplo lo habilita en `allowed-tools`.
+
+### Devolverle lo aprendido
+
+Cuando una revisión se equivoca, o aparece una trampa nueva del
+proyecto, la corrección va a la skill: a sus reglas o a un archivo de
+«trampas conocidas». Una corrección que solo se hace en un test es una
+corrección que la próxima persona vuelve a descubrir sola.
+
+## Cuándo usarlo
+
+Para tareas que se repiten y tienen reglas propias del proyecto: revisar
+un Page Object, revisar datos de prueba, reportar un defecto, elegir qué
+probar a mano en una versión nueva.
+
+## Buenas prácticas
+
+- Una tarea por skill, con un formato de salida definido.
+- Una descripción que diga qué hace y cuándo usarla.
+- Lo largo, en archivos de apoyo.
+- `disable-model-invocation: true` en las skills con efectos afuera.
+
+## Anti-patrones
+
+- **Descripciones vagas** que no hacen que la skill se use cuando hace
+  falta.
+- **Un SKILL.md de mil líneas** con todo adentro.
+- **Una skill que crea tickets** y que el agente puede usar por su
+  cuenta.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<FieldMatchActivity />
+
+<SkillFindActivity />
+
+<DescMultiActivity />

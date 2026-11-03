@@ -121,12 +121,16 @@ export default function FindInCode({
       text: (
         <>
           {choice === 0 ? (
-            okLabel === 'Está bien'
-              ? 'Mirá de nuevo: esta línea sí tiene un problema. '
-              : 'Mirá de nuevo: esa no es la clasificación correcta. '
+            okLabel === 'Está bien' || okLabel === 'Sin problema' ? (
+              `${itemLabel} ${i + 1}: mirá de nuevo, sí tiene un problema. `
+            ) : (
+              <>
+                {itemLabel} {i + 1}: «<InlineText text={okLabel} />» no corresponde.{' '}
+              </>
+            )
           ) : (
             <>
-              No es "<InlineText text={ruleLabels[choice - 1]} />".{' '}
+              {itemLabel} {i + 1}: «<InlineText text={ruleLabels[choice - 1]} />» no corresponde.{' '}
             </>
           )}
           <InlineText text={l.hint ?? ''} />

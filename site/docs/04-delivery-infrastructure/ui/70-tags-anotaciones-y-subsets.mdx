@@ -1,0 +1,416 @@
+---
+title: "Tags, anotaciones y subsets"
+sidebar_position: 70
+---
+
+import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
+import Classify from '@site/src/components/Classify';
+import Terminal from '@site/src/components/Terminal';
+import Quiz from '@site/src/components/Quiz';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  MOMENT_START,
+  MOMENT_NODES,
+  MOMENT_EXPLANATION,
+  ANNOT_ITEMS,
+  ANNOT_COLUMNS,
+  FILTER_STEPS,
+  FILTER_EXPLANATION,
+  READ_QUIZ,
+  PIPE_ACCEPTED,
+  PIPE_HINTS,
+  PIPE_EXPLANATION,
+  PIPE_CODE,
+} from '@site/src/content/lessons/70-tags-anotaciones-y-subsets';
+
+export const LESSON_SLUG = 'delivery-ui-tags-y-subsets';
+
+export function MomentPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['momentpath']);
+  return (
+    <Activity
+      title="Qué corre en cada momento"
+      kind="Escenario encadenado"
+      goal="elegir el subset para un Pull Request, un despliegue y la regresión, y decidir qué hacer con un defecto conocido."
+      done={isDone('momentpath')}
+      consigna="Son 4 decisiones encadenadas sobre la suite de la agenda de turnos. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={MOMENT_START}
+        nodes={MOMENT_NODES}
+        explanation={MOMENT_EXPLANATION}
+        alreadyDone={isDone('momentpath')}
+        onSolved={() => markDone('momentpath')}
+      />
+    </Activity>
+  );
+}
+
+export function AnnotClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['annotclassify']);
+  return (
+    <Activity
+      title="¿Qué anotación corresponde?"
+      kind="Clasificar"
+      goal="elegir entre saltear, marcar como pendiente o marcar como falla esperada según la situación del test."
+      done={isDone('annotclassify')}
+      consigna="Son 7 situaciones de la suite de turnos. Arrastrá cada una a test.skip con condición, test.fixme o test.fail. Regla para los casos dudosos: si el test no aplica en esa condición, se saltea; si aplica pero el test está roto, es pendiente; si el test está bien y la aplicación tiene un defecto reportado, es una falla esperada. Se completa cuando las 7 están en su caja."
+    >
+      <Classify
+        items={ANNOT_ITEMS}
+        columns={ANNOT_COLUMNS}
+        itemLabel="Situación"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('annotclassify')}
+        onSolved={() => markDone('annotclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function FilterTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['filterterm']);
+  return (
+    <Activity
+      title="Armar subsets desde la terminal"
+      kind="Terminal"
+      goal="listar subsets que exigen dos tags a la vez, excluyen un tag y filtran por lo que cambió en una rama."
+      done={isDone('filterterm')}
+      consigna="Son 3 pasos sobre la suite de la agenda. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el tercer paso."
+    >
+      <Terminal
+        steps={FILTER_STEPS}
+        explanation={FILTER_EXPLANATION}
+        alreadyDone={isDone('filterterm')}
+        onSolved={() => markDone('filterterm')}
+      />
+    </Activity>
+  );
+}
+
+export function ReadQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['readquiz']);
+  return (
+    <Activity
+      title="Leer lo que dicen las anotaciones"
+      kind="Elegí la opción"
+      goal="interpretar una falla esperada que esconde otra causa, un defecto que se corrigió, un test lento y un subset repetido."
+      done={isDone('readquiz')}
+      consigna="Son 4 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 4."
+    >
+      <Quiz
+        questions={READ_QUIZ}
+        onSolved={() => markDone('readquiz')}
+      />
+    </Activity>
+  );
+}
+
+export function PipeTypeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['pipetype']);
+  return (
+    <Activity
+      title="La barra vertical que se llevó la terminal"
+      kind="Respuesta escrita"
+      goal="corregir un filtro de tags que la terminal partió en dos."
+      done={isDone('pipetype')}
+      consigna="Querías listar los tests con el tag @smoke o el tag @p0, y la terminal respondió lo de arriba. Escribí el comando corregido y presioná Enter."
+    >
+      <CodeBlock language="text">{PIPE_CODE}</CodeBlock>
+      <TypeAnswer
+        accepted={PIPE_ACCEPTED}
+        hints={PIPE_HINTS}
+        explanation={PIPE_EXPLANATION}
+        placeholder="npx playwright test ..."
+        alreadyDone={isDone('pipetype')}
+        onSolved={() => markDone('pipetype')}
+      />
+    </Activity>
+  );
+}
+
+Correr toda la suite no siempre es lo que hace falta: un Pull Request, un despliegue y la regresión nocturna necesitan respuestas distintas. Esta entrada muestra cómo clasificar los tests para elegir qué corre en cada momento, y cómo marcar los que tienen una situación especial, incluido un defecto conocido.
+
+## Conceptos
+
+### Una suite, varios momentos
+
+La suite completa de la biblioteca corre en minutos; la de un sistema
+real, en horas. No todos los momentos del día necesitan todo:
+
+- **Antes de integrar un Pull Request** importa saber rápido si el cambio
+  rompió algo cercano.
+- **Antes de desplegar** importa confirmar que lo crítico funciona: es el
+  **smoke test** del programa ISTQB, un conjunto chico de pruebas que
+  cubre la funcionalidad principal para decidir si vale la pena seguir
+  probando.
+- **De noche** hay tiempo para la regresión completa, en todos los
+  navegadores. Por qué hace falta, y cómo se arma cada ejecución, se ve
+  en la entrada de qué corre y cuándo.
+
+Para elegir qué corre en cada momento, los tests tienen que estar
+clasificados. Esta entrada muestra cómo clasificarlos con tags, cómo
+armar subconjuntos (**subsets**) con filtros y cómo marcar los tests que
+tienen una situación especial con anotaciones.
+
+### Un esquema de tags
+
+La sintaxis de los tags se vio en la entrada de anatomía de un test. Lo
+que falta es el criterio: un tag responde una pregunta concreta sobre el
+test. Un esquema habitual combina tres ejes:
+
+- **Alcance**: `@smoke` marca los pocos tests que tienen que pasar
+  siempre antes de desplegar.
+- **Prioridad**: `@p0` si su falla bloquea la salida de una versión,
+  `@p1` si es grave pero no bloquea, `@p2` si puede esperar.
+- **Funcionalidad**: `@prestamos`, `@ingreso`, para correr todo lo de una
+  pantalla.
+
+```ts
+test('renovar un préstamo extiende el vencimiento 14 días', { tag: ['@smoke', '@p0', '@prestamos'] }, async ({ prestamosPage, sembrarPrestamo }) => {
+```
+
+La prioridad sale del análisis de riesgo (entrada de risk-based testing): qué tan probable es la falla y qué tan grave sería. Si todos
+los tests son `@p0`, el tag deja de separar algo; si un test no tiene
+prioridad, nadie decidió todavía cuánto importa.
+
+### Combinar filtros con `--grep`
+
+`--grep` recibe una **expresión regular** que se compara con el título
+completo, tags incluidos (entrada de cómo correr los tests). Con eso se
+combinan tags:
+
+- **Uno u otro**: la barra vertical `|` significa «o».
+
+```bash
+npx playwright test --grep "@smoke|@p0" --list
+```
+
+```text
+Listing tests:
+  [setup] › auth.setup.ts:6:6 › ingresar con la socia de prueba
+  [chromium] › ingreso.spec.ts:8:7 › Ingreso › con datos correctos llega a sus préstamos
+  [chromium] › prestamos.spec.ts:5:7 › Préstamos › renovar un préstamo extiende el vencimiento 14 días
+Total: 3 tests in 3 files
+```
+
+- **Los dos a la vez**: cada `(?=.*@p1)` exige que el tag aparezca en
+  algún lugar del título, sin importar el orden.
+
+```bash
+npx playwright test --grep "(?=.*@p1)(?=.*@prestamos)" --list
+```
+
+```text
+Listing tests:
+  [setup] › auth.setup.ts:6:6 › ingresar con la socia de prueba
+  [chromium] › renovaciones.spec.ts:5:7 › Renovaciones › un préstamo admite una sola renovación
+  [chromium] › vencimientos.spec.ts:12:9 › Vencimiento al renovar › un préstamo que vence el 10/11 pasa al 24/11
+  [chromium] › vencimientos.spec.ts:12:9 › Vencimiento al renovar › un préstamo que vence el 25/11 pasa al 09/12
+  [chromium] › vencimientos.spec.ts:12:9 › Vencimiento al renovar › un préstamo que vence el 20/12 pasa al 03/01
+Total: 5 tests in 3 files
+```
+
+- **Todo menos**: `--grep-invert` excluye lo que coincide, y se puede
+  combinar con `--grep`.
+
+Dos detalles de la salida. `--list` muestra los tests sin correrlos, y
+sirve para confirmar el subset antes de esperar una corrida entera. Y el
+setup aparece aunque su título no tenga el tag: es una dependencia del
+proyecto (entrada de sesión reutilizada), y corre siempre que corra algún
+test que la necesite.
+
+Las comillas alrededor de la expresión son necesarias: sin ellas, la
+terminal interpreta `|` como el operador que conecta dos comandos.
+
+### Subsets en la configuración
+
+Un filtro que se usa siempre puede vivir en la configuración, como un
+proyecto propio con `grep` (o `grepInvert`):
+
+```ts
+{
+  name: 'smoke',
+  grep: /@smoke/,
+  use: { ...devices['Desktop Chrome'], storageState: 'playwright/.auth/socia.json' },
+  dependencies: ['setup'],
+},
+```
+
+```bash
+npx playwright test --project=smoke --list
+```
+
+```text
+Listing tests:
+  [setup] › auth.setup.ts:6:6 › ingresar con la socia de prueba
+  [smoke] › ingreso.spec.ts:8:7 › Ingreso › con datos correctos llega a sus préstamos
+  [smoke] › prestamos.spec.ts:5:7 › Préstamos › renovar un préstamo extiende el vencimiento 14 días
+Total: 3 tests in 3 files
+```
+
+En la configuración, `grep` es una expresión regular de JavaScript, entre
+barras, no un texto entre comillas.
+
+### Correr lo que cambió: `--only-changed`
+
+Para un Pull Request, el subset natural es lo que el cambio puede haber
+afectado. `--only-changed` corre los archivos de test modificados según
+Git (entrada de Git) **y los que importan algún archivo modificado**. Sin
+valor, compara con los cambios sin confirmar; con el nombre de una rama,
+compara con esa rama:
+
+```bash
+npx playwright test --only-changed=main --list
+```
+
+Si el cambio está en `pages/IngresoPage.ts`, entran todos los tests que
+lo importan, aunque sea indirectamente. En la biblioteca, `base-test.ts`
+importa `IngresoPage`, y todos los tests importan `base-test.ts`:
+
+```text
+Total: 8 tests in 5 files
+```
+
+Si el cambio está en `helpers/prestamo.builder.ts`, solo entran los que
+usan el builder:
+
+```text
+Total: 6 tests in 4 files
+```
+
+En CI, Git tiene que tener la historia de la rama para poder comparar:
+cómo se configura se ve en la entrada de CI con GitHub Actions.
+
+Es un filtro de rapidez, no de seguridad: un cambio en el servidor de la
+aplicación no aparece en el repositorio de los tests. Por eso no
+reemplaza la corrida completa de la noche.
+
+### Anotaciones: tests con una situación especial
+
+Una **anotación** marca un test que no tiene que correr, o resultar,
+como los demás. Playwright trae cuatro, y todas aceptan una condición y
+un motivo que aparece en el reporte:
+
+- `test.skip(condición, motivo)` saltea el test cuando no aplica. Con
+  `browserName` como parámetro del test, la condición se evalúa en cada
+  proyecto:
+
+  ```ts
+  test.skip(browserName === 'webkit', 'El comprobante no se descarga en Safari');
+  ```
+
+- `test.fixme(condición, motivo)` saltea un test que está roto y hay que
+  arreglar. Es un `skip` que dice «pendiente».
+- `test.slow(condición, motivo)` triplica el timeout del test, para los
+  que son lentos a propósito (entrada de esperas y timeouts).
+- `test.fail(condición, motivo)` indica que el test **tiene que fallar**.
+
+Se escriben dentro del cuerpo del test, como primera línea. Un test con
+`fixme` aparece en la salida con un guion y suma en `skipped`:
+
+```text
+  -  3 [chromium] › tests/historial.spec.ts:14:5 › exportar el historial en PDF
+  1 skipped
+```
+
+Además de las cuatro, un test puede llevar anotaciones propias, que no
+cambian cómo corre: solo agregan información al reporte HTML.
+
+```ts
+test('un préstamo admite una sola renovación', {
+  tag: ['@p1', '@prestamos'],
+  annotation: { type: 'issue', description: 'https://github.com/biblioteca/web/issues/412' },
+}, async ({ prestamosPage, sembrarPrestamo }) => {
+```
+
+### Documentar un defecto conocido
+
+El reglamento de la biblioteca permite una sola renovación, pero el
+sistema acepta dos. El defecto está reportado (#412) y se va a corregir
+en otra versión. ¿Qué se hace con el test que lo encuentra?
+
+- **Borrarlo o aflojarlo** esconde el defecto: cuando se corrija, nadie
+  se entera, y si vuelve, tampoco.
+- **Dejarlo fallar** tiñe de rojo cada corrida con una falla conocida, y
+  las fallas nuevas se pierden entre las viejas.
+- **`test.skip`** lo saca de la corrida: el defecto deja de verse.
+
+`test.fail` es la opción que Playwright ofrece para este caso: el test
+verifica el comportamiento **correcto**, y la anotación dice que hoy se
+espera que falle.
+
+```ts
+test.fail(true, 'Defecto conocido #412: el sistema permite una segunda renovación');
+await sembrarPrestamo(unPrestamo().deLibro('Ficciones').build());
+await prestamosPage.abrir();
+await prestamosPage.renovar('Ficciones');
+await expect(prestamosPage.mensaje).toHaveText('Préstamo renovado');
+await prestamosPage.renovar('Ficciones');
+await expect(prestamosPage.mensaje).toHaveText('Ya no se puede renovar');
+```
+
+```text
+  ✘  2 [chromium] › tests/renovaciones.spec.ts:5:7 › Renovaciones › un préstamo admite una sola renovación @p1 @prestamos (5.2s)
+
+  2 passed (6.0s)
+```
+
+El reporter `list` muestra la cruz porque el test falló, pero el resumen
+lo cuenta como `passed`: falló como se esperaba. Tardó 5,2 segundos
+porque la última assertion esperó su timeout completo antes de fallar.
+
+El día que se corrige el defecto, el test pasa, y eso hace fallar la
+corrida. Le pasó a otro test de la suite, marcado con `test.fail` por el
+defecto #398 («no se puede renovar dos veces»), cuando se corrigió:
+
+```text
+  1) [chromium] › tests/historial.spec.ts:4:5 › un préstamo admite dos renovaciones
+
+    Expected to fail, but passed.
+```
+
+Es la señal para sacar el `test.fail`. Un riesgo: `test.fail` acepta
+cualquier falla, también una que no tiene nada que ver con el defecto,
+como un locator roto. Por eso se usa con el número del defecto en el
+motivo, y se revisa cuando el defecto se corrige.
+
+## Cuándo usarlo
+
+Tags desde el primer test, con un esquema acordado por el equipo. Un
+subset para cada momento: lo que cambió en cada Pull Request, `@smoke`
+antes de desplegar, la suite completa de noche. Anotaciones con motivo
+para los tests que no corren o no resultan como los demás.
+
+## Buenas prácticas
+
+- Dar a cada test una prioridad que salga del riesgo.
+- Confirmar un subset con `--list` antes de correrlo.
+- Escribir siempre el motivo de una anotación, con el número del defecto
+  cuando lo hay.
+- Documentar los defectos conocidos con `test.fail` y el comportamiento
+  correcto.
+
+## Anti-patrones
+
+- **Todo es `@p0`.**
+- **`test.skip` para un defecto conocido**: el defecto deja de verse.
+- **Un `test.fail` sin defecto asociado**, que nadie revisa.
+- **Solo correr lo que cambió**, sin una corrida completa periódica.
+
+## Práctica
+
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<MomentPathActivity />
+
+<AnnotClassifyActivity />
+
+<FilterTerminalActivity />
+
+<ReadQuizActivity />
+
+<PipeTypeActivity />

@@ -1,0 +1,345 @@
+---
+title: "Esperas y timeouts"
+sidebar_position: 48
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import Match from '@site/src/components/Match';
+import FillBlank from '@site/src/components/FillBlank';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  LOG_ITEMS,
+  LOG_COLUMNS,
+  TIMEOUT_LEFT,
+  TIMEOUT_RIGHT,
+  TIMEOUT_WHY,
+  WAIT_TEMPLATE,
+  WAIT_SLOTS,
+  WAIT_BANK,
+  WAIT_EXPLANATION,
+  SPINNER_QUESTIONS,
+} from '@site/src/content/lessons/48-esperas-y-timeouts';
+
+export const LESSON_SLUG = 'domains-ui-esperas-y-timeouts';
+
+export function LogClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['logclassify']);
+  return (
+    <Activity
+      title="¿Qué le faltó al click?"
+      kind="Clasificar"
+      goal="leer el call log de una acción que falló y decir qué condición de actionability no se cumplió."
+      done={isDone('logclassify')}
+      consigna="Son 6 fragmentos de call log del checkout de una tienda. Arrastrá cada uno a la causa: no está habilitado o no es editable, otro elemento lo tapa, o no lo encuentra. Regla para los casos dudosos: la causa está en la última línea del call log, y en si el log llegó a encontrar un elemento. Se completa cuando los 6 están en su caja."
+    >
+      <Classify
+        items={LOG_ITEMS}
+        columns={LOG_COLUMNS}
+        itemLabel="Call log"
+        counterLabel="ubicados en su causa"
+        alreadyDone={isDone('logclassify')}
+        onSolved={() => markDone('logclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function TimeoutMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['timeoutmatch']);
+  return (
+    <Activity
+      title="¿Qué plazo se cambia?"
+      kind="Emparejar"
+      goal="elegir en qué nivel de la jerarquía de timeouts se resuelve cada necesidad."
+      done={isDone('timeoutmatch')}
+      consigna="Son 6 pares. Elegí una situación de la izquierda y después el cambio de timeout que corresponde (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={TIMEOUT_LEFT}
+        right={TIMEOUT_RIGHT}
+        why={TIMEOUT_WHY}
+        leftLabel="Situación"
+        rightLabel="Cambio"
+        alreadyDone={isDone('timeoutmatch')}
+        onSolved={() => markDone('timeoutmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function WaitFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['waitfill']);
+  return (
+    <Activity
+      title="Reemplazar la espera fija"
+      kind="Completar huecos"
+      goal="reemplazar una pausa fija por esperas de estado antes y después de una acción."
+      done={isDone('waitfill')}
+      consigna="El test de abajo esperaba 5 segundos fijos a que cargara la agenda. Completá los 4 huecos para que espere a que haya turnos antes de reservar y a que la dirección sea la de confirmación después. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={WAIT_TEMPLATE}
+        slots={WAIT_SLOTS}
+        bank={WAIT_BANK}
+        explanation={WAIT_EXPLANATION}
+        alreadyDone={isDone('waitfill')}
+        onSolved={() => markDone('waitfill')}
+      />
+    </Activity>
+  );
+}
+
+export function SpinnerMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['spinnermulti']);
+  return (
+    <Activity
+      title="Un indicador de carga que no se va"
+      kind="Marcar todas"
+      goal="interpretar un fallo por un elemento que tapa al botón y elegir qué hacer."
+      done={isDone('spinnermulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todas las afirmaciones y acciones que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={SPINNER_QUESTIONS}
+        alreadyDone={isDone('spinnermulti')}
+        onSolved={() => markDone('spinnermulti')}
+      />
+    </Activity>
+  );
+}
+
+Una página web nunca está quieta: los datos llegan del servidor, los botones se habilitan, aparecen y desaparecen avisos. La mayoría de los tests inestables vienen de no esperar lo correcto. Esta entrada explica qué espera Playwright solo, qué tiene que esperar el test y cómo se ordenan los plazos.
+
+## Conceptos
+
+### Auto-waiting: las acciones esperan solas
+
+Antes de ejecutar una acción, Playwright espera a que el elemento esté en
+condiciones de recibirla. A esas comprobaciones las llama
+**actionability checks**. Para un `click`, el elemento tiene que:
+
+- **existir** y ser único (strictness, entrada de locators);
+- ser **visible**;
+- estar **estable**: no estar moviéndose por una animación;
+- **recibir eventos**: que ningún otro elemento lo tape;
+- estar **habilitado**: no tener `disabled`.
+
+Para `fill` también tiene que ser **editable**. Si alguna condición no se
+cumple, Playwright vuelve a comprobar hasta que se cumpla o se termine el
+tiempo.
+
+En la ficha de un libro, el botón Renovar aparece deshabilitado mientras
+se consulta si hay reservas, y se habilita 800 milisegundos después. Un
+`click` común no hace nada especial, y aun así funciona. Midiendo el
+tiempo con `Date.now()` alrededor del click:
+
+```ts
+const inicio = Date.now();
+await page.getByRole('button', { name: 'Renovar' }).click();
+console.log('click en Renovar esperó', Date.now() - inicio, 'ms');
+```
+
+```text
+click en Renovar esperó 876 ms
+```
+
+El click esperó a que el botón se habilitara. Ningún código del test lo
+pidió.
+
+### Cuando la espera no termina: leer el call log
+
+Si la condición nunca se cumple, la acción falla y el call log dice cuál
+faltó. Un botón que sigue deshabilitado:
+
+```text
+locator.click: Timeout 2000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: 'Pagar' })
+    - locator resolved to <button disabled>Pagar</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is not enabled
+    - retrying click action
+```
+
+`locator resolved to` confirma que encontró el botón; `element is not
+enabled`, que nunca se habilitó. Un botón tapado por una capa de "Cargando":
+
+```text
+locator.click: Timeout 2000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: 'Devolver' })
+    - locator resolved to <button id="c">Devolver</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <div>Cargando…</div> intercepts pointer events
+    - retrying click action
+```
+
+El botón estaba visible, habilitado y estable, pero `<div>Cargando…</div>
+intercepts pointer events`: otro elemento recibía el click. Cada línea
+del call log descarta una causa; la última que aparece es la que impidió
+la acción. (Estos ejemplos usan un plazo de 2 segundos para no esperar
+30.)
+
+### Lo que el auto-waiting no cubre
+
+El auto-waiting espera a que **el elemento** pueda recibir la acción. No
+sabe si **la página** terminó de hacer lo que el test necesita. En la
+pantalla de multas, la lista se carga 400 milisegundos después que el
+botón Pagar:
+
+```ts
+test('pagar todo vacía la lista de multas', async ({ page }) => {
+  await page.goto('/multas');
+  await page.getByRole('button', { name: 'Pagar' }).click();
+  await expect(page.getByText('Pago registrado')).toBeVisible();
+  await expect(page.getByRole('listitem')).toHaveCount(0);
+});
+```
+
+```text
+Error: expect(locator).toHaveCount(expected) failed
+
+Locator:  getByRole('listitem')
+Expected: 0
+Received: 2
+```
+
+El botón estaba listo, así que el click ocurrió enseguida, antes de que
+llegara la lista. El pago se registró, y después la lista llegó y se
+dibujó encima: dos multas en pantalla, ya pagadas. El test hizo algo que
+una persona difícilmente haría, pagar antes de ver qué debe, y la
+aplicación lo permitió. Vale la pena reportarlo, pero el test tiene que
+reproducir el uso real.
+
+### Esperar el estado, no el tiempo
+
+La tentación es agregar una pausa:
+
+```ts
+await page.goto('/multas');
+await page.waitForTimeout(3000);
+await page.getByRole('button', { name: 'Pagar' }).click();
+```
+
+Pasa, pero el test tarda 3,9 segundos, más del doble que esperando el
+estado (1,7, en la salida de abajo), y sigue fallando el día que el
+servidor tarde más de 3 segundos.
+`page.waitForTimeout` frena el test un tiempo fijo, sin saber si hacía
+falta ni si alcanza. La documentación de Playwright lo desaconseja para
+tests.
+
+La alternativa es esperar la **condición** que el test necesita, con una
+assertion web-first antes de actuar:
+
+```ts
+await page.goto('/multas');
+await expect(page.getByRole('listitem')).not.toHaveCount(0);
+await page.getByRole('button', { name: 'Pagar' }).click();
+```
+
+```text
+  ✓  2 [chromium] › tests/multas.spec.ts:10:5 › con espera fija (3.9s)
+  ✓  3 [chromium] › tests/multas.spec.ts:17:5 › esperando el estado (1.7s)
+```
+
+La assertion espera exactamente hasta que la lista aparece: ni un
+milisegundo de más, y hasta 5 segundos si el servidor está lento. Además
+documenta la precondición: "con la lista cargada, pagar".
+
+Cuando la condición no se expresa bien con una assertion, hay esperas
+explícitas que también esperan un estado:
+
+- `await locator.waitFor({ state: 'hidden' })`: hasta que el elemento
+  deje de verse. Otros estados: `'visible'`, `'attached'`, `'detached'`.
+- `await page.waitForURL('**/multas/pagadas')`: hasta que la dirección
+  coincida.
+
+### La jerarquía de timeouts
+
+Cada espera tiene un límite, y los límites se contienen unos a otros:
+
+- **Test**: 30 segundos para todo el test, incluidos `beforeEach` y
+  `afterEach` (`beforeAll` y `afterAll` tienen su propio plazo). Se configura
+  con `timeout` en `playwright.config.ts`, o para un test con
+  `test.setTimeout(60_000)`. `test.slow()` triplica el plazo de un test
+  que se sabe lento.
+- **Assertion**: 5 segundos para cada `expect` web-first. Se configura
+  con `expect: { timeout: ... }`, o en una sola assertion con
+  `{ timeout: ... }`.
+- **Acción y navegación**: sin límite propio por defecto. Las acota el
+  timeout del test. Se configuran con `actionTimeout` y
+  `navigationTimeout` en `use` (entrada de configuración), o en una
+  llamada: `click({ timeout: 10_000 })`.
+
+Por eso un click sobre un elemento que nunca aparece falla con `Test
+timeout of 30000ms exceeded` (entrada de anatomía de un test), y una
+assertion con `Timeout: 5000ms`. El mensaje dice qué límite se agotó.
+
+(`10_000` es el número 10000: el guion bajo solo separa los miles para
+leerlo mejor.)
+
+### Plazos con nombre
+
+Subir un timeout es a veces correcto: una exportación de un reporte que
+tarda 20 segundos necesita más que los 5 de una assertion. Lo que hay que
+evitar son los números mágicos repartidos por la suite. Una constante
+nombrada dice por qué el plazo es ese, y se ajusta en un solo lugar:
+
+```ts
+export const TIMEOUTS = {
+  corto: 2_000,        // elementos que aparecen enseguida
+  estandar: 5_000,     // interacciones de la interfaz
+  largo: 10_000,       // respuestas del servidor
+  proceso: 60_000,     // tareas en segundo plano, como exportar un reporte
+} as const;
+
+await expect(page.getByText('Reporte listo')).toBeVisible({ timeout: TIMEOUTS.proceso });
+```
+
+(`as const` hace que TypeScript trate los valores como fijos, de solo
+lectura.) Un timeout alto sin una razón escrita es el primer sospechoso
+cuando la suite se vuelve lenta, y muchas veces tapa un problema real.
+
+## Cuándo usarlo
+
+El auto-waiting trabaja en cada acción sin pedirlo. Las esperas por
+estado, antes de actuar sobre una pantalla que todavía está cargando
+datos. Los timeouts, solo cuando una operación tarda por diseño más que
+el plazo por defecto.
+
+## Buenas prácticas
+
+- Esperar la condición que el test necesita con una assertion web-first.
+- Leer el call log para saber qué condición de actionability faltó.
+- Subir un timeout solo para la operación que lo necesita, con una
+  constante nombrada.
+- Reportar como posible defecto una pantalla que permite actuar antes de
+  terminar de cargar.
+
+## Anti-patrones
+
+- **`page.waitForTimeout`** para esperar que la página termine algo.
+- **Subir el timeout global** para que un test deje de fallar.
+- **Números de timeout sueltos** en distintos tests.
+- **`force: true`** u otras formas de saltear las comprobaciones para
+  que un click pase: la persona tampoco puede hacer click en un botón
+  tapado.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<LogClassifyActivity />
+
+<TimeoutMatchActivity />
+
+<WaitFillActivity />
+
+<SpinnerMultiActivity />

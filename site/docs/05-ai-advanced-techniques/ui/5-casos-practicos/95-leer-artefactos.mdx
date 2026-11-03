@@ -1,0 +1,223 @@
+---
+title: "Leer los artefactos antes de teorizar"
+sidebar_position: 95
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import Order from '@site/src/components/Order';
+import DecisionPath from '@site/src/components/DecisionPath';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  SIGNAL_LEFT,
+  SIGNAL_RIGHT,
+  SIGNAL_WHY,
+  RUN_ITEMS,
+  RUN_CORRECT,
+  RUN_RULES,
+  TRIAGE_START,
+  TRIAGE_NODES,
+  TRIAGE_EXPLANATION,
+} from '@site/src/content/lessons/95-leer-artefactos';
+
+export const LESSON_SLUG = 'ai-ui-leer-artefactos';
+
+export function SignalMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['signalmatch']);
+  return (
+    <Activity
+      title="Cada señal con su causa"
+      kind="Emparejar"
+      goal="reconocer una causa sistémica a partir del patrón de fallos de una corrida."
+      done={isDone('signalmatch')}
+      consigna="Son 5 pares. Elegí una señal de una corrida de la agenda (izquierda) y después lo que significa (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={SIGNAL_LEFT}
+        right={SIGNAL_RIGHT}
+        why={SIGNAL_WHY}
+        leftLabel="Señal"
+        rightLabel="Significado"
+        alreadyDone={isDone('signalmatch')}
+        onSolved={() => markDone('signalmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function RunOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['runorder']);
+  return (
+    <Activity
+      title="Del rojo a la corrección"
+      kind="Ordenar"
+      goal="ordenar el trabajo de diagnóstico, desde el artefacto hasta la validación en la suite."
+      done={isDone('runorder')}
+      consigna="Son 6 pasos para resolver un test de la agenda que falla en un Pull Request, desordenados. Ordenalos y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={RUN_ITEMS}
+        correctOrder={RUN_CORRECT}
+        rules={RUN_RULES}
+        onSolved={() => markDone('runorder')}
+      />
+    </Activity>
+  );
+}
+
+export function TriagePathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['triagepath']);
+  return (
+    <Activity
+      title="Triage de una noche roja"
+      kind="Escenario encadenado"
+      goal="empezar por lo sistémico, leer la captura y distinguir un defecto de un entorno lento."
+      done={isDone('triagepath')}
+      consigna="Son 3 decisiones encadenadas sobre la regresión nocturna de la agenda. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={TRIAGE_START}
+        nodes={TRIAGE_NODES}
+        explanation={TRIAGE_EXPLANATION}
+        alreadyDone={isDone('triagepath')}
+        onSolved={() => markDone('triagepath')}
+      />
+    </Activity>
+  );
+}
+
+Antes de pedirle a un agente que diagnostique o repare, hay que mirar qué hizo la aplicación, no suponer qué falló. Esta entrada se apoya en los traces de la sección II y los reportes de la sección III, y muestra el orden de trabajo, qué responde cada artefacto y cómo descartar primero lo sistémico.
+
+## Conceptos
+
+### La regla que más tiempo ahorra
+
+Un test falla con «elemento no encontrado». Parece un locator roto. Puede
+serlo, o puede ser que un paso anterior haya enviado el formulario solo y
+la página ya no esté donde el test creía. El mensaje de error dice qué
+línea del test falló; los **artefactos** de la ejecución dicen qué hizo
+la aplicación. En CI se llama así a los archivos que guarda una
+ejecución para mirarlos después: la captura, el trace, el video y los
+reportes, que el workflow sube y se bajan desde la pestaña Actions
+(entrada de CI con GitHub Actions). Es la misma palabra que en un
+pipeline de agentes, con el mismo sentido: un archivo que deja un paso
+para que lo use otro. La regla, para personas y para agentes:
+**leer el artefacto antes de formar una teoría**.
+
+Es una regla que aparece en los pedidos de los agentes de reparación y de
+diagnóstico, porque es fácil saltearla con apuro.
+
+### El orden de trabajo
+
+1. **Abrir el artefacto**: la captura, el trace, el reporte (entradas de
+   leer un fallo y de debugging).
+2. **Leer qué se mergeó**: en una corrida de un Pull Request, su diff; en
+   la nocturna, lo que el análisis atribuyó a cada grupo (entrada del
+   router de causa raíz).
+3. **Recién entonces formar una teoría**, y probarla reproduciendo, no
+   razonando.
+
+Tres reglas que cuestan un día cada vez que se rompen:
+
+- **Nunca se declara una causa sin verificarla contra la aplicación
+  corriendo.**
+- **Un test que falla porque la aplicación cambió no es inestable**: se
+  dice «la aplicación cambió» y se actualiza el test al comportamiento
+  nuevo, o se reporta el defecto.
+- **Un test que pasa solo no prueba que pase en la suite**: se valida
+  junto a los demás antes de darlo por sano (entrada de paralelismo).
+
+### Qué responde cada artefacto
+
+- **La captura**: ¿en qué pantalla estaba la aplicación? Muchas veces es
+  toda la pregunta. Si el test falla buscando un botón y la captura muestra
+  otra pantalla, la navegación se desvió: el locator no es el problema.
+- **El snapshot de accesibilidad**: ¿el elemento no estaba, o estaba con
+  otro nombre? Sirve para probar un locator candidato contra el estado
+  real del fallo antes de escribirlo (entrada de revisar lo que produce la
+  IA).
+- **El trace**: la corrida paso a paso, con el estado de la página en cada
+  acción y los pedidos de red (entrada de debugging).
+- **El video**: lo que ninguna otra cosa muestra, como la aplicación
+  siguiendo adelante mientras el test todavía esperaba otra cosa. Se miran
+  los segundos **antes** del fallo.
+- **El resumen de la corrida**: los tests que fallaron y pasaron en un
+  reintento cuentan como inestables, no como fallidos. Para el triage se
+  usan esos conteos.
+
+Un reporte de Allure no se abre con doble clic sobre el archivo: hay que
+servirlo con un pequeño servidor web, con `npx allure open` (entrada de
+reportes). El de Playwright se abre con
+`npx playwright show-report` (entrada de leer un fallo).
+
+### Primero, ¿es sistémico?
+
+Un fallo es **sistémico** cuando no es de un test en particular sino de
+algo que comparten todos: el entorno, la configuración, el ingreso. La
+mayoría de las veces que fallan muchos tests a la vez, comparten una
+sola causa.
+Confirmarlo primero ahorra horas de arreglar tests uno por uno:
+
+| Señal | Significado |
+| :- | :- |
+| Conexión rechazada o tiempo agotado al abrir la aplicación | El entorno está caído |
+| La aplicación abre, pero todo ingreso falla | Se apunta al entorno equivocado |
+| Todo falla en el mismo punto de la fixture de ingreso | El ingreso está roto: es un solo problema |
+| Fallan todos los tests de una fixture y los demás pasan | La fixture compartida está rota |
+| Errores distintos en tests distintos | Trabajo real, test por test |
+
+El test de ingreso funciona como el canario de las minas, que avisaba
+del gas antes que nadie: si falla, todo lo demás va a fallar. Correrlo
+primero, solo, ahorra correr cuarenta tests para descubrir lo mismo.
+
+### Test por test
+
+Descartado lo sistémico, cada fallo según su síntoma:
+
+- **El locator no encuentra el elemento**: posible locator desactualizado.
+  Se confirma contra la aplicación y se corrige el locator.
+- **Un valor o un contenido distinto del esperado**: la aplicación cambió,
+  o es un defecto. Se lee el diff.
+- **Un tiempo agotado en una acción que no depende del servidor**, como
+  abrir un menú o un diálogo que la página ya tiene cargado: no es un
+  entorno lento, es un defecto.
+- **Pasó en un reintento**: inestable. Se anota y se investiga; no se
+  silencia (entrada de tests inestables).
+
+### Cuándo escalar en lugar de arreglar
+
+- Muchos grupos de fallos sin relación y sin un Pull Request en común,
+  el mismo caso que frena la válvula de seguridad: es una conversación
+  con desarrollo, no una tarde de arreglar tests.
+- Una corrección que tocaría código de la aplicación más allá de un
+  atributo de test: se le pide al equipo en el Pull Request de la
+  funcionalidad.
+- Un escenario que el entorno no puede ejercitar: se documenta como una
+  falta de cobertura, en lugar de escribir un test que aparenta cubrirlo.
+
+## Cuándo usarlo
+
+Ante cualquier rojo, propio o de un agente, y en los pedidos de los
+agentes de diagnóstico y reparación, como su primera instrucción.
+
+## Buenas prácticas
+
+- Abrir el artefacto antes de leer el código del test.
+- Descartar lo sistémico antes de ir test por test.
+- Verificar cada causa contra la aplicación corriendo.
+
+## Anti-patrones
+
+- **Teorizar a partir del mensaje de error** solamente.
+- **Arreglar cuarenta tests** cuando el ingreso está caído.
+- **Llamar «inestable»** a un test que falla porque la aplicación cambió.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<SignalMatchActivity />
+
+<RunOrderActivity />
+
+<TriagePathActivity />

@@ -1,0 +1,229 @@
+---
+title: "Gates, revisores e iteraciones"
+sidebar_position: 88
+---
+
+import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
+import FindInCode from '@site/src/components/FindInCode';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  GATE_START,
+  GATE_NODES,
+  GATE_EXPLANATION,
+  LOG_LINES,
+  LOG_RULE_LABELS,
+  BLOCK_QUESTIONS,
+} from '@site/src/content/lessons/88-gates-y-revisores';
+
+export const LESSON_SLUG = 'ai-ui-gates-y-revisores';
+
+export function GatePathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['gatepath']);
+  return (
+    <Activity
+      title="Cuando el sistema frena"
+      kind="Escenario encadenado"
+      goal="decidir qué hace un pipeline ante un plan rechazado, un revisor en contra y un tope superado."
+      done={isDone('gatepath')}
+      consigna="Son 3 decisiones encadenadas sobre el pipeline que automatiza la agenda. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={GATE_START}
+        nodes={GATE_NODES}
+        explanation={GATE_EXPLANATION}
+        alreadyDone={isDone('gatepath')}
+        onSolved={() => markDone('gatepath')}
+      />
+    </Activity>
+  );
+}
+
+export function LogFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['logfind']);
+  return (
+    <Activity
+      title="Revisar el registro del pipeline"
+      kind="Buscar en el código"
+      goal="detectar validaciones falsas, gates o topes ignorados y roles que se saltean la separación."
+      done={isDone('logfind')}
+      consigna="Son 7 líneas del registro de una ejecución del pipeline de turnos. El número entre corchetes es la fase: [1] búsqueda, [2] plan, [3] código y revisión, [4] ejecución, [5] documentación. En este pipeline, solo el escritor escribe los archivos de test, el tope es de 3 intentos, y la regla del plan es que un paciente tiene como máximo 3 turnos futuros. Elegí cada una y decí qué problema tiene (validación que no es real, gate o tope que no se respetó, o rol que se saltea la separación), o si no tiene problema. Se completa cuando encontrás las 3 que tienen un problema."
+    >
+      <FindInCode
+        lines={LOG_LINES}
+        ruleLabels={LOG_RULE_LABELS}
+        okLabel="Sin problema"
+        prompt="¿qué problema tiene?"
+        itemLabel="Línea del registro"
+        counterLabel="líneas con problema encontradas"
+        alreadyDone={isDone('logfind')}
+        onSolved={() => markDone('logfind')}
+      />
+    </Activity>
+  );
+}
+
+export function BlockMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['blockmulti']);
+  return (
+    <Activity
+      title="Dejá que te bloqueen"
+      kind="Marcar todas"
+      goal="reaccionar a un rechazo corrigiendo la causa y devolviendo lo aprendido al sistema."
+      done={isDone('blockmulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todas las reacciones correctas y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={BLOCK_QUESTIONS}
+        alreadyDone={isDone('blockmulti')}
+        onSolved={() => markDone('blockmulti')}
+      />
+    </Activity>
+  );
+}
+
+Lo que hace confiable a un pipeline multiagente no son los agentes que escriben, sino los que frenan. Esta entrada muestra los gates bloqueantes, los revisores especializados, la separación entre quién escribe y quién valida, y los topes de intentos con escalación.
+
+## Conceptos
+
+### Un gate: el trabajo no avanza si no se aprueba
+
+En un pipeline (entrada de las fases del pipeline), cada fase le pasa su
+resultado a la siguiente. Si una fase entrega algo malo, todo lo que
+viene después lo hereda. Si el plan de cancelación se olvidó del caso
+«no se puede cancelar con menos de 2 horas», el constructor no lo va a
+escribir, los revisores no lo van a extrañar, y la suite queda sin el
+caso de mayor riesgo.
+
+Un **gate** (en inglés, «portón») es un punto del pipeline donde el
+trabajo se detiene hasta que se cumple una condición. Es la misma idea
+que la protección de la rama principal en GitHub, que no deja mergear un
+Pull Request sin una aprobación y con la suite en rojo (entrada de Pull
+Requests en GitHub). Un gate es **bloqueante** cuando, si no se cumple,
+el trabajo no sigue: vuelve atrás.
+
+El gate más importante es el del plan. Un **revisor de plan** compara los
+escenarios con los casos de uso: ¿cada flujo tiene al menos un test?,
+¿están los valores límite de cada regla, como las 2 horas?, ¿los datos
+son coherentes con lo que hace cada test? Si el plan se rechaza, vuelve
+al planificador con los motivos, y el constructor no arranca hasta que
+haya un plan aprobado.
+
+### Revisores especializados, en paralelo
+
+Después de construir, el código pasa por varios revisores. Cada uno es
+un subagente de solo lectura, con una sola pregunta (entrada de
+subagentes):
+
+- el de **Page Objects**: ¿los locators están en el constructor de la
+  clase, por rol, y ningún método hace assertions?
+- el de **estructura de tests**: ¿cada test prepara, actúa y verifica,
+  con pasos numerados y sin lógica propia?
+- el de **datos**: ¿los tests usan las fixtures, y los que modifican un
+  turno tienen uno propio?
+
+Una pregunta por revisor da revisiones más precisas que un solo revisor
+que mira todo, por la misma razón que un contexto acotado da mejores
+respuestas (entrada de cómo funciona un asistente).
+
+Como no dependen entre sí, los tres pueden correr al mismo tiempo. Cada
+uno devuelve un veredicto con formato fijo, APROBADO o RECHAZADO. El
+orquestador avanza solo si **todos** aprueban: cada revisor mira algo
+distinto, y dos aprobaciones no compensan el problema que encontró el
+tercero. Si uno rechaza, el constructor recibe sus motivos y corrige.
+
+### Separar quién escribe de quién valida
+
+En un equipo, quien escribe un cambio no es quien lo aprueba. Un
+pipeline lo aplica con los permisos de cada agente. Una forma de hacerlo
+suma un rol más, el **escritor**: el constructor escribe los archivos
+temporales; el escritor es el único que los copia a la suite, al final.
+
+- el orquestador no puede escribir archivos de test. Como es el agente
+  de la sesión, que tiene todas las herramientas, se le quitan con una
+  regla de permisos: `deny` para `Edit(/tests/**)` y `Write(/tests/**)`
+  (entrada de permisos);
+- el escritor es un subagente con permiso de escritura en `tests/` que,
+  antes de copiar los tests a la suite, comprueba que estén todos los
+  obligatorios del plan aprobado;
+- si falta uno, rechaza, y el trabajo vuelve al constructor.
+
+Así, un test crítico no se pierde en el camino porque algún agente
+decidió simplificar.
+
+### Iteraciones con tope y escalación
+
+Cada vez que algo se rechaza, el trabajo vuelve a una fase anterior.
+Esas vueltas tienen un **tope**, que fija cada equipo: por ejemplo, tres
+intentos. Si se supera, el sistema no sigue intentando: se detiene y
+**escala**, es decir, le pasa el problema a una persona, con un informe
+que le permita decidir rápido:
+
+```text
+## Hace falta intervención
+Fase: revisión de Page Objects
+Problema: el revisor rechaza el locator de la fila; el constructor no
+encuentra un locator por rol que distinga los turnos de la misma hora.
+Intentos: 1) filtro por hora, 2) filtro por hora y profesional.
+Opciones: 1) indicar el criterio, 2) pedir un data-testid, 3) cancelar.
+```
+
+Sin tope, un sistema puede pasar horas alternando entre dos versiones
+que el revisor rechaza, y consumir uso en cada vuelta (entrada de por
+qué varios agentes).
+
+### Que la validación sea real
+
+El último gate es la ejecución. Hay atajos que parecen validaciones y no
+lo son: `npx playwright test --list` solo lista los tests, el linter solo
+revisa el estilo y `npx tsc --noEmit` solo revisa los tipos. Sirven, pero
+ninguno ejecuta un test. Un pipeline bien escrito lo dice
+explícitamente: la fase de ejecución solo se marca como completa con una
+ejecución real, y la documentación y la limpieza esperan a que termine.
+
+### Dejá que te bloqueen
+
+Los gates existen porque un test que pasa por la razón equivocada es
+peor que ningún test: da una confianza que no merece. Cuando un revisor
+rechaza, la reacción correcta es corregir la causa. No lo es volver a
+correr la revisión esperando otro veredicto, ni bajar la exigencia del
+revisor para que apruebe.
+
+### Devolver lo aprendido al sistema
+
+Cada rechazo que se repite enseña algo del proyecto: una trampa del
+framework, una regla que faltaba, una costumbre de la aplicación. Ese
+aprendizaje vuelve al sistema: a las reglas del revisor, al contrato de
+setup, a un archivo de trampas conocidas que leen los agentes (entrada
+de skills). Un sistema que no se actualiza repite los mismos errores en
+cada corrida.
+
+## Cuándo usarlo
+
+En todo pipeline multiagente que produce código para la suite: un gate
+sobre el plan, revisores sobre el código, un escritor que valida la
+cobertura y una ejecución real al final.
+
+## Buenas prácticas
+
+- El gate del plan, bloqueante.
+- Revisores de una sola pregunta, de solo lectura y en paralelo.
+- Topes de iteraciones y un informe de escalación claro.
+- Devolver cada lección repetida a las reglas del sistema.
+
+## Anti-patrones
+
+- **Volver a correr hasta que el revisor apruebe.**
+- **Contar `--list` o el linter** como ejecución.
+- **Un pipeline sin tope** de intentos.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<GatePathActivity />
+
+<LogFindActivity />
+
+<BlockMultiActivity />

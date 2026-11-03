@@ -1,0 +1,379 @@
+---
+title: "Docker: el mismo entorno en todas partes"
+sidebar_position: 74
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import Order from '@site/src/components/Order';
+import Terminal from '@site/src/components/Terminal';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  TERM_LEFT,
+  TERM_RIGHT,
+  TERM_WHY,
+  DOCKER_ITEMS,
+  DOCKER_CORRECT,
+  DOCKER_RULES,
+  DOCKER_STEPS,
+  DOCKER_EXPLANATION,
+  DOCKER_QUIZ,
+} from '@site/src/content/lessons/74-docker';
+
+export const LESSON_SLUG = 'delivery-ui-docker';
+
+export function TermMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['termmatch']);
+  return (
+    <Activity
+      title="Las piezas de Docker"
+      kind="Emparejar"
+      goal="relacionar cada concepto y opción de Docker con lo que hace."
+      done={isDone('termmatch')}
+      consigna="Son 9 pares. Elegí una descripción de la izquierda y después el concepto u opción de Docker que le corresponde (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 9."
+    >
+      <Match
+        left={TERM_LEFT}
+        right={TERM_RIGHT}
+        why={TERM_WHY}
+        leftLabel="Qué hace"
+        rightLabel="En Docker"
+        alreadyDone={isDone('termmatch')}
+        onSolved={() => markDone('termmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function DockerOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['dockerorder']);
+  return (
+    <Activity
+      title="El Dockerfile de la agenda"
+      kind="Ordenar"
+      goal="ordenar un Dockerfile para que la instalación quede en caché cuando cambian los tests."
+      done={isDone('dockerorder')}
+      consigna="Son las 5 primeras líneas del Dockerfile de la suite de turnos, desordenadas. El equipo quiere que, si solo cambia un test, docker build no vuelva a instalar las dependencias. Ordenalas y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={DOCKER_ITEMS}
+        correctOrder={DOCKER_CORRECT}
+        rules={DOCKER_RULES}
+        onSolved={() => markDone('dockerorder')}
+      />
+    </Activity>
+  );
+}
+
+export function DockerTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['dockerterm']);
+  return (
+    <Activity
+      title="De la imagen a la corrida"
+      kind="Terminal"
+      goal="revisar las imágenes bajadas, armar la imagen de la suite y correrla con las variables que no viajan en ella."
+      done={isDone('dockerterm')}
+      consigna="Son 3 pasos sobre la suite de la agenda. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el tercer paso."
+    >
+      <Terminal
+        steps={DOCKER_STEPS}
+        explanation={DOCKER_EXPLANATION}
+        alreadyDone={isDone('dockerterm')}
+        onSolved={() => markDone('dockerterm')}
+      />
+    </Activity>
+  );
+}
+
+export function DockerQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['dockerquiz']);
+  return (
+    <Activity
+      title="Fallas que vienen del entorno"
+      kind="Elegí la opción"
+      goal="diagnosticar fallas de dependencias, de versión y de capturas al correr en contenedores."
+      done={isDone('dockerquiz')}
+      consigna="Son 3 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={DOCKER_QUIZ}
+        onSolved={() => markDone('dockerquiz')}
+      />
+    </Activity>
+  );
+}
+
+Muchas fallas de CI no están en los tests sino en el entorno donde corren. Esta entrada muestra cómo correr la suite dentro de la imagen oficial de Playwright, cómo armar una imagen propia y cómo usarla en tu computadora y en GitHub Actions.
+
+## Conceptos
+
+### «En mi máquina anda»
+
+La suite pasa en tu computadora y falla en CI, o al revés. Muchas veces
+la diferencia no está en los tests sino en el entorno: otra versión de
+Node.js, otro sistema operativo, otras fuentes instaladas, otro navegador.
+Las capturas de pantalla son el caso más visible: el mismo texto se
+dibuja distinto en macOS y en Linux (entrada de visual testing).
+
+**Docker** resuelve esto empaquetando el entorno entero: el sistema, Node.js
+y los navegadores, con versiones fijas. La suite corre igual en tu
+computadora, en la de otra persona y en CI, porque en las tres corre
+dentro del mismo paquete.
+
+### Imagen y contenedor
+
+- Una **imagen** es el paquete: un sistema operativo con todo lo
+  instalado, guardado como plantilla. No cambia.
+- Un **contenedor** es una ejecución de una imagen: un proceso aislado que
+  arranca desde la plantilla, hace su trabajo y, al terminar, se puede
+  borrar sin dejar rastro.
+
+Docker se instala con **Docker Desktop** (macOS y Windows) o con el paquete
+de Docker de cada distribución de Linux. Las imágenes se bajan de un
+registro con `docker pull`:
+
+```bash
+docker pull mcr.microsoft.com/playwright:v1.64.1-noble
+```
+
+```text
+Digest: sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
+Status: Downloaded newer image for mcr.microsoft.com/playwright:v1.64.1-noble
+mcr.microsoft.com/playwright:v1.64.1-noble
+```
+
+Esa es la **imagen oficial de Playwright**: Ubuntu 24.04 (cuyo nombre en
+clave es *noble*), Node.js y los navegadores de Playwright 1.64.1 con sus
+dependencias. Ocupa unos 3,5 GB: la primera descarga tarda, las
+siguientes corridas la reutilizan.
+
+`docker images` lista las imágenes que ya están en tu computadora:
+
+```bash
+docker images mcr.microsoft.com/playwright
+```
+
+```text
+REPOSITORY                     TAG             IMAGE ID       CREATED      SIZE
+mcr.microsoft.com/playwright   v1.64.1-noble   47b510dd9230   6 days ago   3.51GB
+```
+
+### La versión de la imagen y la del proyecto
+
+La etiqueta `v1.64.1` tiene que coincidir con la versión de
+`@playwright/test` del `package.json`: cada versión de Playwright usa sus
+propias versiones de los navegadores. Con el proyecto en 1.63.0 y la
+imagen en 1.64.1:
+
+```text
+    Error: browserType.launch: Executable doesn't exist at /ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux-arm64/chrome-headless-shell
+    ╔════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright was just updated to 1.63.0.      ║
+    ║ Please update docker image as well.                    ║
+    ║ -  current: mcr.microsoft.com/playwright:v1.64.1-noble ║
+    ║ - required: mcr.microsoft.com/playwright:v1.63.0-noble ║
+    ╚════════════════════════════════════════════════════════╝
+```
+
+El mensaje dice exactamente qué imagen hace falta. Cuando se actualiza
+Playwright, se actualiza la etiqueta de la imagen en el mismo cambio.
+
+### Correr la suite en un contenedor
+
+```bash
+docker run --rm -v "$PWD":/work -w /work mcr.microsoft.com/playwright:v1.64.1-noble npx playwright test
+```
+
+- `docker run` crea un contenedor desde la imagen y ejecuta el comando
+  del final, `npx playwright test`.
+- `--rm` borra el contenedor cuando termina.
+- `-v "$PWD":/work` es un **volumen**: hace que la carpeta actual
+  (`$PWD`) aparezca dentro del contenedor como `/work`. El contenedor ve
+  tus archivos, y lo que escribe ahí, como el reporte, queda en tu
+  carpeta.
+- `-w /work` hace que el comando corra en esa carpeta.
+
+```text
+Running 7 tests using 3 workers
+  ✘  1 [setup] › tests/auth.setup.ts:6:6 › ingresar con la socia de prueba (1.1s)
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:4324/ingresar
+```
+
+La aplicación corre en tu computadora, en el puerto 4324. Pero dentro del
+contenedor, `localhost` es **el propio contenedor**, donde no hay nada en
+ese puerto. Para llegar a tu computadora, Docker Desktop ofrece el nombre
+`host.docker.internal`. Con `-e`, se define una variable de entorno
+dentro del contenedor, que le gana a la del `.env` (entrada de
+parametrización y entornos):
+
+```bash
+docker run --rm -v "$PWD":/work -w /work -e BASE_URL=http://host.docker.internal:4324 mcr.microsoft.com/playwright:v1.64.1-noble npx playwright test
+```
+
+```text
+  ✓  2 [chromium] › tests/ingreso.spec.ts:8:7 › Ingreso › con datos correctos llega a sus préstamos @smoke @p0 @ingreso (165ms)
+  ✓  3 [chromium] › tests/prestamos.spec.ts:5:7 › Préstamos › renovar un préstamo extiende el vencimiento 14 días @smoke @p0 @prestamos (173ms)
+  ...
+  7 passed (1.2s)
+```
+
+En Linux, `host.docker.internal` no existe por defecto: se agrega con
+`--add-host=host.docker.internal:host-gateway`. Si la aplicación está en
+un servidor de pruebas, como staging, no hace falta: se usa su dirección.
+
+### Una imagen propia para la suite
+
+El comando anterior usa la carpeta `node_modules` de tu computadora, que
+se instaló para tu sistema operativo y no necesariamente sirve en Linux.
+Lo correcto es armar una imagen de la suite que instale todo adentro. Se
+describe en un archivo llamado `Dockerfile`, en la raíz del proyecto:
+
+```dockerfile
+FROM mcr.microsoft.com/playwright:v1.64.1-noble
+
+WORKDIR /suite
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+
+CMD ["npx", "playwright", "test"]
+```
+
+- `FROM`: la imagen de la que parte.
+- `WORKDIR`: la carpeta de trabajo dentro de la imagen.
+- `COPY`: copia archivos del proyecto a la imagen.
+- `RUN`: ejecuta un comando mientras se arma la imagen.
+- `CMD`: el comando que corre el contenedor si no se le indica otro.
+
+`docker build` arma la imagen, y `-t` le pone nombre:
+
+```bash
+docker build -t biblioteca-e2e .
+```
+
+```text
+#5 [1/5] FROM mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd...
+#6 [2/5] WORKDIR /suite
+#7 [3/5] COPY package.json package-lock.json ./
+#8 [4/5] RUN npm ci
+#9 [5/5] COPY . .
+#10 naming to docker.io/library/biblioteca-e2e:latest done
+```
+
+Cada instrucción es una **capa**, y Docker reutiliza las capas que no
+cambiaron. Por eso `package.json` se copia y se instala antes que el
+resto: si después solo cambia un test, la instalación queda en caché.
+
+```text
+#6 [3/5] COPY package.json package-lock.json ./
+#6 CACHED
+#8 [4/5] RUN npm ci
+#8 CACHED
+#9 [5/5] COPY . .
+```
+
+Un archivo `.dockerignore`, con la misma forma que `.gitignore` (entrada
+de primer commit), deja afuera lo que no tiene que entrar en la imagen:
+
+```text
+node_modules
+playwright-report
+test-results
+playwright/.auth
+.env
+```
+
+`node_modules` se instala adentro con `npm ci`; `.env` y la sesión
+guardada son secretos y no van en la imagen. Las variables se pasan al
+correr:
+
+```bash
+docker run --rm -e BASE_URL=http://host.docker.internal:4324 -e SOCIA_EMAIL=lucia@biblio.test -e SOCIA_CLAVE=clave123 biblioteca-e2e
+```
+
+```text
+Running 7 tests using 3 workers
+  7 passed (1.1s)
+```
+
+Para recuperar el reporte, se monta solo esa carpeta como volumen:
+`-v "$PWD/playwright-report":/suite/playwright-report`.
+
+### Las capturas, en el mismo sistema que CI
+
+Playwright agrega al nombre de cada imagen de referencia el navegador y
+el sistema operativo (entrada de visual testing). La misma assertion,
+generada en macOS y en el contenedor:
+
+```text
+ingreso-chromium-darwin.png
+ingreso-chromium-linux.png
+```
+
+Si CI corre en Linux, las referencias que valen son las `-linux`. Generar
+y actualizar las capturas dentro del contenedor, con
+`--update-snapshots`, hace que tu computadora produzca exactamente lo que
+CI va a comparar.
+
+### Docker en GitHub Actions
+
+Un job puede correr entero dentro de la imagen de Playwright, con
+`container` (entrada de CI con GitHub Actions). Los navegadores ya
+vienen instalados, y no hace falta `npx playwright install`:
+
+```yaml
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --user 1001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Correr la suite
+        run: npx playwright test
+```
+
+`options: --user 1001` corre el contenedor con el usuario que GitHub usa
+para los archivos del repositorio, como indica la documentación de
+Playwright.
+
+## Cuándo usarlo
+
+Cuando la suite tiene que correr igual en varias computadoras y en CI, y
+siempre que haya capturas de pantalla. Para empezar alcanza con la imagen
+oficial; una imagen propia, cuando el equipo quiere un solo comando para
+correr la suite.
+
+## Buenas prácticas
+
+- Usar la imagen oficial con la misma versión que `@playwright/test`.
+- Copiar `package.json` e instalar antes de copiar el resto.
+- Dejar afuera `node_modules`, `.env` y las sesiones con `.dockerignore`.
+- Generar las capturas de referencia dentro del contenedor.
+
+## Anti-patrones
+
+- **Una imagen `latest`** que cambia de versión sin aviso.
+- **Secretos copiados dentro de la imagen.**
+- **Usar `localhost`** desde el contenedor para llegar a tu computadora.
+- **Referencias de capturas generadas en macOS** para una CI en Linux.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<TermMatchActivity />
+
+<DockerOrderActivity />
+
+<DockerTerminalActivity />
+
+<DockerQuizActivity />

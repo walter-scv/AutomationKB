@@ -1,0 +1,295 @@
+---
+title: "El contrato de locators"
+sidebar_position: 90
+---
+
+import Activity from '@site/src/components/Activity';
+import FillBlank from '@site/src/components/FillBlank';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  CONTRACT_TEMPLATE,
+  CONTRACT_SLOTS,
+  CONTRACT_BANK,
+  CONTRACT_EXPLANATION,
+  PO_LINES,
+  PO_RULE_LABELS,
+  DRIFT_QUIZ,
+} from '@site/src/content/lessons/90-contrato-de-locators';
+
+export const LESSON_SLUG = 'ai-ui-contrato-de-locators';
+
+export function ContractFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['contractfill']);
+  return (
+    <Activity
+      title="Una entrada del contrato"
+      kind="Completar huecos"
+      goal="escribir una entrada del contrato y usarla desde el Page Object."
+      done={isDone('contractfill')}
+      consigna="El botón «Cancelar turno» lo dibuja src/agenda/FilaTurno.tsx con su texto. Completá los 4 huecos de la entrada y del Page Object, y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={CONTRACT_TEMPLATE}
+        slots={CONTRACT_SLOTS}
+        bank={CONTRACT_BANK}
+        explanation={CONTRACT_EXPLANATION}
+        alreadyDone={isDone('contractfill')}
+        onSolved={() => markDone('contractfill')}
+      />
+    </Activity>
+  );
+}
+
+export function PoFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['pofind']);
+  return (
+    <Activity
+      title="Revisar contra el contrato"
+      kind="Buscar en el código"
+      goal="detectar textos fuera del contrato, entradas incompletas y locators frágiles sin justificar."
+      done={isDone('pofind')}
+      consigna="Son 6 líneas del contrato y de los Page Objects de la agenda. Elegí cada una y decí qué problema tiene (texto fuera del contrato, entrada del contrato incompleta o locator frágil sin justificar), o si no tiene problema. Se completa cuando encontrás las 3 que tienen un problema."
+    >
+      <FindInCode
+        lines={PO_LINES}
+        ruleLabels={PO_RULE_LABELS}
+        okLabel="Sin problema"
+        prompt="¿qué problema tiene?"
+        itemLabel="Línea del contrato o Page Object"
+        counterLabel="líneas con problema encontradas"
+        alreadyDone={isDone('pofind')}
+        onSolved={() => markDone('pofind')}
+      />
+    </Activity>
+  );
+}
+
+export function DriftQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['driftquiz']);
+  return (
+    <Activity
+      title="Un desvío detectado"
+      kind="Elegí la opción"
+      goal="actuar ante un desvío reportado y explicar qué le aporta el contrato a un agente de reparación."
+      done={isDone('driftquiz')}
+      consigna="Son 2 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 2."
+    >
+      <Quiz
+        questions={DRIFT_QUIZ}
+        onSolved={() => markDone('driftquiz')}
+      />
+    </Activity>
+  );
+}
+
+Antes de reparar locators con agentes, hace falta saber de dónde sale cada valor. Esta entrada se apoya en los locators de la sección II y en los Page Objects de la sección III, y muestra el contrato de locators centralizado: qué contiene cada entrada, cómo lo usan los Page Objects, y qué habilita: detectar desvíos y reparar con evidencia.
+
+## Conceptos
+
+### El problema: ¿de dónde sale este texto?
+
+El test «reprogramar un turno lo mueve» falla: no encuentra el botón
+«Reprogramar». Antes de tocar nada, hay que responder una pregunta:
+¿cambió el texto en la aplicación, o el test siempre estuvo mal?
+
+Para responderla, alguien tiene que encontrar, en el código de la
+aplicación, la parte que dibuja ese botón y ver qué texto tiene hoy. En
+aplicaciones hechas con React, como la agenda, cada parte de la
+pantalla es un **componente**: un archivo, por ejemplo
+`src/agenda/FilaTurno.tsx`, con el código que dibuja una fila de la
+agenda y sus botones. Encontrar cuál de los trescientos componentes
+dibuja «Reprogramar» puede llevar más tiempo que corregir el test.
+
+Para un agente que tiene que reparar tests, ese es el punto débil: si
+busca el texto viejo en toda la aplicación, puede encontrar otro botón
+parecido en otra pantalla y «arreglar» el test apuntando al lugar
+equivocado. El **contrato de locators** le da la respuesta escrita.
+
+### Lo que tiene que existir antes
+
+- **Una suite con Page Objects**, donde los locators están en un solo
+  lugar (sección III).
+- **Acceso de lectura al código de la aplicación.** Muchas veces la suite
+  y la aplicación están en repositorios distintos, y QA no tiene acceso
+  al de la aplicación: se pide. Sin él, el contrato no se puede armar ni
+  verificar.
+- **Saber leer un componente lo suficiente** para encontrar un texto o
+  un atributo. No hace falta saber React: alcanza con buscar el texto en
+  el archivo. Los primeros, conviene revisarlos con alguien de
+  desarrollo.
+
+### El contrato
+
+El contrato es un archivo único de la suite, `locators.ts`, con una
+entrada por elemento que usan los tests:
+
+```ts
+export const LOCATORS = {
+  botonCancelar: {
+    name: 'Cancelar turno',
+    source: 'text',
+    file: 'src/agenda/FilaTurno.tsx',
+  },
+  botonReprogramar: {
+    name: 'Reprogramar',
+    source: 'text',
+    file: 'src/agenda/FilaTurno.tsx',
+  },
+  campoEmail: {
+    name: 'Email',
+    source: 'label',
+    file: 'src/ingreso/FormularioIngreso.tsx',
+  },
+  tablaAgenda: {
+    name: 'tabla-agenda',
+    source: 'testID',
+    file: 'src/agenda/AgendaDelDia.tsx',
+  },
+} as const;
+```
+
+Cada entrada tiene tres datos:
+
+- `name`: el valor que usa el test para encontrar el elemento: el texto
+  del botón, la etiqueta del campo o el `data-testid`.
+- `source`: de dónde sale ese valor en el componente: el texto visible
+  (`text`), la etiqueta de un campo (`label`), el atributo `aria-label`
+  o un `data-testid` (`testID`).
+- `file`: el componente que dibuja ese elemento, con su ruta desde la
+  raíz del repositorio de la aplicación.
+
+`as const` le dice a TypeScript que los valores son fijos: si un Page
+Object usa una entrada que no existe, como `LOCATORS.botonCancelr`,
+`npx tsc --noEmit` lo marca como error.
+
+### Los Page Objects usan el contrato
+
+Los Page Objects arman sus locators con las entradas del contrato, como
+propiedades `readonly` del constructor, nunca con un texto escrito
+dentro de un método:
+
+```ts
+this.botonCancelar = page.getByRole('button', { name: LOCATORS.botonCancelar.name });
+this.campoEmail = page.getByLabel(LOCATORS.campoEmail.name);
+this.tabla = page.getByTestId(LOCATORS.tablaAgenda.name);
+```
+
+Un texto escrito directamente en el Page Object queda fuera del
+contrato: si cambia en la aplicación, nadie sabe en qué componente
+buscarlo.
+
+El contrato no cambia cómo se elige el locator. Vale lo de la sección
+II: primero los orientados al usuario, como `getByRole` y `getByLabel`,
+y `getByTestId` cuando no hay una forma accesible (entradas de locators
+orientados al usuario y de data-testid). Algunos equipos ponen el
+`data-testid` primero, por estabilidad: es una decisión del proyecto, y
+se deja escrita. Un selector CSS, un XPath o un `.nth()`, solo con un
+comentario que explique por qué.
+
+### Lo que habilita: el chequeo de desvío
+
+Con `file` y `name`, comprobar si un locator sigue vigente es mecánico:
+abrir el archivo del componente y ver si el valor sigue ahí. Cuando un
+texto cambió en la aplicación y el contrato no, se dice que hay un
+**desvío** (en inglés, *drift*). Un script corto lo detecta para todas
+las entradas:
+
+```ts
+// chequear-locators.ts
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { LOCATORS } from './locators';
+
+const raizApp = process.env.APP_DIR ?? '../app';
+let desvios = 0;
+
+for (const [clave, entrada] of Object.entries(LOCATORS)) {
+  const codigo = readFileSync(join(raizApp, entrada.file), 'utf8');
+  if (!codigo.includes(entrada.name)) {
+    console.log(`DESVÍO ${clave}: «${entrada.name}» no aparece en ${entrada.file}`);
+    desvios++;
+  }
+}
+
+console.log(desvios === 0 ? 'Sin desvíos.' : `${desvios} desvío(s).`);
+process.exit(desvios === 0 ? 0 : 1);
+```
+
+`APP_DIR` es la carpeta donde está el repositorio de la aplicación. Si
+en `FilaTurno.tsx` el botón pasó a llamarse «Cambiar horario»:
+
+```bash
+npx tsx chequear-locators.ts
+```
+
+```text
+DESVÍO botonReprogramar: «Reprogramar» no aparece en src/agenda/FilaTurno.tsx
+1 desvío(s).
+```
+
+Es una versión simple: busca el texto en todo el archivo, sin mirar el
+atributo exacto. Alcanza para enterarse de un renombre antes de que lo
+encuentre la regresión de la noche. Conviene correrlo después de
+cualquier cambio de textos en la aplicación y antes de abrir un Pull
+Request con cambios de interfaz.
+
+### Lo que habilita: reparar con evidencia
+
+El mismo dato le sirve a un agente de reparación (entrada de auto-heal
+en el Pull Request): va directo al componente que dice `file`, lee el
+valor actual y corrige la entrada del contrato, sin adivinar. Sin el
+contrato, tendría que buscar el texto viejo en toda la aplicación, y
+podría elegir el componente equivocado.
+
+### Pasar una suite existente al contrato
+
+En una suite que ya existe, no hace falta migrar todo de una vez:
+
+1. Crear `locators.ts` vacío y escribir en el `CLAUDE.md` la regla
+   «todo locator nuevo va al contrato, con `name`, `source` y `file`».
+2. Migrar primero los Page Objects de los flujos críticos: por cada
+   locator, buscar su texto en el código de la aplicación, crear la
+   entrada y cambiar el Page Object para que la use.
+3. Correr la suite y el chequeo de desvío después de cada Page Object
+   migrado.
+
+Es una tarea repetitiva y verificable, buena para un agente: con un
+buen pedido (entrada de pedirle bien), migra un Page Object por vez, y
+vos revisás cada `file` que propone.
+
+### Qué se gana y qué cuesta
+
+Cuesta mantenerlo: cada locator nuevo es una entrada nueva, con su
+archivo. Se gana que cualquier fallo de locator tiene una respuesta
+rápida a «¿cambió la aplicación?», y que las reparaciones, humanas o
+automáticas, tocan un solo lugar.
+
+## Cuándo usarlo
+
+En suites grandes, donde los textos de la aplicación cambian seguido, y
+siempre que se quiera reparar locators con agentes.
+
+## Buenas prácticas
+
+- Una entrada por elemento, con `name`, `source` y `file`.
+- Los Page Objects solo usan entradas del contrato.
+- El chequeo de desvío, después de cada cambio de textos.
+- Migrar de a un Page Object, empezando por los flujos críticos.
+
+## Anti-patrones
+
+- **Un texto escrito en un método** del Page Object.
+- **Entradas sin `file`**, que obligan a buscar el componente.
+- **Un `.nth()` sin comentario** que lo justifique.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ContractFillActivity />
+
+<PoFindActivity />
+
+<DriftQuizActivity />

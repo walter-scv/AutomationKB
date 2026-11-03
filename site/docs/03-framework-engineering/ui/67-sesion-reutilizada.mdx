@@ -1,0 +1,285 @@
+---
+title: "Sesión reutilizada"
+sidebar_position: 67
+---
+
+import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
+import FillBlank from '@site/src/components/FillBlank';
+import Terminal from '@site/src/components/Terminal';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  AUTH_START,
+  AUTH_NODES,
+  AUTH_EXPLANATION_DP,
+  AUTH_TEMPLATE,
+  AUTH_SLOTS,
+  AUTH_BANK,
+  AUTH_EXPLANATION,
+  DEPS_STEPS,
+  DEPS_EXPLANATION,
+  SESSION_QUESTIONS,
+} from '@site/src/content/lessons/67-sesion-reutilizada';
+
+export const LESSON_SLUG = 'framework-ui-sesion-reutilizada';
+
+export function AuthPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['authpath']);
+  return (
+    <Activity
+      title="La sesión de la suite de turnos"
+      kind="Escenario encadenado"
+      goal="decidir cómo resolver el ingreso de una suite grande, los tests del propio ingreso y un segundo rol."
+      done={isDone('authpath')}
+      consigna="Son 3 decisiones encadenadas sobre la suite de la agenda de turnos. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={AUTH_START}
+        nodes={AUTH_NODES}
+        explanation={AUTH_EXPLANATION_DP}
+        alreadyDone={isDone('authpath')}
+        onSolved={() => markDone('authpath')}
+      />
+    </Activity>
+  );
+}
+
+export function AuthFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['authfill']);
+  return (
+    <Activity
+      title="Los proyectos de la configuración"
+      kind="Completar huecos"
+      goal="configurar un proyecto de setup y un proyecto de tests que usa la sesión guardada."
+      done={isDone('authfill')}
+      consigna="La suite de turnos guarda la sesión de la recepcionista en un archivo .setup.ts. Completá los 4 huecos de los proyectos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={AUTH_TEMPLATE}
+        slots={AUTH_SLOTS}
+        bank={AUTH_BANK}
+        explanation={AUTH_EXPLANATION}
+        alreadyDone={isDone('authfill')}
+        onSolved={() => markDone('authfill')}
+      />
+    </Activity>
+  );
+}
+
+export function DepsTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['depsterm']);
+  return (
+    <Activity
+      title="Correr con y sin dependencias"
+      kind="Terminal"
+      goal="ver el proyecto de setup correr como dependencia y saltearlo cuando no hace falta."
+      done={isDone('depsterm')}
+      consigna="Son 2 pasos. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el segundo paso."
+    >
+      <Terminal
+        steps={DEPS_STEPS}
+        explanation={DEPS_EXPLANATION}
+        alreadyDone={isDone('depsterm')}
+        onSolved={() => markDone('depsterm')}
+      />
+    </Activity>
+  );
+}
+
+export function SessionMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['sessionmulti']);
+  return (
+    <Activity
+      title="El archivo de la sesión"
+      kind="Marcar todas"
+      goal="reconocer qué guarda el archivo de sesión, cómo se maneja y cuándo deja de servir."
+      done={isDone('sessionmulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todas las afirmaciones correctas y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={SESSION_QUESTIONS}
+        alreadyDone={isDone('sessionmulti')}
+        onSolved={() => markDone('sessionmulti')}
+      />
+    </Activity>
+  );
+}
+
+Casi todos los tests de una aplicación con ingreso empiezan igual: ingresar. Esta entrada muestra cómo ingresar una sola vez por corrida, guardar la sesión y que cada test arranque ya ingresado, y cómo darles otra sesión, o ninguna, a los tests que lo necesitan.
+
+## Conceptos
+
+### El problema: ingresar en cada test
+
+Casi todas las pantallas de la biblioteca exigen una sesión iniciada.
+Cada test arranca con un contexto nuevo, sin cookies (entrada de hooks y
+aislamiento), así que cada uno tendría que ingresar antes de probar lo
+suyo. Una fixture o un `beforeEach` que ingresa por la interfaz resuelve
+la repetición de código, pero no la de tiempo: con cuatrocientos tests,
+son cuatrocientos ingresos que no verifican nada nuevo. Y si la pantalla
+de ingreso falla, fallan los cuatrocientos.
+
+### Guardar la sesión: `storageState`
+
+Lo que hace que la aplicación reconozca a una persona como ingresada se
+guarda en el navegador: cookies y almacenamiento local. Playwright puede
+copiar ese estado a un archivo y cargarlo en otro contexto:
+
+```ts
+await page.context().storageState({ path: 'playwright/.auth/socia.json' });
+```
+
+El archivo es un JSON con las cookies y el almacenamiento de cada sitio.
+Después de ingresar en la biblioteca:
+
+```json
+{
+  "cookies": [
+    {
+      "name": "sesion",
+      "value": "lucia",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}
+```
+
+Un contexto que se crea con ese estado ya tiene la cookie: la aplicación
+lo trata como ingresado, sin pasar por el formulario. Por eso el archivo
+es tan sensible como una contraseña: la carpeta `playwright/.auth/` va en
+`.gitignore` (entrada de instalación).
+
+### Ingresar una vez: el proyecto de setup
+
+Playwright recomienda ingresar en un **proyecto de setup**: un archivo
+que corre antes que los tests, ingresa una vez y guarda la sesión.
+
+```ts
+// tests/auth.setup.ts
+import { test as setup, expect } from '@playwright/test';
+import { variable } from '../helpers/entorno';
+
+const archivoSesion = 'playwright/.auth/socia.json';
+
+setup('ingresar con la socia de prueba', async ({ page }) => {
+  await page.goto('/ingresar');
+  await page.getByLabel('Email').fill(variable('SOCIA_EMAIL'));
+  await page.getByLabel('Contraseña').fill(variable('SOCIA_CLAVE'));
+  await page.getByRole('button', { name: 'Ingresar' }).click();
+  await expect(page.getByRole('heading', { name: 'Mis préstamos' })).toBeVisible();
+  await page.context().storageState({ path: archivoSesion });
+});
+```
+
+Es un test como cualquier otro (`setup` es solo `test` con otro nombre),
+que termina guardando el estado. La assertion antes de guardar es
+importante: confirma que el ingreso funcionó, para no guardar una sesión
+inválida que haga fallar a todos los tests con un error confuso.
+
+En la configuración, dos proyectos:
+
+```ts
+projects: [
+  { name: 'setup', testMatch: /.*\.setup\.ts/ },
+  {
+    name: 'chromium',
+    use: { ...devices['Desktop Chrome'], storageState: 'playwright/.auth/socia.json' },
+    dependencies: ['setup'],
+  },
+],
+```
+
+- El proyecto `setup` corre solo los archivos que terminan en `.setup.ts`
+  (`testMatch` es una expresión regular).
+- `storageState` en el `use` de `chromium` hace que cada test arranque con
+  esa sesión.
+- `dependencies: ['setup']` hace que `chromium` espere a que `setup`
+  termine bien antes de empezar.
+
+### Cómo se ve al correr
+
+Aunque se pida un solo proyecto, su dependencia corre antes:
+
+```bash
+npx playwright test prestamos --project=chromium
+```
+
+```text
+Running 2 tests using 1 worker
+  ✓  1 [setup] › tests/auth.setup.ts:6:6 › ingresar con la socia de prueba (264ms)
+  ✓  2 [chromium] › tests/prestamos.spec.ts:5:7 › Préstamos › renovar un préstamo extiende el vencimiento 14 días @smoke (163ms)
+  2 passed (1.2s)
+```
+
+El ingreso corre una vez por corrida, no una vez por test. Si el setup
+falla, los tests de `chromium` no corren: un solo error claro en lugar de
+cientos.
+
+`--no-deps` saltea las dependencias. Sirve para repetir un test rápido
+cuando la sesión guardada sigue siendo válida; si el archivo no existe,
+el error lo dice:
+
+```text
+Error: Error reading storage state from playwright/.auth/socia.json:
+ENOENT: no such file or directory, open 'playwright/.auth/socia.json'
+```
+
+### Tests que necesitan otra sesión, o ninguna
+
+Los tests del propio ingreso no pueden arrancar ingresados: necesitan un
+contexto vacío. `test.use` reemplaza el estado para un archivo o un grupo:
+
+```ts
+test.use({ storageState: { cookies: [], origins: [] } });
+```
+
+Si la aplicación tiene roles distintos (una socia y una bibliotecaria),
+el setup guarda un archivo por rol (`socia.json`, `bibliotecaria.json`), y
+cada grupo de tests elige el suyo con `test.use({ storageState: '...' })`.
+
+### Cuándo no hace falta
+
+Si la aplicación no tiene ingreso, o si ingresar es una llamada barata a la
+API, la infraestructura de setup no ahorra nada. Y si la sesión vence en
+pocos minutos, una corrida larga puede quedarse con una sesión vencida a
+mitad de camino: hay que conocer cuánto dura antes de reutilizarla.
+
+## Cuándo usarlo
+
+En toda suite cuya aplicación exige ingresar y que tiene más que un
+puñado de tests. Los tests del ingreso, y los de cada rol, eligen su
+estado con `test.use`.
+
+## Buenas prácticas
+
+- Ingresar una vez en un proyecto de setup, con dependencia en los
+  proyectos de tests.
+- Verificar que el ingreso funcionó antes de guardar la sesión.
+- Mantener `playwright/.auth/` fuera del repositorio.
+- Un archivo de sesión por rol.
+
+## Anti-patrones
+
+- **Ingresar por la interfaz en cada test** de una suite grande.
+- **Versionar los archivos de sesión.**
+- **Usar la sesión guardada en los tests del ingreso.**
+- **Reutilizar una sesión** sin saber cuánto tarda en vencer.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<AuthPathActivity />
+
+<AuthFillActivity />
+
+<DepsTerminalActivity />
+
+<SessionMultiActivity />
