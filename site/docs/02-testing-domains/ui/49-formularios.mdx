@@ -1,0 +1,355 @@
+---
+title: "Formularios: texto, listas y casillas"
+sidebar_position: 49
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import SpotToken from '@site/src/components/SpotToken';
+import Order from '@site/src/components/Order';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  ACTION_LEFT,
+  ACTION_RIGHT,
+  ACTION_WHY,
+  METHOD_ROUNDS,
+  METHOD_PROMPT,
+  FORM_ITEMS,
+  FORM_CORRECT,
+  FORM_RULES,
+  COVER_ACCEPTED,
+  COVER_HINTS,
+  COVER_EXPLANATION,
+  COVER_HTML,
+} from '@site/src/content/lessons/49-formularios';
+
+export const LESSON_SLUG = 'domains-ui-formularios';
+
+export function ActionMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['actionmatch']);
+  return (
+    <Activity
+      title="La acción para cada campo"
+      kind="Emparejar"
+      goal="elegir la acción que corresponde a cada campo del checkout de una tienda."
+      done={isDone('actionmatch')}
+      consigna="Son 6 pares. Elegí una tarea de la izquierda y después la acción que la resuelve (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={ACTION_LEFT}
+        right={ACTION_RIGHT}
+        why={ACTION_WHY}
+        leftLabel="Tarea"
+        rightLabel="Acción"
+        alreadyDone={isDone('actionmatch')}
+        onSolved={() => markDone('actionmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function MethodSpotActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['methodspot']);
+  return (
+    <Activity
+      title="La acción que no corresponde"
+      kind="Señalar en la línea"
+      goal="detectar la acción equivocada para cada tipo de campo, leyendo el comentario de la línea."
+      done={isDone('methodspot')}
+      consigna="Son 5 líneas de un test de checkout, cada una con un comentario que dice qué tiene que lograr. En cada una, hacé click en la parte que elige mal la forma de completar el campo. Si no es esa, leé la pista y probá otra. Se completa al resolver las 5."
+    >
+      <SpotToken
+        rounds={METHOD_ROUNDS}
+        prompt={METHOD_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('methodspot')}
+        onSolved={() => markDone('methodspot')}
+      />
+    </Activity>
+  );
+}
+
+export function FormOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['formorder']);
+  return (
+    <Activity
+      title="Completar el checkout en orden"
+      kind="Ordenar"
+      goal="ordenar las acciones de un formulario cuyos campos dependen de los anteriores."
+      done={isDone('formorder')}
+      consigna="En este checkout, varios campos aparecen o se habilitan recién cuando se completa otro: las opciones de envío dependen de la ciudad, y la casilla de términos se habilita con la dirección completa. Ordená las 8 líneas y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={FORM_ITEMS}
+        correctOrder={FORM_CORRECT}
+        rules={FORM_RULES}
+        onSolved={() => markDone('formorder')}
+      />
+    </Activity>
+  );
+}
+
+export function CoverTypeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['covertype']);
+  return (
+    <Activity
+      title="Elegir la cobertura"
+      kind="Respuesta escrita"
+      goal="escribir completa la línea que elige una opción de una lista desplegable nativa."
+      done={isDone('covertype')}
+      consigna="En el alta de pacientes, el campo Cobertura es el select de arriba. Escribí la línea completa del test que elige OSDE, con await, el locator y la acción, y presioná Enter."
+    >
+      <CodeBlock language="html">{COVER_HTML}</CodeBlock>
+      <TypeAnswer
+        accepted={COVER_ACCEPTED}
+        hints={COVER_HINTS}
+        explanation={COVER_EXPLANATION}
+        placeholder="await page..."
+        alreadyDone={isDone('covertype')}
+        onSolved={() => markDone('covertype')}
+      />
+    </Activity>
+  );
+}
+
+Casi todo flujo de una aplicación pasa por un formulario: ingresar, registrarse, pagar, filtrar. Esta entrada recorre las acciones para cada tipo de campo y los casos en que la acción más simple no alcanza.
+
+## Conceptos
+
+### El formulario de ejemplo
+
+Los ejemplos usan el alta de socio de la biblioteca:
+
+```html
+<label for="nombre">Nombre</label><input id="nombre">
+<label for="dni">DNI</label><input id="dni">
+<label for="tel">Teléfono</label><input id="tel">
+<label for="cat">Categoría</label>
+<select id="cat">
+  <option value="">Elegí</option>
+  <option value="est">Estudiante</option>
+  <option value="gen">General</option>
+  <option value="jub">Jubilado</option>
+</select>
+<fieldset><legend>Retiro</legend>
+  <label><input type="radio" name="retiro" value="sede"> En la sede</label>
+  <label><input type="radio" name="retiro" value="dom"> A domicilio</label>
+</fieldset>
+<label><input type="checkbox" id="news"> Recibir novedades</label>
+<label><input type="checkbox" id="tyc" checked> Acepto el reglamento</label>
+<label for="gen">Géneros favoritos</label>
+<select id="gen" multiple><option>Novela</option><option>Poesía</option><option>Ensayo</option></select>
+```
+
+Todos los campos tienen etiqueta, así que se encuentran con `getByLabel`
+(entrada de locators orientados al usuario).
+
+### Campos de texto: `fill` y `clear`
+
+`fill(texto)` reemplaza el contenido completo del campo: primero lo vacía
+y después escribe el texto de una vez.
+
+```ts
+await page.getByLabel('Nombre').fill('Ana');
+await page.getByLabel('Nombre').fill('Lucía');
+// el campo dice «Lucía», no «AnaLucía»
+```
+
+`clear()` vacía el campo. `fill('')` hace lo mismo. Las dos esperan, como
+toda acción, a que el campo sea visible, esté habilitado y sea editable
+(entrada de esperas).
+
+`fill` dispara el evento `input`, el que usan la mayoría de las páginas
+para reaccionar a lo que se escribe. En el alta, el DNI se muestra debajo
+del campo apenas cambia:
+
+```ts
+await page.getByLabel('DNI').fill('30111222');
+// debajo aparece «DNI ingresado: 30111222»
+```
+
+El resultado se verifica sobre el valor del campo, con `toHaveValue`
+(entrada de assertions):
+
+```ts
+await expect(page.getByLabel('DNI')).toHaveValue('30111222');
+```
+
+### Tecla por tecla: `pressSequentially`
+
+Algunos campos no reaccionan al evento `input` sino a cada tecla: le dan
+formato al número mientras se escribe, sugieren opciones o limitan los
+caracteres. En el alta, el teléfono se formatea con cada tecla, como
+`11 4567-8901`. `fill` pone el texto de una vez, sin teclas, y el campo
+no se entera:
+
+```ts
+await page.getByLabel('Teléfono').fill('1145678901');
+// el valor queda «1145678901», sin formato
+
+await page.getByLabel('Teléfono').clear();
+await page.getByLabel('Teléfono').pressSequentially('1145678901');
+// el valor queda «11 4567-8901»
+```
+
+`pressSequentially` escribe carácter por carácter, como una persona, y
+dispara los eventos de cada tecla. Es más lento, así que se usa solo
+cuando el campo lo necesita; en los demás casos, `fill`. Acepta
+`{ delay: 100 }` para esperar milisegundos entre teclas, útil para
+buscadores que sugieren resultados mientras se escribe.
+
+Cuando un test usa `pressSequentially`, conviene dejar escrito por qué:
+quien lea el código después va a preguntarse por qué no usa `fill`, y
+puede "simplificarlo" y romper el test.
+
+### Listas desplegables: `selectOption`
+
+`selectOption` elige una opción de un `<select>`. Acepta el valor (el
+atributo `value`) o el texto visible de la opción, y devuelve los valores
+elegidos:
+
+```ts
+await page.getByLabel('Categoría').selectOption('Jubilado');           // por texto → [ 'jub' ]
+await page.getByLabel('Categoría').selectOption('est');                // por value → [ 'est' ]
+await page.getByLabel('Categoría').selectOption({ label: 'General' }); // solo por texto → [ 'gen' ]
+```
+
+Pasar solo el texto es lo más legible y lo que ve la persona;
+`{ label: ... }` lo hace explícito cuando un valor y un texto podrían
+confundirse, y `{ value: ... }` obliga a usar el `value`. También existe
+`{ index: n }`, que elige por posición; se evita por la misma razón que
+`nth` (entrada de encadenar y filtrar): si cambia el orden de las
+opciones, elige otra. En un `<select multiple>`, se pasa una lista:
+
+```ts
+await page.getByLabel('Géneros favoritos').selectOption(['Novela', 'Ensayo']);
+```
+
+Si la opción no existe, la acción espera, como cualquier otra, y falla
+por tiempo. El call log dice por qué (en este ejemplo, con
+`{ timeout: 1500 }` para no esperar los 30 segundos del test):
+
+```text
+locator.selectOption: Timeout 1500ms exceeded.
+Call log:
+  - waiting for getByLabel('Categoría')
+    - locator resolved to <select id="cat">…</select>
+  - attempting select option action
+    2 × waiting for element to be visible and enabled
+      - did not find some options
+```
+
+`did not find some options`: el `<select>` existe, pero no tiene una
+opción «Socio vitalicio». Se verifica con `toHaveValue`, que en un
+`<select>` compara el `value` de la opción elegida:
+`await expect(page.getByLabel('Categoría')).toHaveValue('jub')`.
+
+`selectOption` sirve solo para `<select>` nativos. Muchas aplicaciones
+dibujan listas desplegables propias con `<div>` y `<li>`; esas se manejan
+con clicks, como se ve en la entrada de componentes dinámicos.
+
+### Casillas: `check`, `uncheck` y `setChecked`
+
+`check()` marca una casilla y `uncheck()` la desmarca. Las dos son
+idempotentes: si la casilla ya está en el estado pedido, no hacen nada.
+`click()`, en cambio, siempre invierte el estado:
+
+```ts
+await page.getByLabel('Acepto el reglamento').check();
+// ya estaba marcada: sigue marcada
+
+await page.getByLabel('Recibir novedades').check();
+await page.getByLabel('Recibir novedades').click();
+// el click la desmarcó
+```
+
+Por eso, para dejar una casilla en un estado concreto se usa `check` o
+`uncheck`, no `click`: el resultado no depende de cómo estaba antes.
+`setChecked(true)` o `setChecked(false)` hace lo mismo con un booleano,
+útil cuando el estado sale de un dato del test.
+
+Después de actuar, Playwright comprueba que el estado cambió: si la
+página no deja marcar la casilla, `check` falla.
+
+### Opciones únicas: radios
+
+Un grupo de radios (mismo `name`) permite una sola opción. `check()` marca
+la elegida y el navegador desmarca la que estaba:
+
+```ts
+await page.getByLabel('A domicilio').check();
+await page.getByLabel('En la sede').check();
+// «En la sede» quedó marcada y «A domicilio», desmarcada
+```
+
+Un radio no se puede desmarcar directamente, igual que una persona no
+puede desmarcarlo con un click:
+
+```text
+locator.uncheck: Cannot uncheck radio button. Radio buttons can only be unchecked by selecting another radio button in the same group.
+```
+
+Se verifica con `toBeChecked()`, o `not.toBeChecked()` para la que debería
+haberse desmarcado.
+
+### Completar un formulario entero
+
+Un formulario se completa campo por campo, en el orden en que lo haría una
+persona, y se verifica lo que el formulario produce, no cada tecla:
+
+```ts
+await page.getByLabel('Nombre').fill('Lucía Gómez');
+await page.getByLabel('DNI').fill('30111222');
+// el teléfono se formatea al tipear: necesita eventos de tecla
+await page.getByLabel('Teléfono').pressSequentially('1145678901');
+await page.getByLabel('Categoría').selectOption('Estudiante');
+await page.getByLabel('En la sede').check();
+await page.getByLabel('Acepto el reglamento').check();
+await page.getByRole('button', { name: 'Registrar' }).click();
+
+await expect(page.getByText('Socia registrada')).toBeVisible();
+```
+
+Algunas validaciones se disparan cuando el campo pierde el foco, al pasar
+al siguiente. Si un test necesita provocarlo sin tocar otro campo,
+`press('Tab')` mueve el foco como lo haría una persona (las teclas se ven
+en la entrada siguiente).
+
+## Cuándo usarlo
+
+En cada formulario: `fill` para campos de texto, `pressSequentially` solo
+cuando el campo reacciona a teclas, `selectOption` para `<select>`
+nativos, y `check` o `uncheck` para casillas y radios.
+
+## Buenas prácticas
+
+- Encontrar los campos con `getByLabel`.
+- Usar `check` y `uncheck` en lugar de `click` para fijar el estado de una
+  casilla.
+- Elegir opciones por su texto visible.
+- Dejar escrito por qué se usa `pressSequentially` cuando se usa.
+- Verificar con `toHaveValue` y `toBeChecked`.
+
+## Anti-patrones
+
+- **Usar `click` para marcar una casilla**: el resultado depende del
+  estado anterior.
+- **`pressSequentially` en todos los campos**: vuelve lenta la suite sin
+  necesidad.
+- **Escribir con `fill` en un campo que formatea por teclas** y
+  "corregir" el valor esperado para que coincida.
+- **Elegir una opción por su posición** en la lista.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ActionMatchActivity />
+
+<MethodSpotActivity />
+
+<FormOrderActivity />
+
+<CoverTypeActivity />

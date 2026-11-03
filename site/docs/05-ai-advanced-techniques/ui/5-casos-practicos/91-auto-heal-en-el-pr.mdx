@@ -1,0 +1,387 @@
+---
+title: "Auto-heal en el Pull Request"
+sidebar_position: 91
+---
+
+import Activity from '@site/src/components/Activity';
+import Order from '@site/src/components/Order';
+import FillBlank from '@site/src/components/FillBlank';
+import DecisionPath from '@site/src/components/DecisionPath';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  HEAL_ITEMS,
+  HEAL_CORRECT,
+  HEAL_RULES,
+  WF_TEMPLATE,
+  WF_SLOTS,
+  WF_BANK,
+  WF_EXPLANATION,
+  DIAG_START,
+  DIAG_NODES,
+  DIAG_EXPLANATION,
+} from '@site/src/content/lessons/91-auto-heal-en-el-pr';
+
+export const LESSON_SLUG = 'ai-ui-auto-heal-en-el-pr';
+
+export function HealOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['healorder']);
+  return (
+    <Activity
+      title="El flujo del auto-heal"
+      kind="Ordenar"
+      goal="ordenar los pasos de un auto-heal, desde el fallo hasta la corrección para revisar."
+      done={isDone('healorder')}
+      consigna="Son los 6 pasos de un auto-heal en la suite de la agenda, desordenados. Ordenalos y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={HEAL_ITEMS}
+        correctOrder={HEAL_CORRECT}
+        rules={HEAL_RULES}
+        onSolved={() => markDone('healorder')}
+      />
+    </Activity>
+  );
+}
+
+export function WfFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['wffill']);
+  return (
+    <Activity
+      title="El disparador"
+      kind="Completar huecos"
+      goal="escribir el disparador de un auto-heal que corre después de la suite y no se repara a sí mismo."
+      done={isDone('wffill')}
+      consigna="El auto-heal de turnos tiene que dispararse cuando termina el workflow «E2E agenda», solo si falló, y nunca sobre las ramas auto-heal/. Completá los 3 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={WF_TEMPLATE}
+        slots={WF_SLOTS}
+        bank={WF_BANK}
+        explanation={WF_EXPLANATION}
+        alreadyDone={isDone('wffill')}
+        onSolved={() => markDone('wffill')}
+      />
+    </Activity>
+  );
+}
+
+export function DiagPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['diagpath']);
+  return (
+    <Activity
+      title="¿Actúa o no actúa?"
+      kind="Escenario encadenado"
+      goal="decidir si el auto-heal repara según el diagnóstico y la cantidad de fallos, y encontrar por qué un cambio en el pedido no tuvo efecto."
+      done={isDone('diagpath')}
+      consigna="Son 4 situaciones encadenadas del auto-heal de la agenda. En cada una elegí la opción correcta; si no es lo correcto, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={DIAG_START}
+        nodes={DIAG_NODES}
+        explanation={DIAG_EXPLANATION}
+        alreadyDone={isDone('diagpath')}
+        onSolved={() => markDone('diagpath')}
+      />
+    </Activity>
+  );
+}
+
+Cuando un Pull Request cambia la interfaz y los tests quedan desactualizados, un agente puede repararlos en CI. Esta entrada muestra el flujo completo: cuándo se dispara, cómo decide si actuar, qué recibe el agente, cómo verifica y qué se aprendió al ponerlo en producción.
+
+## Conceptos
+
+### La idea
+
+Un desarrollador abre un Pull Request que cambia el texto del botón
+«Cancelar» por «Cancelar turno» en `FilaTurno.tsx`. El cambio está
+aprobado por diseño. La suite del Pull Request corre en CI y fallan tres
+tests de cancelación, porque buscan el botón por su texto viejo. Los
+tests no detectaron un defecto: quedaron desactualizados.
+
+Sin automatización, alguien de QA ve el rojo, abre los errores, busca
+el componente, corrige la entrada del contrato de locators, corre los
+tests y sube la corrección. Es trabajo mecánico, y se repite con cada
+cambio de textos.
+
+Un **auto-heal** (en inglés, «autorreparación») es una automatización
+que hace ese trabajo: cuando la suite falla en CI, decide si el fallo se
+debe a un locator desactualizado por el cambio del Pull Request y, si es
+así, un agente lo repara, vuelve a correr los tests que fallaron y deja
+la corrección para que una persona la revise.
+
+### Lo que tiene que existir antes
+
+| Qué | Para qué | Dónde se aprende |
+| :- | :- | :- |
+| La suite corriendo en CI en cada Pull Request, con sus reportes como artefactos | Saber qué falló y con qué error | Entradas de CI con GitHub Actions y de reportes |
+| El contrato de locators, con `file` en cada entrada | Que el agente sepa qué componente abrir | Entrada del contrato de locators |
+| Acceso del workflow al código de la aplicación | Leer el componente, si la aplicación está en otro repositorio | Entrada de agentes en CI |
+| Un agente en CI, con su clave como secreto y permisos acotados | Correr el diagnóstico y la reparación | Entrada de agentes en CI |
+| Un documento con lo que puede tocar una reparación | Fijar el alcance del agente | Entrada de qué puede tocar un auto-heal |
+
+Sin el contrato, el agente tiene que buscar el texto viejo en toda la
+aplicación, y puede «reparar» el test apuntándolo a otro botón. Sin el
+alcance escrito, puede hacer pasar el test aflojando la assertion.
+
+### El flujo
+
+1. La suite del Pull Request falla en CI.
+2. Se juntan los resultados de esa ejecución: qué tests fallaron y con
+   qué error. Para eso, la suite genera además un reporte en formato
+   JSON, que un programa puede leer, sumando un reporter en
+   `playwright.config.ts` (entrada de reportes):
+
+   ```ts
+   reporter: [['html'], ['json', { outputFile: 'test-results/resultados.json' }]],
+   ```
+
+   y el workflow de la suite sube la carpeta `test-results/` como
+   artefacto, con `actions/upload-artifact` y el nombre
+   `resultados-e2e`, igual que el reporte HTML.
+3. Un **diagnóstico** decide si los fallos los causó el cambio del Pull
+   Request.
+4. Si la respuesta es «Sí», un agente repara, con un alcance estricto.
+5. El agente vuelve a correr **solo los tests que fallaron**.
+6. La corrección queda como un commit en la rama del Pull Request, o como
+   un Pull Request aparte, según lo que decida el equipo.
+7. El job original de la suite sigue en rojo: haber reparado no es lo
+   mismo que haber pasado. Lo que pasa a verde es la próxima ejecución,
+   sobre la corrección revisada.
+
+### Cuándo se dispara
+
+Hay dos formas habituales:
+
+- **Un paso más al final del mismo job de la suite.** Tiene a mano los
+  resultados en disco, sin tener que bajarlos.
+- **Un workflow aparte**, que se dispara cuando termina el de la suite.
+  Para eso GitHub Actions tiene el evento `workflow_run`: «cuando el
+  workflow X termine, corré este».
+
+```yaml
+on:
+  workflow_run:
+    workflows: ["E2E agenda"]
+    types: [completed]
+    branches-ignore:
+      - 'auto-heal/**'
+
+jobs:
+  auto-heal:
+    if: github.event.workflow_run.conclusion == 'failure'
+```
+
+- `workflows` nombra el workflow de la suite, y `types: [completed]`
+  dispara cuando termina, haya pasado o fallado;
+- el `if` del job hace que solo siga si terminó en falla;
+- `branches-ignore` evita un ciclo: si las correcciones del auto-heal van
+  en ramas `auto-heal/...` y la suite de una de ellas falla, no se
+  dispara otro auto-heal sobre ella, y así sucesivamente.
+
+Un workflow aparte corre en otra máquina, así que no tiene los
+resultados de la suite en disco: los baja del artefacto que subió la
+otra ejecución. En la sección IV, `actions/download-artifact` bajaba un
+artefacto de la misma ejecución; para uno de otra, se le pasan el
+identificador de esa ejecución (`run-id`) y un token, y el job necesita
+el permiso `actions: read`. Se ve en el workflow completo, más abajo.
+
+### El diagnóstico decide si actuar
+
+No todo fallo es un locator desactualizado: puede ser un defecto real de
+la aplicación, un problema del entorno o un test inestable. Reparar
+cualquiera de esos como si fuera un locator esconde el problema.
+
+Por eso, antes de reparar, un primer paso corre Claude Code en modo no
+interactivo: con `claude -p`, Claude Code recibe un pedido, responde y
+termina, sin esperar a nadie. En el runner de CI no está instalado: el
+paso lo instala con npm y le pasa la clave del modelo como variable de
+entorno, desde un secreto (entrada de agentes en CI). El pedido incluye los errores de los tests
+y el diff del Pull Request, y una sola pregunta: «¿estos fallos los
+causó el cambio de este Pull Request?». La respuesta tiene un formato
+fijo, con una sección que termina en una de tres palabras:
+
+```markdown
+### Diagnóstico
+**Sí**: FilaTurno.tsx cambió «Cancelar» por «Cancelar turno», y los tres
+tests fallan buscando el texto anterior.
+```
+
+El workflow busca esa palabra en la respuesta con `grep`, como en la
+entrada de subagentes: un formato fijo se puede leer sin interpretar un
+párrafo.
+
+- **Sí**: es el caso del auto-heal; se dispara la reparación.
+- **Posiblemente** o **No**: el agente no interviene. Con dudas no se
+  repara, y un «No» indica otra causa. Lo mira una persona.
+- Si la respuesta no tiene el formato esperado, tampoco se repara.
+
+Las primeras versiones de estos sistemas reparaban también con
+«Posiblemente», y producían correcciones que no correspondían: exigir un
+«Sí» claro fue una de las lecciones de usarlo en producción.
+
+Antes de actuar se comprueban dos condiciones más: que haya al menos un
+fallo, y que no haya demasiados. Con 40 tests rotos, lo probable es un
+problema general, como el entorno caído, y no 40 locators (entrada de la
+válvula y los gates).
+
+### El pedido al agente que repara
+
+El agente corre en CI con la acción oficial de Claude (entrada de
+agentes en CI). Su pedido (entrada de pedirle bien) incluye:
+
+- **los tests que fallaron**, con sus errores;
+- **los componentes** que el contrato de locators asocia a esos
+  locators, con su contenido actual;
+- **la respuesta del diagnóstico**;
+- **el alcance**: qué archivos puede tocar y cuáles no (entrada de qué
+  puede tocar un auto-heal);
+- **cómo verificar**: correr solo los tests que fallaron, por título;
+- **qué hacer si no puede**: detenerse y explicar por qué, sin subir
+  nada.
+
+Un extracto del alcance, en el pedido:
+
+```text
+Solo podés modificar:
+- locators.ts
+- pages/*.ts
+
+Nunca modifiques:
+- tests/*.spec.ts
+- playwright.config.ts
+- ningún archivo de la aplicación, salvo agregar un data-testid a un
+  elemento que ya existe
+
+Nunca aflojes ni quites una assertion. Nunca saltees ni borres un test.
+```
+
+Y la verificación, solo con los tests afectados, usando `--grep` con sus
+títulos separados por `|`, que en una expresión regular significa «o»:
+
+```bash
+npx playwright test --grep "cancelar un turno lo libera|cancelar desde la ficha" --project=chromium
+```
+
+Además del pedido, las herramientas del agente se limitan en la
+configuración de la acción, con `--allowedTools` o con las reglas de
+permisos del repositorio (entrada de permisos): el pedido dice qué
+debería hacer, y los permisos impiden lo que no puede hacer.
+
+### El workflow completo
+
+Todas las piezas juntas, en el workflow aparte:
+
+```yaml
+name: Auto-heal agenda
+on:
+  workflow_run:
+    workflows: ["E2E agenda"]
+    types: [completed]
+    branches-ignore:
+      - 'auto-heal/**'
+
+jobs:
+  auto-heal:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: resultados-e2e
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Diagnóstico
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude -p "$(cat .claude/pedidos/diagnostico.md)" > diagnostico.md
+      - name: ¿El diagnóstico dice Sí?
+        id: gate
+        run: |
+          if grep -q '\*\*Sí\*\*' diagnostico.md; then
+            echo "reparar=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "reparar=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.reparar == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "/reparar-locators"
+          claude_args: "--max-turns 30"
+```
+
+Paso por paso:
+
+1. `download-artifact` baja los resultados de la ejecución de la suite
+   que falló, identificada por `github.event.workflow_run.id`.
+2. «Diagnóstico» instala Claude Code y corre `claude -p` con el pedido de
+   diagnóstico, que está en un archivo del repositorio. La respuesta queda
+   en `diagnostico.md`.
+3. «¿El diagnóstico dice Sí?» busca `**Sí**` en esa respuesta y deja el
+   resultado en una salida del paso, `reparar`, escribiéndolo en el
+   archivo especial `$GITHUB_OUTPUT`.
+4. El último paso solo corre si `reparar` es `true`: lanza al agente que
+   repara con la skill `/reparar-locators`, que tiene el pedido completo
+   y el alcance.
+
+Las otras dos condiciones, al menos un fallo y no demasiados, son pasos
+más del mismo estilo, antes del último.
+
+### Lecciones de usarlo en producción
+
+- **Los commits del agente tienen que volver a disparar la suite.** Si
+  el agente sube la corrección con el token automático del workflow,
+  `GITHUB_TOKEN`, GitHub no dispara la suite sobre ese commit, y nadie
+  ve si la corrección pasa en CI (entrada de agentes en CI).
+- **Un pedido guardado en otra plataforma.** En lugar de la acción de
+  GitHub, algunos equipos corren el agente en una plataforma externa de
+  agentes: un servicio que le da a cada tarea una máquina propia, con el
+  repositorio y el entorno ya instalados, y que se configura desde una
+  página web. El workflow solo le avisa que hay trabajo. Muchas de esas
+  plataformas guardan el pedido en su propia configuración web. Si es así, editar el archivo del
+  repositorio no cambia lo que corre. Es la causa más común de «arreglé
+  el pedido y no cambió nada».
+- **Una sola ejecución a la vez por rama**: con `concurrency`, una
+  ejecución nueva cancela la anterior de la misma rama.
+- **Reparar no es pasar**: el job de la suite sigue en rojo hasta que la
+  corrección se revisa y se integra.
+
+## Cuándo usarlo
+
+En suites con muchos cambios de interfaz, con un contrato de locators, y
+cuando el equipo está dispuesto a revisar las correcciones como
+cualquier Pull Request.
+
+## Buenas prácticas
+
+- Un diagnóstico antes de reparar, con «No» como salida válida.
+- Un alcance estricto y explícito en el pedido, y permisos que lo
+  respalden.
+- Verificar solo los tests que fallaron.
+- Evitar ciclos con `branches-ignore` sobre las ramas del auto-heal.
+
+## Anti-patrones
+
+- **Reparar cualquier fallo** sin preguntar si lo causó el Pull Request.
+- **Un agente sin alcance**, que puede tocar tests y aplicación.
+- **Dar el trabajo por terminado** sin que la suite vuelva a correr
+  sobre la corrección.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<HealOrderActivity />
+
+<WfFillActivity />
+
+<DiagPathActivity />

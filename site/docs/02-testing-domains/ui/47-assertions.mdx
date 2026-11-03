@@ -1,0 +1,362 @@
+---
+title: "Assertions: verificar el resultado"
+sidebar_position: 47
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import FindInCode from '@site/src/components/FindInCode';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import Quiz from '@site/src/components/Quiz';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  WANT_LEFT,
+  WANT_RIGHT,
+  WANT_WHY,
+  ASSERT_LINES,
+  ASSERT_RULE_LABELS,
+  ASSERT_PREFIX,
+  ASSERT_STEPS,
+  ASSERT_EXPLANATION,
+  SHOP_QUIZ,
+  SHOP_OUTPUT,
+} from '@site/src/content/lessons/47-assertions';
+
+export const LESSON_SLUG = 'domains-ui-assertions';
+
+export function WantMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['wantmatch']);
+  return (
+    <Activity
+      title="La assertion para cada verificación"
+      kind="Emparejar"
+      goal="elegir la assertion web-first que corresponde a cada verificación del checkout de una tienda."
+      done={isDone('wantmatch')}
+      consigna="Son 8 pares. Elegí lo que hay que verificar a la izquierda y después la assertion que lo hace (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 8."
+    >
+      <Match
+        left={WANT_LEFT}
+        right={WANT_RIGHT}
+        why={WANT_WHY}
+        leftLabel="Qué verificar"
+        rightLabel="Assertion"
+        alreadyDone={isDone('wantmatch')}
+        onSolved={() => markDone('wantmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function AssertFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['assertfind']);
+  return (
+    <Activity
+      title="¿Qué le pasa a esta assertion?"
+      kind="Clasificar"
+      goal="diagnosticar assertions que no reintentan, dependen de los datos de hoy o fueron aflojadas."
+      done={isDone('assertfind')}
+      consigna="Son 9 assertions de la suite de la tienda. Elegí cada una y decí qué problema tiene (no reintenta, depende de los datos de hoy o está aflojada), o si no tiene problema. Se completa cuando encontrás las 6 que tienen un problema."
+    >
+      <FindInCode
+        lines={ASSERT_LINES}
+        ruleLabels={ASSERT_RULE_LABELS}
+        okLabel="Sin problema"
+        prompt="¿qué problema tiene?"
+        itemLabel="Assertion"
+        counterLabel="assertions con problema encontradas"
+        alreadyDone={isDone('assertfind')}
+        onSolved={() => markDone('assertfind')}
+      />
+    </Activity>
+  );
+}
+
+export function AssertBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['assertbuilder']);
+  return (
+    <Activity
+      title="Verificar la cantidad sin cortar el test"
+      kind="Armar"
+      goal="construir una assertion web-first sobre un campo que no detenga el test si falla."
+      done={isDone('assertbuilder')}
+      consigna="El test revisa varios datos independientes del carrito y tiene que seguir aunque uno falle. Armá la assertion que verifica que el campo Cantidad tiene escrito 3. Elegí un fragmento por paso; el siguiente se habilita cuando acertás. Son 3 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={ASSERT_PREFIX}
+        steps={ASSERT_STEPS}
+        explanation={ASSERT_EXPLANATION}
+        alreadyDone={isDone('assertbuilder')}
+        onSolved={() => markDone('assertbuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function ShopQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['shopquiz']);
+  return (
+    <Activity
+      title="Leer dos tests que fallaron"
+      kind="Elegí la opción"
+      goal="interpretar los fallos de una manual assertion y de dos assertions soft, y decidir dónde está el error."
+      done={isDone('shopquiz')}
+      consigna="Son 3 preguntas de opción única sobre la salida de arriba, resumida, de dos tests de la ficha de un producto. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <CodeBlock language="text">{SHOP_OUTPUT}</CodeBlock>
+      <Quiz
+        questions={SHOP_QUIZ}
+        onSolved={() => markDone('shopquiz')}
+      />
+    </Activity>
+  );
+}
+
+Un test sin verificación no prueba nada, y una verificación mal elegida prueba de menos o falla sin motivo. Esta entrada presenta las assertions de Playwright, por qué reintentan y qué hace que una assertion diga algo preciso.
+
+## Conceptos
+
+### Dos tipos de `expect`
+
+Una assertion compara el resultado real con el esperado (primera entrada
+del track). En Playwright hay dos tipos, y se distinguen por lo que
+reciben:
+
+- **Web-first** (o *auto-retrying*): reciben un locator o la página, y
+  llevan `await` delante. Si la condición no se cumple, **reintentan**
+  hasta que se cumpla o se agote el plazo, 5 segundos por defecto.
+  `await expect(locator).toBeVisible()` es una de ellas.
+- **Genéricas**: reciben un valor común (un número, un texto, un objeto)
+  y comparan **una sola vez**, en el momento. `expect(total).toBe(0.3)`
+  es una de ellas, y no lleva `await` porque no espera nada.
+
+Los ejemplos usan la pantalla de multas de la biblioteca: un total
+adeudado, una lista de multas que se carga unos milisegundos después de
+abrir la página, un campo para el monto y un botón Pagar.
+
+### Por qué reintentar importa
+
+La lista de multas aparece 400 milisegundos después de cargar la página,
+como pasa con cualquier dato que llega del servidor. Los dos tests
+siguientes verifican lo mismo:
+
+```ts
+test('web-first: la lista muestra dos multas', async ({ page }) => {
+  await page.goto('/multas');
+  await expect(page.getByRole('listitem')).toHaveCount(2);
+});
+
+test('manual: la lista muestra dos multas', async ({ page }) => {
+  await page.goto('/multas');
+  expect(await page.getByRole('listitem').count()).toBe(2);
+});
+```
+
+```text
+  ✓  1 [chromium] › tests/multas.spec.ts:5:5 › web-first: la lista muestra dos multas (869ms)
+  ✘  2 [chromium] › tests/multas.spec.ts:9:5 › manual: la lista muestra dos multas (57ms)
+
+    Error: expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 0
+```
+
+El primero reintentó hasta que la lista tuvo dos ítems. El segundo contó
+los ítems una vez, a los 57 milisegundos, cuando la lista todavía estaba
+vacía, y comparó `0` con `2`. Con un servidor más rápido habría pasado: es
+la receta de un test flaky. La documentación de Playwright lo llama
+**manual assertion** y lo desaconseja: leer un valor con `await` y después
+compararlo con una assertion genérica pierde el reintento.
+
+### Las assertions web-first más usadas
+
+Sobre un locator:
+
+- `toBeVisible()` y `toBeHidden()`: visible o no, con la regla de la
+  entrada de HTML, DOM y DevTools.
+- `toHaveText('...')`: el texto completo del elemento.
+  `toContainText('...')`: una parte del texto.
+- `toHaveValue('...')`: el valor de un campo, lo que tiene escrito.
+- `toHaveCount(n)`: cuántos elementos encuentra el locator.
+- `toBeChecked()`, `toBeEnabled()`, `toBeDisabled()`: estado de una
+  casilla o un control.
+- `toHaveAttribute('nombre', 'valor')`: un atributo del elemento.
+
+Sobre la página:
+
+- `toHaveURL(...)`: la dirección actual. Acepta un texto o una expresión
+  regular, como `/\/multas\/pagadas/` (las barras invertidas escapan las
+  barras de la ruta).
+- `toHaveTitle(...)`: el título de la pestaña.
+
+Un test de pago que usa varias:
+
+```ts
+test('pagar todo deja el total en cero', async ({ page }) => {
+  await page.goto('/multas');
+  await expect(page.getByRole('listitem')).toHaveCount(2);
+
+  await page.getByRole('button', { name: 'Pagar' }).click();
+
+  await expect(page.getByText('Pago registrado')).toBeVisible();
+  await expect(page.locator('#total')).toHaveText('Total adeudado: $ 0');
+  await expect(page.getByRole('listitem')).toHaveCount(0);
+  await expect(page).toHaveURL(/\/multas\/pagadas/);
+});
+```
+
+### Leer un fallo de assertion
+
+Cuando una web-first falla, el mensaje dice qué se esperaba, qué había y
+cuánto se esperó:
+
+```text
+Error: expect(locator).toHaveText(expected) failed
+
+Locator:  locator('#total')
+Expected: "Total adeudado: $ 2.000"
+Received: "Total adeudado: $ 1.500"
+Timeout:  5000ms
+
+Call log:
+  - Expect "toHaveText" locator('#total') with timeout 5000ms
+  - waiting for locator('#total')
+    14 × locator resolved to <p id="total">Total adeudado: $ 1.500</p>
+       - unexpected value "Total adeudado: $ 1.500"
+```
+
+`Locator` es el elemento verificado; `Expected` y `Received`, el valor
+esperado y el real. El call log muestra los reintentos: 14 veces encontró
+el párrafo y 14 veces el texto fue otro. La diferencia entre las dos
+líneas es la pista: el total real es $ 1.500. Queda decidir si el defecto
+está en la aplicación o en el valor esperado del test.
+
+### Negar: `not`
+
+`.not` invierte cualquier assertion, y la web-first sigue reintentando
+hasta que la condición **deje** de cumplirse:
+
+```ts
+await expect(page.getByText('Pago registrado')).not.toBeVisible();
+```
+
+Para algunas hay una forma positiva equivalente y más clara:
+`not.toBeVisible()` y `toBeHidden()` verifican lo mismo.
+
+### Un mensaje propio
+
+`expect` acepta un segundo argumento con un mensaje, que encabeza el
+error si la assertion falla:
+
+```ts
+await page.goto('/multas');
+await expect(
+  page.getByText('Pago registrado'),
+  'la confirmación de pago tendría que verse al abrir la pantalla',
+).toBeVisible({ timeout: 1000 });
+```
+
+```text
+Error: la confirmación de pago tendría que verse al abrir la pantalla
+
+expect(locator).toBeVisible() failed
+```
+
+El ejemplo también muestra que el plazo se cambia para una sola
+assertion con `{ timeout: ... }`.
+
+### Seguir después de un fallo: `expect.soft`
+
+Una assertion común detiene el test en cuanto falla. `expect.soft`
+registra el fallo y deja que el test siga, así un solo intento muestra
+todos los problemas de una pantalla:
+
+```ts
+await expect.soft(page.locator('#total')).toHaveText('Total adeudado: $ 900');
+await expect.soft(page.getByRole('listitem')).toHaveCount(3);
+await expect(page.getByRole('heading')).toHaveText('Multas');
+```
+
+Las dos primeras fallan y el reporte muestra los dos errores, uno debajo
+del otro; la tercera se ejecuta igual. El test termina fallado. Conviene
+para verificar varios datos independientes de una misma pantalla; no
+cuando un fallo invalida lo que sigue, como un ingreso que no funcionó.
+
+### Qué hace buena a una assertion
+
+Que exista no alcanza: tiene que decir algo preciso.
+
+**Comparar contra un valor calculado, no contra un número de hoy.** Si
+el test agrega una multa, `toHaveCount(3)` es correcto solo con los datos
+de hoy. Leer el estado al empezar y comparar el cambio sirve siempre:
+
+```ts
+const multas = page.getByRole('listitem');
+await expect(multas.first()).toBeVisible();    // espera a que cargue la lista
+const antes = await multas.count();            // el estado de partida, sea cual sea
+// ... el test registra una devolución tardía ...
+await expect(multas).toHaveCount(antes + 1);
+```
+
+`count()` se lee recién después de esperar a que la lista cargue, para no
+repetir el problema de la manual assertion.
+
+**El matcher según el tipo de dato.** `toBe` compara igualdad exacta, y
+los números con decimales arrastran errores de redondeo:
+
+```text
+0.30000000000000004
+
+Error: expect(received).toBe(expected) // Object.is equality
+Expected: 0.3
+Received: 0.30000000000000004
+```
+
+`0.1 + 0.2` no da exactamente `0.3`. Para montos calculados se usa
+`toBeCloseTo(0.3, 2)`, que compara con dos decimales de precisión y
+pasa.
+
+**Una assertion por cada cosa que importa.** Cuatro assertions separadas
+en el test de pago dicen exactamente cuál falló: el mensaje, el total, la
+lista o la dirección.
+
+**No aflojarla para que pase.** Cambiar `toBeVisible()` por
+`toBeAttached()` (que solo exige que el elemento exista en el DOM),
+`toHaveText` por `toContainText`, o agrandar el timeout para tapar una
+demora real deja el test en verde, pero ya no verifica lo que tenía que
+verificar.
+
+## Cuándo usarlo
+
+En cada verificación sobre la página, una web-first. Las genéricas, para
+valores que ya se calcularon y no cambian, como un total sumado en el
+propio test. `expect.soft` para revisar varios datos independientes de una
+pantalla.
+
+## Buenas prácticas
+
+- Usar la assertion web-first específica (`toHaveText`, `toHaveCount`) y
+  no leer el valor para compararlo después.
+- Comparar contra valores calculados a partir del estado real.
+- Usar `toBeCloseTo` para números con decimales.
+- Escribir un mensaje propio cuando la assertion sola no explica qué se
+  esperaba.
+
+## Anti-patrones
+
+- **Manual assertions**: `expect(await locator.isVisible()).toBe(true)`.
+- **Números de hoy**: `toHaveCount(3)` cuando el 3 depende de los datos.
+- **Aflojar una assertion** para que el test pase.
+- **Un solo `expect` gigante** que verifica varias cosas a la vez.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<WantMatchActivity />
+
+<AssertFindActivity />
+
+<AssertBuilderActivity />
+
+<ShopQuizActivity />

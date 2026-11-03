@@ -1,0 +1,282 @@
+---
+title: "BasePage: lo que comparten los Page Objects"
+sidebar_position: 63
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import FillBlank from '@site/src/components/FillBlank';
+import Quiz from '@site/src/components/Quiz';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  BASE_ITEMS,
+  BASE_COLUMNS,
+  BASE_TEMPLATE,
+  BASE_SLOTS,
+  BASE_BANK,
+  BASE_EXPLANATION,
+  TSC_QUIZ,
+  TSC_OUTPUT,
+} from '@site/src/content/lessons/63-basepage';
+
+export const LESSON_SLUG = 'framework-ui-basepage';
+
+export function BaseClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['baseclassify']);
+  return (
+    <Activity
+      title="¿BasePage o la pantalla?"
+      kind="Clasificar"
+      goal="decidir qué métodos de la aplicación de turnos van en la clase base y cuáles en cada Page Object."
+      done={isDone('baseclassify')}
+      consigna="Son 8 métodos. Arrastrá cada uno a Va en BasePage o Va en el Page Object de la pantalla. Regla para los casos dudosos: un método va en la base solo si funciona igual en cualquier pantalla de la aplicación. Se completa cuando los 8 están en su caja."
+    >
+      <Classify
+        items={BASE_ITEMS}
+        columns={BASE_COLUMNS}
+        itemLabel="Método"
+        counterLabel="ubicados en su clase"
+        alreadyDone={isDone('baseclassify')}
+        onSolved={() => markDone('baseclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function BaseFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['basefill']);
+  return (
+    <Activity
+      title="BasePage y su primera hija"
+      kind="Completar huecos"
+      goal="escribir la clase base abstracta y un Page Object que hereda de ella."
+      done={isDone('basefill')}
+      consigna="Completá los 4 huecos para que BasePage no se pueda crear sola, la página no sea accesible desde los tests y AgendaPage herede de ella. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={BASE_TEMPLATE}
+        slots={BASE_SLOTS}
+        bank={BASE_BANK}
+        explanation={BASE_EXPLANATION}
+        alreadyDone={isDone('basefill')}
+        onSolved={() => markDone('basefill')}
+      />
+    </Activity>
+  );
+}
+
+export function TscQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['tscquiz']);
+  return (
+    <Activity
+      title="Leer lo que dice TypeScript"
+      kind="Elegí la opción"
+      goal="interpretar los errores de compilación de una clase base y corregirlos respetando el patrón."
+      done={isDone('tscquiz')}
+      consigna="Son 2 preguntas de opción única sobre la salida de arriba. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 2."
+    >
+      <CodeBlock language="text">{TSC_OUTPUT}</CodeBlock>
+      <Quiz
+        questions={TSC_QUIZ}
+        onSolved={() => markDone('tscquiz')}
+      />
+    </Activity>
+  );
+}
+
+Con varias pantallas, los Page Objects repiten código que no es de ninguna en particular: abrir la pantalla, completar un campo, esperar la carga. Esta entrada lo junta en una clase base de la que todos heredan.
+
+## Conceptos
+
+### El problema: lo mismo en cada Page Object
+
+Con dos o tres pantallas, los Page Objects empiezan a repetir código que no
+es de ninguna pantalla en particular:
+
+```ts
+export class IngresoPage {
+  constructor(private readonly page: Page) {}
+  async abrir(): Promise<void> {
+    await this.page.goto('/ingresar');
+  }
+}
+
+export class PrestamosPage {
+  constructor(private readonly page: Page) {}
+  async abrir(): Promise<void> {        // idéntico, cambia la ruta
+    await this.page.goto('/mis-prestamos');
+  }
+}
+```
+
+El método `abrir` es el mismo salvo por la ruta. Con veinte pantallas, está
+copiado veinte veces; si cambia la forma de abrir una pantalla (por
+ejemplo, esperar a que cargue un indicador antes de seguir), hay que
+cambiar veinte copias.
+
+### La solución: una clase base
+
+`BasePage` es una clase de la que heredan todos los Page Objects, con
+`extends` (entrada de clases). Contiene lo que es igual para cualquier
+pantalla:
+
+```ts
+import { type Page, type Locator } from '@playwright/test';
+
+export abstract class BasePage {
+  protected abstract readonly ruta: string;
+
+  constructor(protected readonly page: Page) {}
+
+  async abrir(): Promise<void> {
+    await this.page.goto(this.ruta);
+  }
+
+  async completar(campo: Locator, texto: string): Promise<void> {
+    await campo.fill(texto);
+    await campo.blur();
+  }
+}
+```
+
+En la biblioteca, los campos se validan cuando pierden el foco: el aviso
+«Email inválido» aparece al salir del campo, no mientras se escribe.
+`completar` escribe con `fill`, que ya reemplaza lo que hubiera, y saca el
+foco con `blur()`, el método de Playwright que hace que el campo deje de
+estar activo. Así cada pantalla completa sus campos igual, con la
+validación disparada.
+
+Cada Page Object hereda de ella y solo declara lo propio:
+
+```ts
+export class IngresoPage extends BasePage {
+  protected readonly ruta = '/ingresar';
+  readonly email: Locator;
+  // ...
+
+  constructor(page: Page) {
+    super(page);
+    this.email = page.getByLabel('Email');
+    // ...
+  }
+
+  async ingresar(email: string, clave: string): Promise<void> {
+    await this.completar(this.email, email);
+    await this.completar(this.clave, clave);
+    await this.botonIngresar.click();
+  }
+}
+```
+
+`IngresoPage` ya no escribe `abrir`: lo hereda. Cambiar cómo se abren
+todas las pantallas es cambiar una línea de `BasePage`.
+
+### `abstract` y `protected`
+
+Dos palabras de TypeScript que no aparecieron en la entrada de clases:
+
+- **`abstract class`**: una clase que no se puede crear directamente, solo
+  heredar. No existe "una BasePage" por sí sola: existe la página de
+  ingreso o la de préstamos. Si alguien lo intenta, TypeScript lo frena:
+
+  ```text
+  error TS2511: Cannot create an instance of an abstract class.
+  ```
+
+- **`abstract readonly ruta`**: una propiedad que la clase base declara
+  pero no define; cada clase hija **tiene** que definirla. Si un Page
+  Object se olvida:
+
+  ```text
+  error TS2515: Non-abstract class 'CatalogoPage' does not implement inherited abstract member ruta from class 'BasePage'.
+  ```
+
+  El error aparece en el editor, antes de correr nada.
+
+- **`protected`**: la propiedad o el método se usa dentro de la clase y de
+  sus hijas, pero no desde afuera. El test no tiene por qué leer la ruta
+  ni la `page` de un Page Object:
+
+  ```text
+  error TS2445: Property 'ruta' is protected and only accessible within class 'MultasPage' and its subclasses.
+  ```
+
+En el constructor, `constructor(protected readonly page: Page) {}` declara
+y asigna la propiedad `page` en una sola línea, y `super(page)` en la hija
+le pasa la página al constructor de la base (entrada de clases).
+
+### Qué va en BasePage y qué no
+
+La regla: si el comportamiento es el mismo para **cualquier** pantalla, va
+en `BasePage`; si depende de qué hace esta pantalla, va en su Page Object.
+
+- Van en `BasePage`: abrir la pantalla, completar un campo de una forma
+  estándar, esperar a que desaparezca un indicador de carga que comparte
+  toda la aplicación.
+- No van: `ingresar`, `renovar`, `vencimiento`. Son de una pantalla.
+
+También es un buen lugar para los plazos con nombre (entrada de esperas y
+timeouts), una sola fuente para toda la suite:
+
+```ts
+export const TIMEOUTS = {
+  corto: 2_000,
+  estandar: 5_000,
+  largo: 10_000,
+} as const;
+```
+
+`BasePage` no es un depósito: si un método se usa en una sola pantalla,
+o en dos pantallas parecidas, no va ahí. Una clase base con cuarenta
+métodos que casi nadie usa es tan difícil de mantener como el código
+repetido.
+
+### Cuando el método genérico no alcanza
+
+`completar` usa `fill`, que sirve para la mayoría de los campos. Si una
+pantalla tiene un campo que reacciona a cada tecla (entrada de
+formularios), el método genérico no funciona ahí. La solución no es
+cambiar `completar` para todos, sino que esa pantalla haga lo suyo, y
+dejar escrito por qué:
+
+```ts
+async cargarTelefono(numero: string): Promise<void> {
+  // el campo da formato con cada tecla: completar() usa fill y no dispararía el formato
+  await this.telefono.clear();
+  await this.telefono.pressSequentially(numero);
+}
+```
+
+Desviarse del método común con una razón escrita es correcto; forzar el
+genérico donde no encaja, o cambiarlo para todos por un caso, no.
+
+## Cuándo usarlo
+
+En cuanto hay dos o más Page Objects con código repetido que no es de
+ninguna pantalla. Con una sola pantalla, no hace falta.
+
+## Buenas prácticas
+
+- Declarar `BasePage` como `abstract`, con la ruta como miembro abstracto.
+- Poner en `BasePage` solo lo que sirve para cualquier pantalla.
+- Usar `protected` para lo que el test no tiene que tocar.
+- Centralizar los plazos en constantes con nombre.
+- Documentar cuando una pantalla se aparta del método común.
+
+## Anti-patrones
+
+- **Métodos de una pantalla** dentro de `BasePage`.
+- **Una clase base gigante** con métodos que casi nadie usa.
+- **Cambiar el método común para todos** por el caso de una pantalla.
+- **Exponer `page`** como pública para que el test la use directamente.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<BaseClassifyActivity />
+
+<BaseFillActivity />
+
+<TscQuizActivity />

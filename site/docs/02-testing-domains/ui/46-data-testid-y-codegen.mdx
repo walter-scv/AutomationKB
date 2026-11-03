@@ -1,0 +1,329 @@
+---
+title: "data-testid, el contrato con frontend y codegen"
+sidebar_position: 46
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import Quiz from '@site/src/components/Quiz';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import DecisionPath from '@site/src/components/DecisionPath';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  ATTR_LINES,
+  ATTR_RULE_LABELS,
+  TESTID_QUIZ,
+  CODEGEN_PREFIX,
+  CODEGEN_STEPS,
+  CODEGEN_EXPLANATION,
+  ICON_START,
+  ICON_NODES,
+  ICON_EXPLANATION,
+} from '@site/src/content/lessons/46-data-testid-y-codegen';
+
+export const LESSON_SLUG = 'domains-ui-data-testid-codegen';
+
+export function AttrFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['attrfind']);
+  return (
+    <Activity
+      title="¿El atributo cumple el contrato?"
+      kind="Clasificar"
+      goal="diagnosticar dónde está y cómo se llama cada atributo de test de una agenda de turnos."
+      done={isDone('attrfind')}
+      consigna="Son 8 fragmentos de HTML de la agenda. Elegí cada uno y decí qué problema tiene su data-testid (en el contenedor, nombre por diseño o posición, o nombre que sirve para varios elementos) o si cumple el contrato. Se completa cuando encontrás los 4 que tienen un problema."
+    >
+      <FindInCode
+        lines={ATTR_LINES}
+        ruleLabels={ATTR_RULE_LABELS}
+        okLabel="Cumple el contrato"
+        prompt="¿qué problema tiene el atributo?"
+        itemLabel="Fragmento"
+        counterLabel="atributos con problema encontrados"
+        alreadyDone={isDone('attrfind')}
+        onSolved={() => markDone('attrfind')}
+      />
+    </Activity>
+  );
+}
+
+export function TestIdQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['testidquiz']);
+  return (
+    <Activity
+      title="Cómo busca getByTestId"
+      kind="Elegí la opción"
+      goal="predecir qué encuentra getByTestId según el valor, la configuración y los cambios de la página."
+      done={isDone('testidquiz')}
+      consigna="Son 3 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={TESTID_QUIZ}
+        onSolved={() => markDone('testidquiz')}
+      />
+    </Activity>
+  );
+}
+
+export function CodegenBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['codegenbuilder']);
+  return (
+    <Activity
+      title="Grabar la agenda con codegen"
+      kind="Armar"
+      goal="armar el comando de codegen con el atributo de test del equipo y un archivo de salida."
+      done={isDone('codegenbuilder')}
+      consigna="La suite usa data-qa como atributo de test. Armá el comando que abre codegen sobre http://localhost:3000/turnos, genera test ids con data-qa y guarda lo grabado en tests/turnos.spec.ts. Elegí un fragmento por paso; el siguiente se habilita cuando acertás. Son 4 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={CODEGEN_PREFIX}
+        steps={CODEGEN_STEPS}
+        explanation={CODEGEN_EXPLANATION}
+        alreadyDone={isDone('codegenbuilder')}
+        onSolved={() => markDone('codegenbuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function IconActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['icon']);
+  return (
+    <Activity
+      title="Un ícono sin nombre"
+      kind="Escenario encadenado"
+      goal="resolver un elemento sin identificación con un atributo de test, corregir su ubicación y configurar el atributo de la suite."
+      done={isDone('icon')}
+      consigna="Son 3 decisiones encadenadas: cada una depende de la anterior. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la tercera."
+    >
+      <DecisionPath
+        startId={ICON_START}
+        nodes={ICON_NODES}
+        explanation={ICON_EXPLANATION}
+        alreadyDone={isDone('icon')}
+        onSolved={() => markDone('icon')}
+      />
+    </Activity>
+  );
+}
+
+Cuando un elemento no tiene nada estable que lo identifique para una persona, la solución no está en el test sino en la aplicación: un atributo acordado con el equipo de desarrollo. Esta entrada lo trata como un contrato, y presenta las herramientas que generan locators automáticamente.
+
+## Conceptos
+
+### Cuándo no alcanza con lo que ve la persona
+
+Los locators orientados al usuario cubren la mayoría de los casos, pero
+no todos. Algunos elementos no tienen un rol, un nombre o un texto que
+los identifique: un ícono de estado, un contenedor sin título, un texto
+que cambia todos los días. Otros sí lo tienen, pero cambia seguido: el
+botón «Renovar» pasa a «Extender préstamo» porque producto ajustó la
+redacción, y el test se rompe aunque la funcionalidad sea la misma.
+
+Para esos casos, el equipo de la aplicación puede agregar un atributo
+pensado solo para los tests, que no cambia con el diseño ni con los
+textos. Es un **contrato** entre quienes desarrollan la interfaz y
+quienes la prueban: el atributo existe para que los tests lo usen, y no se
+cambia sin avisar.
+
+### `data-testid` y `getByTestId`
+
+La convención más difundida, y la que Playwright usa por defecto, es el
+atributo `data-testid`:
+
+```html
+<li data-testid="prestamo-item">
+  <h3>Rayuela</h3>
+  <p>Vence el 10/11</p>
+  <button data-testid="renovar-prestamo">Renovar</button>
+</li>
+```
+
+`page.getByTestId(valor)` encuentra el elemento con ese atributo:
+
+```ts
+await page.getByTestId('renovar-prestamo').click();
+```
+
+A diferencia de los locators de texto, `getByTestId` compara el valor
+**completo y exacto**, distinguiendo mayúsculas: `getByTestId('renovar')`
+y `getByTestId('Renovar-Prestamo')` no encuentran nada. Es lo esperable
+en un identificador.
+
+Los atributos `data-*` no cambian nada visible (entrada de HTML, DOM y
+DevTools). Se combinan con todo lo visto: `getByTestId('prestamo-item')`
+encuentra los ítems, y `filter` y el encadenamiento eligen uno:
+
+```ts
+await page.getByTestId('prestamo-item')
+  .filter({ hasText: 'Rayuela' })
+  .getByRole('button', { name: 'Renovar' })
+  .click();
+```
+
+### Otro nombre de atributo: `testIdAttribute`
+
+Si la aplicación ya usa otro atributo para los tests, por ejemplo
+`data-qa`, se configura una sola vez en `playwright.config.ts`:
+
+```ts
+use: {
+  testIdAttribute: 'data-qa',
+},
+```
+
+Desde ahí, `getByTestId('prestamo-item')` busca `data-qa="prestamo-item"`
+e ignora `data-testid`. La opción admite un solo atributo para toda la
+suite.
+
+Algunos equipos usan más de un atributo, uno por tipo de elemento: por
+ejemplo `data-action` para lo que se clickea, `data-input` para los
+campos y `data-context` para los contenedores. El nombre del atributo ya
+dice qué se puede hacer con el elemento. Como `testIdAttribute` acepta uno
+solo, los demás se buscan con un selector de atributo (entrada de CSS y
+XPath): `page.locator('[data-action="renovar-prestamo"]')`. Es una
+decisión de cada equipo; lo importante es que sea una convención acordada
+y escrita.
+
+### En qué elemento va
+
+El atributo va en el elemento con el que el test interactúa, no en el
+contenedor que lo rodea. Es el error más común al agregarlos:
+
+```html
+<!-- Así no: el atributo quedó en el contenedor -->
+<div data-testid="campo-email">
+  <label for="email">Email</label>
+  <input id="email" type="email">
+</div>
+```
+
+`getByTestId('campo-email')` encuentra el `<div>`, y escribir en un
+`<div>` no es posible:
+
+```text
+locator.fill: Error: Element is not an <input>, <textarea>, <select> or [contenteditable] and does not have a role allowing [aria-readonly]
+Call log:
+  - waiting for getByTestId('campo-email')
+    - locator resolved to <div data-testid="campo-email">…</div>
+```
+
+El mensaje dice que el elemento encontrado no es un campo, y la línea
+`locator resolved to` muestra cuál encontró: un `<div>`.
+
+```html
+<!-- Así sí: el atributo está en el campo -->
+<div>
+  <label for="email">Email</label>
+  <input id="email" type="email" data-testid="campo-email">
+</div>
+```
+
+Lo mismo vale al revés para los contenedores: un atributo de contenedor
+tiene que envolver exactamente lo que agrupa, sin arrastrar elementos de
+afuera.
+
+### Cómo nombrarlos
+
+El valor describe **qué es** el elemento, no **dónde está** ni **cómo se
+ve**. En minúsculas y con guiones (*kebab-case*):
+
+- Acciones: verbo y objeto, `renovar-prestamo`, `confirmar-reserva`.
+- Campos: el dato, `campo-email`, `campo-dni`.
+- Contenedores: el tipo de elemento, `prestamo-item`, `barra-filtros`.
+- Textos que se verifican: su propósito, `mensaje-error`, `estado-prestamo`.
+
+Nombres como `boton-azul`, `columna-izquierda` o `boton-1` describen el
+diseño o la posición: dejan de ser ciertos con el primer rediseño, o
+cuando aparece un segundo botón. Y nombres genéricos como `boton` o
+`campo` no dicen qué elemento es: en cuanto la pantalla tiene otro
+botón, el valor ya no identifica a uno solo.
+
+### Verificar que el atributo llegó
+
+Que el atributo esté en el código de la aplicación no garantiza que esté
+en el DOM. Algunos componentes de librerías reciben el atributo y no lo
+pasan al elemento final, o lo pasan a un contenedor interno. Antes de
+escribir el locator, se inspecciona el elemento en DevTools y se confirma
+que el atributo está en la etiqueta esperada: en el `<button>`, no en un
+`<div>` que lo envuelve.
+
+### `getByTestId` frente a `getByRole`
+
+`getByTestId` es el último de la lista de locators recomendados
+(entrada de locators orientados al usuario), y no por casualidad. Un
+`data-testid` es estable, pero no verifica nada que vea la persona: si el
+botón pierde su texto o deja de ser un botón, el test lo sigue
+encontrando. `getByRole` sí lo detectaría. Por eso se usa cuando el rol y
+el nombre no alcanzan o cambian demasiado, no como primera opción.
+
+### Generar locators: codegen y Pick locator
+
+Playwright incluye un generador de tests, **codegen**:
+
+```bash
+npx playwright codegen http://localhost:4321/login
+```
+
+Abre dos ventanas: un navegador con la aplicación y el **Playwright
+Inspector**. Mientras se usa la aplicación, el Inspector escribe el código
+de cada acción con un locator que identifica al elemento de forma única.
+Si el elemento tiene un atributo de test id, el generador lo usa; si no,
+prefiere rol y nombre, y después texto. Es una decisión de la herramienta,
+no de la persona que escribe el test: conviene revisarla. Su barra tiene:
+
+- **Record**: empieza o detiene la grabación de acciones.
+- **Pick locator**: al pasar el mouse por un elemento muestra el locator
+  que lo identifica; al hacer click, lo deja listo para copiar.
+- **Assert visibility**, **Assert text** y **Assert value**: agregan
+  verificaciones sobre el elemento que se elija.
+
+Algunas opciones de la línea de comandos: `-o archivo.spec.ts` guarda el
+código generado, `--test-id-attribute data-qa` usa otro atributo de test,
+y `--device "iPhone 11"` emula un celular.
+
+La extensión de VS Code (entrada de instalación) trae el mismo **Pick
+locator** y **Record new** en la vista de Testing.
+
+Lo generado es un punto de partida, no un test terminado. Codegen graba
+lo que se hizo, no lo que hay que verificar: no sabe cuál es el resultado
+esperado, no agrega pasos con nombre ni separa preparación de acción, y
+puede elegir un locator correcto pero frágil, como un texto largo que
+cambia. Sirve sobre todo para descubrir el locator de un elemento difícil
+y para empezar rápido; después el test se ordena con lo visto en la
+entrada de anatomía de un test.
+
+## Cuándo usarlo
+
+`data-testid` cuando el elemento no tiene rol, nombre o texto estables, o
+cuando el texto cambia seguido. Codegen y Pick locator al empezar un test
+o al encontrar un elemento difícil de describir.
+
+## Buenas prácticas
+
+- Acordar con el equipo de desarrollo qué atributo se usa y cómo se
+  nombran los valores, y dejarlo escrito.
+- Poner el atributo en el elemento interactivo, no en el contenedor.
+- Nombrar por lo que el elemento es, en kebab-case.
+- Confirmar en DevTools que el atributo llegó al elemento esperado.
+- Revisar y reordenar el código que genera codegen antes de sumarlo a la
+  suite.
+
+## Anti-patrones
+
+- **Poner `data-testid` en todo** y usarlo antes que `getByRole`.
+- **Nombres por posición o diseño**: `boton-1`, `panel-derecho`.
+- **Atributos en el contenedor** en lugar del elemento.
+- **Subir a la suite un test grabado** sin verificaciones ni pasos.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<AttrFindActivity />
+
+<TestIdQuizActivity />
+
+<CodegenBuilderActivity />
+
+<IconActivity />

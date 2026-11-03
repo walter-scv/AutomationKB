@@ -1,0 +1,595 @@
+---
+title: "Qué corre y cuándo: Pull Request, noche y despliegue"
+sidebar_position: 73.5
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import Quiz from '@site/src/components/Quiz';
+import Terminal from '@site/src/components/Terminal';
+import FillBlank from '@site/src/components/FillBlank';
+import Order from '@site/src/components/Order';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  WHEN_LEFT,
+  WHEN_RIGHT,
+  WHEN_WHY,
+  GAP_QUIZ,
+  LIST_STEPS,
+  LIST_EXPLANATION,
+  PR_TEMPLATE,
+  PR_SLOTS,
+  PR_BANK,
+  PR_EXPLANATION,
+  MORNING_ITEMS,
+  MORNING_CORRECT,
+  MORNING_RULES,
+} from '@site/src/content/lessons/73a-que-corre-y-cuando';
+
+export const LESSON_SLUG = 'ui-que-corre-y-cuando';
+
+export function WhenMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['whenmatch']);
+  return (
+    <Activity
+      title="Cada momento con su ejecución"
+      kind="Emparejar"
+      goal="relacionar cada momento del trabajo del equipo con el workflow y la selección que le corresponden."
+      done={isDone('whenmatch')}
+      consigna="Son 4 pares. Elegí una situación de la izquierda y después la ejecución que le corresponde, según la tabla «Una suite, cuatro preguntas» de la teoría (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 4."
+    >
+      <Match
+        left={WHEN_LEFT}
+        right={WHEN_RIGHT}
+        why={WHEN_WHY}
+        leftLabel="Situación"
+        rightLabel="Ejecución"
+        alreadyDone={isDone('whenmatch')}
+        onSolved={() => markDone('whenmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function GapQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['gapquiz']);
+  return (
+    <Activity
+      title="Lo que se escapa del Pull Request"
+      kind="Elegí la opción"
+      goal="explicar qué fallos no puede detectar la selección del Pull Request y cómo se arma la regresión completa."
+      done={isDone('gapquiz')}
+      consigna="Son 3 preguntas de opción única sobre la suite de la biblioteca de la teoría. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={GAP_QUIZ}
+        onSolved={() => markDone('gapquiz')}
+      />
+    </Activity>
+  );
+}
+
+export function ListTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['listterm']);
+  return (
+    <Activity
+      title="Comprobar cada selección"
+      kind="Terminal"
+      goal="comprobar con --list las cuatro selecciones de la teoría antes de llevarlas a un workflow."
+      done={isDone('listterm')}
+      consigna="Son 4 pasos, uno por cada selección de «La suite del ejemplo». Escribí el comando que pide cada instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar los 4."
+    >
+      <Terminal
+        steps={LIST_STEPS}
+        explanation={LIST_EXPLANATION}
+        alreadyDone={isDone('listterm')}
+        onSolved={() => markDone('listterm')}
+      />
+    </Activity>
+  );
+}
+
+export function PrFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['prfill']);
+  return (
+    <Activity
+      title="El workflow del Pull Request"
+      kind="Completar huecos"
+      goal="completar las partes del workflow del Pull Request que hacen la selección y cancelan las ejecuciones viejas."
+      done={isDone('prfill')}
+      consigna="Es un extracto de pr.yml, el «Workflow 1» de la teoría: un push nuevo cancela la ejecución anterior, Git tiene que bajar la historia para comparar, y corren el proyecto de smoke y lo que cambió. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={PR_TEMPLATE}
+        slots={PR_SLOTS}
+        bank={PR_BANK}
+        explanation={PR_EXPLANATION}
+        alreadyDone={isDone('prfill')}
+        onSolved={() => markDone('prfill')}
+      />
+    </Activity>
+  );
+}
+
+export function MorningOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['morningorder']);
+  return (
+    <Activity
+      title="La mañana después de un rojo"
+      kind="Ordenar"
+      goal="ordenar el trabajo de la mañana después de una regresión nocturna en rojo."
+      done={isDone('morningorder')}
+      consigna="Son los 5 pasos de «La mañana después de un rojo», desordenados. Ordenalos y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={MORNING_ITEMS}
+        correctOrder={MORNING_CORRECT}
+        rules={MORNING_RULES}
+        onSolved={() => markDone('morningorder')}
+      />
+    </Activity>
+  );
+}
+
+La suite ya tiene tags y ya corre en CI; falta decidir qué corre en cada momento. Esta entrada explica por qué el Pull Request corre una selección, qué se le escapa, por qué existe la regresión nocturna y para qué sirve el smoke después de desplegar, y arma los workflows de cada uno, hasta qué hacer la mañana después de una regresión en rojo.
+
+## Conceptos
+
+### Una suite, cuatro preguntas
+
+La suite de la biblioteca ya tiene tags (entrada de tags, anotaciones y
+subsets) y ya corre en GitHub Actions (entrada de CI con GitHub Actions).
+Falta decidir **qué** corre **cuándo**. No es una decisión técnica sino de
+testing: en cada momento del trabajo del equipo, la suite responde una
+pregunta distinta, y para cada pregunta conviene una selección distinta
+de tests.
+
+| Momento | La pregunta | Qué corre | Cuánto puede tardar |
+| :- | :- | :- | :- |
+| Cada Pull Request | ¿Este cambio rompió algo cercano o crítico? | Los `@smoke` y los tests de lo que cambió, en un navegador | Minutos: alguien espera para mergear |
+| Cada noche | ¿Todo lo que se mergeó hoy, junto, sigue funcionando? | La suite completa, en los tres navegadores | Horas: nadie espera |
+| Después de desplegar | ¿Lo crítico funciona en el entorno nuevo? | Los `@smoke`, contra ese entorno | Minutos: el despliegue espera la respuesta |
+| A mano | Lo que haga falta en ese momento | Un tag que se elige al lanzarlo | Lo que corresponda |
+
+El resto de la entrada explica por qué cada selección es la que es, y
+arma los workflows que las corren.
+
+### Por qué no correr todo en cada Pull Request
+
+Lo más seguro parecería correr la suite completa siempre. En un proyecto
+real no se puede, por tres motivos que se suman:
+
+- **Tiempo.** La suite completa de un sistema real tarda horas, y en tres
+  navegadores, el triple. Quien abrió el Pull Request no puede esperar
+  tres horas cada vez que sube una corrección.
+- **Costo.** Cada minuto de CI se paga. Con quince Pull Requests por día,
+  y varios pushes en cada uno, la suite completa en cada push multiplica
+  el gasto.
+- **Cola.** Las máquinas de CI son finitas: mientras una ejecución larga
+  las ocupa, las demás esperan, y todo el equipo trabaja más lento.
+
+Por eso, en el Pull Request corre una selección: lo que el cambio pudo
+afectar, con `--only-changed`, y los `@smoke`, los pocos tests de lo
+crítico que tienen que pasar siempre.
+
+### Lo que se escapa de un Pull Request
+
+Esa selección es rápida, pero deja huecos. Hay fallos que en un Pull
+Request no pueden aparecer:
+
+- **Tests fuera de la selección.** `--only-changed` elige los tests según
+  qué archivos de la suite importan lo que cambió. Un cambio en la
+  aplicación puede romper un test que no importa nada de lo cambiado: el
+  Pull Request pasa en verde y nadie se entera.
+- **Cambios que se combinan.** El Pull Request #41 cambia cómo se renueva
+  un préstamo, y el #42 cambia la ficha del libro. Cada uno pasó en verde
+  por separado. Juntos, en la rama principal, rompen la renovación desde
+  la ficha. Ninguno de los dos corrió con el otro.
+- **Cambios fuera del repositorio de tests.** Un despliegue del servidor,
+  una dependencia actualizada o datos que cambiaron en el entorno no
+  disparan ningún Pull Request de la suite (entrada de tags, anotaciones
+  y subsets: «es un filtro de rapidez, no de seguridad»).
+- **Lo que depende del navegador o de la fecha.** El Pull Request corre en
+  Chromium; un defecto que solo aparece en Safari queda afuera. Y un test
+  que calcula vencimientos puede fallar recién el día que el vencimiento
+  cae a fin de mes.
+
+Para cubrir esos huecos existe la **regresión nocturna**: la suite
+completa, en todos los navegadores, sobre la rama principal, una vez por
+día. Es el regression testing de Foundations (entrada de testing vs.
+debugging) aplicado a todo lo que se mergeó en el día: comprueba que lo
+que funcionaba sigue funcionando.
+
+### Por qué de noche
+
+Podría correr a cualquier hora. De noche tiene tres ventajas:
+
+- **Nadie espera el resultado**, así que puede tardar lo que tarde.
+- **El entorno compartido está libre.** De día hay personas probando a
+  mano, haciendo demos y creando datos; de noche, los tests no se cruzan
+  con nadie.
+- **El resultado está listo a la mañana**, cuando el equipo empieza a
+  trabajar.
+
+Y tiene un costo, que se acepta a conciencia: un defecto que entró a la
+tarde se descubre a la mañana siguiente, no en el momento. Por eso no
+reemplaza a la selección del Pull Request: la complementa.
+
+### La suite del ejemplo
+
+La biblioteca tiene siete tests en cuatro archivos, más el setup que
+inicia la sesión (entrada de sesión reutilizada), con este esquema de
+tags:
+
+| Test | Tags |
+| :- | :- |
+| con datos correctos llega a sus préstamos | `@smoke` `@p0` `@ingreso` |
+| con la clave equivocada muestra un error | `@p1` `@ingreso` |
+| renovar un préstamo extiende el vencimiento 14 días | `@smoke` `@p0` `@prestamos` |
+| devolver un préstamo lo saca de la lista | `@p0` `@prestamos` |
+| un préstamo admite una sola renovación | `@p1` `@prestamos` |
+| buscar un libro por autor | `@p2` `@catalogo` |
+| exportar el catálogo completo | `@p2` `@catalogo` `@lento` |
+
+En `playwright.config.ts` hay un proyecto por navegador, `chromium`,
+`firefox` y `webkit`, y el proyecto `smoke` de la entrada de tags, que
+filtra con `grep: /@smoke/`.
+
+Cada selección se puede comprobar en tu computadora con `--list` antes
+de llevarla a CI: muestra qué tests correrían, sin correrlos.
+
+- **El smoke:**
+
+```bash
+npx playwright test --project=smoke --list
+```
+
+```text
+Listing tests:
+  [setup] › auth.setup.ts:4:6 › ingresar con la socia de prueba
+  [smoke] › ingreso.spec.ts:6:7 › Ingreso › con datos correctos llega a sus préstamos
+  [smoke] › prestamos.spec.ts:6:7 › Préstamos › renovar un préstamo extiende el vencimiento 14 días
+Total: 3 tests in 3 files
+```
+
+- **Lo que cambió**, en una rama que modificó `pages/PrestamosPage.ts`:
+
+```bash
+npx playwright test --project=chromium --only-changed=main --list
+```
+
+```text
+Listing tests:
+  [setup] › auth.setup.ts:4:6 › ingresar con la socia de prueba
+  [chromium] › prestamos.spec.ts:6:7 › Préstamos › renovar un préstamo extiende el vencimiento 14 días
+  [chromium] › prestamos.spec.ts:7:7 › Préstamos › devolver un préstamo lo saca de la lista
+Total: 3 tests in 2 files
+```
+
+Solo entra `prestamos.spec.ts`, el único que importa `PrestamosPage`.
+`renovaciones.spec.ts` también prueba préstamos, pero no importa ese
+archivo: si el cambio lo rompiera, el Pull Request no se enteraría. Es
+el primer hueco de la lista de arriba.
+
+- **La regresión completa**, con los tres navegadores nombrados uno por
+  uno:
+
+```bash
+npx playwright test --project=chromium --project=firefox --project=webkit --list
+```
+
+```text
+...
+Total: 22 tests in 5 files
+```
+
+Siete tests en tres navegadores, más el setup. Se nombran los proyectos
+porque un `npx playwright test` sin `--project` correría también el
+proyecto `smoke`, y los dos tests `@smoke` correrían dos veces en
+Chromium.
+
+- **Un tag elegido a mano**, por ejemplo `@catalogo`:
+
+```bash
+npx playwright test --project=chromium --grep "@catalogo" --list
+```
+
+```text
+Listing tests:
+  [setup] › auth.setup.ts:4:6 › ingresar con la socia de prueba
+  [chromium] › catalogo.spec.ts:5:7 › Catálogo › buscar un libro por autor
+  [chromium] › catalogo.spec.ts:6:7 › Catálogo › exportar el catálogo completo
+Total: 3 tests in 2 files
+```
+
+### Workflow 1: el Pull Request
+
+Un archivo por momento hace que cada uno se lea solo. El del Pull
+Request, `.github/workflows/pr.yml`:
+
+```yaml
+name: Tests del Pull Request
+on:
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ vars.BASE_URL }}
+      SOCIA_EMAIL: ${{ vars.SOCIA_EMAIL }}
+      SOCIA_CLAVE: ${{ secrets.SOCIA_CLAVE }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Smoke
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: reporte-smoke
+        run: npx playwright test --project=smoke
+      - name: Lo que cambió
+        if: ${{ !cancelled() }}
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: reporte-cambios
+        run: npx playwright test --project=chromium --only-changed="origin/$GITHUB_BASE_REF"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: reportes-pr
+          path: |
+            reporte-smoke/
+            reporte-cambios/
+          retention-days: 7
+```
+
+Lo nuevo, respecto de la entrada de CI:
+
+- **Dos pasos, dos selecciones.** Los filtros de Playwright se suman
+  como condiciones: `--project=smoke --only-changed` correría solo los
+  `@smoke` que además cambiaron. Para correr «los `@smoke` y también lo
+  que cambió», son dos ejecuciones. El segundo paso tiene
+  `if: ${{ !cancelled() }}` para correr aunque el smoke falle: se quieren
+  los dos resultados.
+- **Un reporte por paso.** `PLAYWRIGHT_HTML_OUTPUT_DIR` le dice al
+  reporter HTML en qué carpeta escribir; sin eso, el segundo paso
+  pisaría el reporte del primero. El artefacto sube las dos carpetas.
+- **Un solo navegador**: `install` baja solo Chromium, porque es el
+  único que se usa. Los otros quedan para la noche.
+- **`concurrency`**: si llega un push nuevo al mismo Pull Request, la
+  ejecución anterior se cancela. Las ejecuciones con el mismo `group`
+  (acá, `pr-` y el número del Pull Request) corren de a una, y
+  `cancel-in-progress: true` hace que la nueva cancele a la que estaba
+  corriendo, en lugar de esperar. Nadie necesita el resultado de un
+  código que ya cambió.
+- **`timeout-minutes: 20`**: si la selección tarda más, algo anda mal;
+  el límite lo corta antes de ocupar la máquina una hora.
+
+Un job en rojo no impide mergear por sí solo: GitHub muestra el
+resultado en el Pull Request, y alguien podría mergear igual. Para que
+frene el merge, se configura una **regla de protección** para la rama
+`main`, en **Settings** del repositorio (en la sección **Rules** o
+**Branches**, según la versión de la interfaz). Entre otras cosas, la
+regla puede exigir que ciertos jobs, llamados **checks**, terminen en
+verde antes de permitir el merge. Se agrega `pr` como check obligatorio,
+y sin él en verde, el botón de mergear queda deshabilitado.
+
+### Workflow 2: la regresión nocturna
+
+`.github/workflows/regresion.yml`:
+
+```yaml
+name: Regresión nocturna
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag a correr (vacío = toda la suite)'
+        required: false
+        default: ''
+
+jobs:
+  regresion:
+    timeout-minutes: 180
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ vars.BASE_URL }}
+      SOCIA_EMAIL: ${{ vars.SOCIA_EMAIL }}
+      SOCIA_CLAVE: ${{ secrets.SOCIA_CLAVE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - name: Suite completa en los tres navegadores
+        env:
+          TAG: ${{ inputs.tag }}
+        run: npx playwright test --project=chromium --project=firefox --project=webkit --grep "$TAG"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: reporte-regresion
+          path: playwright-report/
+          retention-days: 30
+      - name: Avisar en Slack
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"La regresión nocturna falló: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "$SLACK_WEBHOOK_URL"
+```
+
+- **`schedule` con `cron: '0 6 * * *'`**: todos los días a las 6:00 UTC,
+  las 3:00 en Buenos Aires (entrada de CI con GitHub Actions). GitHub
+  corre los workflows programados sobre la rama principal del
+  repositorio: la regresión prueba siempre lo que está mergeado.
+- **`workflow_dispatch` con un tag**: el mismo workflow sirve para el
+  cuarto momento, correr algo a mano. Desde la pestaña Actions, **Run
+  workflow** pide el tag. Vacío, `--grep ""` coincide con todos los
+  tests y corre la suite completa; con `@prestamos`, solo esos.
+- **Los tres proyectos, nombrados**: sin el proyecto `smoke`, que ya está
+  incluido en Chromium.
+- **Todos los navegadores**: `install` sin nombre baja los tres.
+- **Reintentos**: la configuración tiene `retries: process.env.CI ? 2 : 0`
+  (entrada de tests inestables). Un test que falla y pasa en un
+  reintento aparece como **flaky** en el reporte, no como fallido: en la
+  regresión hay que distinguir un defecto de un test inestable.
+- **`timeout-minutes: 180`**: la regresión puede tardar, pero no
+  indefinidamente.
+- **El reporte, 30 días**: sirve comparar la noche de hoy con las
+  anteriores.
+- **El aviso solo si falla** (entrada de CI con GitHub Actions): un aviso
+  diario de «todo bien» se vuelve ruido.
+
+Si la suite completa no entra en la ventana de la noche, se reparte en
+shards con una matriz (entrada de paralelismo y sharding).
+
+### Workflow 3: después de desplegar
+
+Cuando el equipo de desarrollo despliega una versión nueva en staging,
+falta confirmar que lo crítico funciona **en ese entorno**, con su
+configuración y sus datos. Es el smoke test de ISTQB (entrada de tags,
+anotaciones y subsets). Si el despliegue lo hace otro workflow, por
+ejemplo uno llamado «Desplegar a staging», el smoke se puede disparar
+cuando ese termina, con el evento `workflow_run`:
+
+```yaml
+name: Smoke después de desplegar
+on:
+  workflow_run:
+    workflows: ["Desplegar a staging"]
+    types: [completed]
+
+jobs:
+  smoke:
+    if: github.event.workflow_run.conclusion == 'success'
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ vars.STAGING_URL }}
+      SOCIA_EMAIL: ${{ vars.SOCIA_EMAIL }}
+      SOCIA_CLAVE: ${{ secrets.SOCIA_CLAVE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Smoke contra staging
+        run: npx playwright test --project=smoke
+```
+
+- `workflow_run` dispara este workflow cuando termina otro, el que se
+  nombra en `workflows`. `types: [completed]` significa «cuando termina»,
+  haya salido bien o mal.
+- El `if` del job hace que corra solo si el despliegue salió bien: no
+  tiene sentido probar un despliegue que falló.
+- `BASE_URL` apunta a la dirección del entorno recién desplegado.
+
+### La mañana después de un rojo
+
+Una regresión que nadie mira no sirve. Que corra sola no significa que se
+atienda sola: hace falta un procedimiento, y alguien que lo siga.
+
+- **Un responsable por día o por semana**, que rota entre las personas del
+  equipo de QA. Si es «de todos», no es de nadie.
+- **Un orden de trabajo**, el mismo cada mañana:
+  1. **Abrir el reporte** del artefacto, no solo el mensaje de Slack
+     (entrada de leer un fallo).
+  2. **¿Es sistémico?** Si fallan casi todos los tests en el mismo paso,
+     por ejemplo el ingreso, es un solo problema, como el entorno caído
+     (entrada de tests inestables).
+  3. **Agrupar los fallos por causa**: diez tests con el mismo error son
+     un solo problema.
+  4. **Ver qué entró desde la última noche en verde.** Cada ejecución
+     muestra en GitHub el commit sobre el que corrió. Con el de la última
+     verde, Git lista lo que se mergeó después:
+
+     ```bash
+     git log --oneline 9a0ae1a..main
+     ```
+
+     ```text
+     075b82f Actualizar dependencias del servidor (#43)
+     44fe217 Nuevo diseño de la ficha del libro (#42)
+     0b239c2 Renovar un préstamo dos veces (#41)
+     ```
+
+     Esos tres Pull Requests son los sospechosos. Si fallan los tests de
+     la ficha, el primero a mirar es el #42.
+  5. **Clasificar cada grupo** y decidir una acción:
+
+| Causa | Acción |
+| :- | :- |
+| Defecto de la aplicación | Reportarlo, con el Pull Request sospechoso y la evidencia del reporte |
+| Test desactualizado por un cambio aprobado | Corregir el test en un Pull Request |
+| Datos del entorno | Corregir la preparación de los datos (entrada de setup y cleanup) |
+| Test inestable | Investigarlo o ponerlo en cuarentena, con su motivo (entrada de tests inestables) |
+
+Lo que no se hace nunca: volver a lanzar la regresión hasta que salga en
+verde. Un rojo que desaparece al reintentar sigue siendo un problema, y
+lanzarla de nuevo solo lo esconde.
+
+### Para qué se usa el resultado
+
+- **Como señal para desplegar.** Muchos equipos no despliegan a
+  producción si la última regresión nocturna está en rojo sin explicar.
+- **Como medida de salud de la suite.** Cuántas noches seguidas en
+  verde, cuántos tests en cuarentena, cuánto se tarda en resolver un
+  rojo. Una regresión que está en rojo todos los días deja de mirarse, y
+  entonces ya no protege nada.
+
+## Cuándo usarlo
+
+En cuanto la suite corre en CI: una selección rápida en cada Pull
+Request, la suite completa cada noche, el smoke después de cada
+despliegue, y un workflow que se pueda lanzar a mano con un tag.
+
+## Buenas prácticas
+
+- Cada momento con su pregunta y su selección.
+- Comprobar cada selección con `--list` antes de llevarla a CI.
+- Nombrar los proyectos en la regresión, para no correr el smoke dos
+  veces.
+- Un responsable y un orden de trabajo para cada rojo de la mañana.
+
+## Anti-patrones
+
+- **La suite completa en cada push** de un Pull Request.
+- **Confiar solo en `--only-changed`**, sin regresión completa.
+- **Una regresión nocturna que nadie mira.**
+- **Relanzar la regresión hasta que salga en verde.**
+
+## Práctica
+
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<WhenMatchActivity />
+
+<GapQuizActivity />
+
+<ListTerminalActivity />
+
+<PrFillActivity />
+
+<MorningOrderActivity />

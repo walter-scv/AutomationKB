@@ -1,0 +1,269 @@
+---
+title: "Interceptar y simular la red"
+sidebar_position: 56
+---
+
+import Activity from '@site/src/components/Activity';
+import FillBlank from '@site/src/components/FillBlank';
+import SpotToken from '@site/src/components/SpotToken';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  MOCK_TEMPLATE,
+  MOCK_SLOTS,
+  MOCK_BANK,
+  MOCK_EXPLANATION,
+  NET_ROUNDS,
+  NET_PROMPT,
+  WHEN_QUESTIONS,
+} from '@site/src/content/lessons/56-interceptar-la-red';
+
+export const LESSON_SLUG = 'domains-ui-red';
+
+export function MockFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['mockfill']);
+  return (
+    <Activity
+      title="Simular un error del cálculo de envío"
+      kind="Completar huecos"
+      goal="escribir una intercepción que responde con un error antes de que la pantalla haga el pedido."
+      done={isDone('mockfill')}
+      consigna="El test tiene que comprobar lo que ve la persona cuando el servicio de envíos responde con un error 503. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={MOCK_TEMPLATE}
+        slots={MOCK_SLOTS}
+        bank={MOCK_BANK}
+        explanation={MOCK_EXPLANATION}
+        alreadyDone={isDone('mockfill')}
+        onSolved={() => markDone('mockfill')}
+      />
+    </Activity>
+  );
+}
+
+export function NetSpotActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['netspot']);
+  return (
+    <Activity
+      title="La intercepción que no intercepta"
+      kind="Señalar en la línea"
+      goal="detectar rutas registradas tarde, patrones que no coinciden o que abarcan de más, y esperas tardías."
+      done={isDone('netspot')}
+      consigna="Son 4 líneas de tests del checkout. La pantalla pide el envío a /api/envios?cp=5000. En cada línea, hacé click en la parte que hace que la intercepción o la espera no funcionen como el test pretende. Si no es esa, leé la pista y probá otra. Se completa al resolver las 4."
+    >
+      <SpotToken
+        rounds={NET_ROUNDS}
+        prompt={NET_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('netspot')}
+        onSolved={() => markDone('netspot')}
+      />
+    </Activity>
+  );
+}
+
+export function WhenMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['whenmulti']);
+  return (
+    <Activity
+      title="¿Simular o no simular?"
+      kind="Marcar todas"
+      goal="decidir qué tests de una tienda conviene escribir simulando la red y cuáles contra el servidor real."
+      done={isDone('whenmulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todas las que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={WHEN_QUESTIONS}
+        alreadyDone={isDone('whenmulti')}
+        onSolved={() => markDone('whenmulti')}
+      />
+    </Activity>
+  );
+}
+
+Detrás de cada pantalla hay pedidos al servidor que el usuario no ve. Playwright puede mirarlos, esperarlos y responderlos en lugar del servidor, y eso permite probar cómo reacciona la interfaz ante errores, listas vacías o datos raros.
+
+## Conceptos
+
+### Lo que pasa entre la página y el servidor
+
+Una página moderna no trae todo en el HTML: después de cargar, pide
+datos al servidor y los dibuja. El catálogo de la biblioteca hace esto al
+abrirse:
+
+```text
+GET /api/libros?q=todos
+→ 200 [{"titulo":"Rayuela","disponibles":2},{"titulo":"Ficciones","disponibles":0}]
+```
+
+Es un pedido a una **API**: la página pide datos (`GET`) a una dirección,
+y el servidor responde con un código de estado (`200` es "todo bien",
+`500`, "error del servidor", `503`, "servicio no disponible") y los datos en JSON (entrada de JSON). Con esa
+respuesta, la página arma la lista: Rayuela con un botón Reservar y
+Ficciones «Sin ejemplares».
+
+Para un test de UI, esos pedidos son una oportunidad. Playwright puede
+**interceptarlos**: mirarlos, esperarlos, o responderlos en lugar del
+servidor. Eso permite probar lo que la pantalla hace con respuestas
+difíciles de conseguir en el entorno real: un catálogo vacío, un error
+del servidor, una conexión que se corta.
+
+### Responder en lugar del servidor: `route` y `fulfill`
+
+`page.route(patrón, función)` intercepta los pedidos cuya dirección
+coincide con el patrón. La función recibe el pedido (`route`) y decide
+qué hacer con él. `route.fulfill` lo responde sin que llegue al servidor:
+
+```ts
+test('un catálogo vacío muestra el aviso', async ({ page }) => {
+  await page.route('**/api/libros*', (route) => route.fulfill({ json: [] }));
+  await page.goto('/buscador');
+  await expect(page.getByText('No hay libros para mostrar')).toBeVisible();
+});
+```
+
+- El patrón usa comodines: `**` es cualquier cosa, incluidas barras, y
+  `*` cualquier cosa dentro de una parte de la ruta. `'**/api/libros*'`
+  coincide con `http://localhost:4321/api/libros?q=todos`.
+- `{ json: [] }` responde con una lista vacía, con estado 200 y el tipo de
+  contenido JSON.
+- La ruta se registra **antes** del `goto`: el pedido sale al cargar la
+  página, y si nadie lo está interceptando, llega al servidor.
+
+Para un error, `status` y un cuerpo:
+
+```ts
+await page.route('**/api/libros*', (route) => route.fulfill({ status: 500, body: 'error' }));
+await page.goto('/buscador');
+await expect(page.getByText('No pudimos cargar el catálogo')).toBeVisible();
+```
+
+### Simular una conexión caída: `abort`
+
+`route.abort()` corta el pedido como si la red hubiera fallado:
+
+```ts
+await page.route('**/api/libros*', (route) => route.abort());
+await page.goto('/buscador');
+await expect(page.getByText('No pudimos cargar el catálogo')).toBeVisible();
+```
+
+Con `fulfill` y `abort`, el test verifica lo que la persona ve cuando las
+cosas salen mal, algo que en un entorno real depende de la suerte.
+
+### Modificar la respuesta real
+
+A veces conviene usar la respuesta del servidor y cambiar un solo dato.
+`route.fetch()` hace el pedido real y devuelve la respuesta; la función la
+modifica y la entrega:
+
+```ts
+await page.route('**/api/libros*', async (route) => {
+  const response = await route.fetch();
+  const libros = await response.json();
+  libros[0].disponibles = 0;                       // Rayuela, sin ejemplares
+  await route.fulfill({ response, json: libros });
+});
+await page.goto('/buscador');
+await expect(page.getByRole('button', { name: 'Reservar' })).toHaveCount(0);
+```
+
+El resto de la respuesta (los demás libros, los encabezados) es el del
+servidor; solo cambia lo que el test necesita.
+
+### Cuando el patrón no coincide
+
+Si el patrón no coincide con ninguna dirección, la ruta no intercepta
+nada y no hay ningún error: el pedido llega al servidor real. Con
+`'**/api/libro'` (sin la `s` ni el `*` final), la página recibe el
+catálogo real y el test falla más adelante:
+
+```text
+Error: expect(locator).toBeVisible() failed
+
+Locator: getByText('No hay libros para mostrar')
+Expected: visible
+Timeout: 5000ms
+Error: element(s) not found
+```
+
+El error no dice nada de la red. Ante un fallo así, conviene revisar
+primero el patrón; la pestaña Network del trace (entrada de debugging)
+muestra la dirección exacta que pidió la página.
+
+### Esperar y verificar pedidos
+
+Sin cambiar nada, un test puede esperar una respuesta y leerla, con el
+mismo patrón de "esperar antes de la acción" de las pestañas nuevas y las
+descargas:
+
+```ts
+const respuestaPromise = page.waitForResponse('**/api/libros*');
+await page.goto('/buscador');
+const respuesta = await respuestaPromise;
+expect(respuesta.ok()).toBeTruthy();
+```
+
+`respuesta.status()` da el código y `respuesta.json()` los datos. También
+se puede esperar el **pedido** que hace la página, para verificar qué
+mandó al servidor:
+
+```ts
+await page.goto('/buscador');
+const pedidoPromise = page.waitForRequest('**/api/reservas');
+await page.getByRole('button', { name: 'Reservar' }).click();
+const pedido = await pedidoPromise;
+expect(pedido.method()).toBe('POST');
+expect(pedido.postDataJSON()).toEqual({ titulo: 'Rayuela', socia: 'lucia@biblio.test' });
+await expect(page.getByText('Reserva R-1042')).toBeVisible();
+```
+
+`postDataJSON()` devuelve los datos enviados como objeto, y `toEqual`
+compara objetos por su contenido, no por identidad. El test verifica dos
+cosas distintas: que la página mandó los datos correctos, y que mostró el
+código que devolvió el servidor.
+
+### Simular sin perder el sentido del test
+
+Un test que simula todas las respuestas ya no prueba la aplicación
+completa, solo la pantalla. Eso es útil para los casos que el entorno real
+no puede dar (errores, listas vacías, casos límite), pero el flujo
+principal también necesita tests contra el servidor real. Playwright
+recomienda simular, sobre todo, las dependencias de **terceros**, como un
+servicio de pagos externo, que el equipo no controla.
+
+## Cuándo usarlo
+
+Para probar cómo responde la pantalla a errores, demoras, listas vacías y
+datos raros que el entorno real no produce a pedido, y para verificar qué
+datos manda la página al servidor.
+
+## Buenas prácticas
+
+- Registrar `page.route` antes de la navegación o la acción que hace el
+  pedido.
+- Simular lo que el entorno no puede dar, y mantener tests del flujo
+  principal contra el servidor real.
+- Usar `route.fetch()` para cambiar un solo dato de una respuesta real.
+- Verificar el pedido con `waitForRequest` cuando lo que importa es qué se
+  envió.
+
+## Anti-patrones
+
+- **Simular todas las respuestas** de todos los tests.
+- **Registrar la ruta después del `goto`**: el pedido ya salió.
+- **Patrones demasiado amplios**, como `'**/api/**'`, que interceptan
+  pedidos que el test no pensaba tocar.
+- **Esperar con `waitForTimeout`** a que llegue una respuesta, en lugar de
+  `waitForResponse` o una assertion.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<MockFillActivity />
+
+<NetSpotActivity />
+
+<WhenMultiActivity />

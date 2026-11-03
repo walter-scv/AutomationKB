@@ -1,0 +1,407 @@
+---
+title: "Correr los tests"
+sidebar_position: 41
+---
+
+import Activity from '@site/src/components/Activity';
+import Terminal from '@site/src/components/Terminal';
+import MultiSelect from '@site/src/components/MultiSelect';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import DecisionPath from '@site/src/components/DecisionPath';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  RUN_STEPS,
+  RUN_EXPLANATION,
+  FILTER_QUESTIONS,
+  HEADED_PREFIX,
+  HEADED_STEPS,
+  HEADED_EXPLANATION,
+  FAIL_START,
+  FAIL_NODES,
+  FAIL_EXPLANATION,
+  SCRIPT_ACCEPTED,
+  SCRIPT_HINTS,
+  SCRIPT_EXPLANATION,
+  SCRIPT_JSON,
+} from '@site/src/content/lessons/41-correr-los-tests';
+
+export const LESSON_SLUG = 'domains-ui-correr-los-tests';
+
+export function RunTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['runterm']);
+  return (
+    <Activity
+      title="Elegir qué corre"
+      kind="Terminal"
+      goal="listar y correr partes de una suite combinando filtros por archivo, tag, proyecto y línea."
+      done={isDone('runterm')}
+      consigna="Son 4 pasos sobre la suite de turnos. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el cuarto paso."
+    >
+      <Terminal
+        steps={RUN_STEPS}
+        explanation={RUN_EXPLANATION}
+        alreadyDone={isDone('runterm')}
+        onSolved={() => markDone('runterm')}
+      />
+    </Activity>
+  );
+}
+
+export function FilterMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['filtermulti']);
+  return (
+    <Activity
+      title="¿Qué corre este comando?"
+      kind="Marcar todas"
+      goal="predecir qué ejecuciones produce una combinación de filtros, sin correrla."
+      done={isDone('filtermulti')}
+      consigna="Son 2 preguntas de 4 opciones sobre la suite de turnos. En cada una, marcá todas las ejecuciones que produce el comando y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={FILTER_QUESTIONS}
+        alreadyDone={isDone('filtermulti')}
+        onSolved={() => markDone('filtermulti')}
+      />
+    </Activity>
+  );
+}
+
+export function HeadedBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['headedbuilder']);
+  return (
+    <Activity
+      title="Ver el test de perfil en Firefox"
+      kind="Armar"
+      goal="armar un comando que elige un archivo, un proyecto y muestra el navegador."
+      done={isDone('headedbuilder')}
+      consigna="Querés ver en pantalla cómo corren los tests del archivo perfil.spec.ts en Firefox. Armá el comando eligiendo un fragmento por paso; el siguiente se habilita cuando acertás. Son 3 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={HEADED_PREFIX}
+        steps={HEADED_STEPS}
+        explanation={HEADED_EXPLANATION}
+        alreadyDone={isDone('headedbuilder')}
+        onSolved={() => markDone('headedbuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function FailPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['failpath']);
+  return (
+    <Activity
+      title="Del fallo al cambio listo"
+      kind="Escenario encadenado"
+      goal="repetir lo que falló, revisar el reporte y dejar el cambio listo para subir."
+      done={isDone('failpath')}
+      consigna="Son 3 decisiones encadenadas: cada una depende de la anterior. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la tercera."
+    >
+      <DecisionPath
+        startId={FAIL_START}
+        nodes={FAIL_NODES}
+        explanation={FAIL_EXPLANATION}
+        alreadyDone={isDone('failpath')}
+        onSolved={() => markDone('failpath')}
+      />
+    </Activity>
+  );
+}
+
+export function ScriptTypeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['scripttype']);
+  return (
+    <Activity
+      title="Correr el script del equipo"
+      kind="Respuesta escrita"
+      goal="ejecutar un comando guardado como script en package.json."
+      done={isDone('scripttype')}
+      consigna="El package.json de la suite de turnos tiene los scripts de arriba. Escribí el comando que corre solo los tests smoke usando el script, y presioná Enter."
+    >
+      <CodeBlock language="json">{SCRIPT_JSON}</CodeBlock>
+      <TypeAnswer
+        accepted={SCRIPT_ACCEPTED}
+        hints={SCRIPT_HINTS}
+        explanation={SCRIPT_EXPLANATION}
+        placeholder="npm ..."
+        alreadyDone={isDone('scripttype')}
+        onSolved={() => markDone('scripttype')}
+      />
+    </Activity>
+  );
+}
+
+Una suite real tiene cientos de tests y varios navegadores. Mientras se escribe un test, después de un fallo o en un pipeline de CI, hace falta correr solo una parte, y saber leer qué corrió y qué resultado dio.
+
+## Conceptos
+
+### Correr toda la suite
+
+`npx playwright test` corre todos los tests de la carpeta de tests, en
+todos los proyectos de la configuración. La suite de la biblioteca tiene
+dos archivos con dos tests cada uno, y dos proyectos (Chromium y Firefox):
+
+```text
+Running 8 tests using 5 workers
+
+  ✓  5 [chromium] › tests/prestamos.spec.ts:13:7 › Préstamos › un email no registrado muestra el error de ingreso (407ms)
+  ✓  2 [chromium] › tests/catalogo.spec.ts:4:7 › Catálogo › buscar por título muestra el libro @smoke (411ms)
+  ✓  1 [chromium] › tests/catalogo.spec.ts:11:7 › Catálogo › una búsqueda sin coincidencias avisa que no hay resultados (413ms)
+  ✓  4 [firefox] › tests/catalogo.spec.ts:4:7 › Catálogo › buscar por título muestra el libro @smoke (830ms)
+  ...
+  8 passed (4.3s)
+```
+
+Cuatro tests por dos proyectos dan ocho ejecuciones. Esta salida es la del
+reporter `list` (entrada de configuración), que se elige con
+`reporter: 'list'` en la configuración o con `--reporter=list` en el
+comando. Con el reporter `html` que deja el instalador, la terminal
+muestra una línea por test con el formato `[1/8] [chromium] › ...`, como
+en la entrada de instalación, sin el símbolo de resultado. Con `list`,
+cada línea muestra el resultado (`✓` pasó, `✘` falló), un número
+de orden, el proyecto, el archivo con línea y columna, el grupo, el título
+con sus tags y la duración. Las líneas no salen en orden: cinco workers
+corren tests a la vez, y cada uno informa al terminar.
+
+Para saber qué va a correr sin ejecutar nada, `--list` muestra la lista:
+
+```bash
+npx playwright test --list
+```
+
+```text
+Listing tests:
+  [chromium] › catalogo.spec.ts:4:7 › Catálogo › buscar por título muestra el libro
+  [chromium] › catalogo.spec.ts:11:7 › Catálogo › una búsqueda sin coincidencias avisa que no hay resultados
+  [chromium] › prestamos.spec.ts:4:7 › Préstamos › renovar un préstamo vigente extiende el vencimiento al 24/11
+  [chromium] › prestamos.spec.ts:13:7 › Préstamos › un email no registrado muestra el error de ingreso
+  [firefox] › catalogo.spec.ts:4:7 › Catálogo › buscar por título muestra el libro
+  ...
+Total: 8 tests in 2 files
+```
+
+`--list` se combina con cualquiera de los filtros que siguen, y es la
+forma más rápida de comprobar que un filtro elige lo que se quería.
+
+### Elegir archivos y líneas
+
+Las palabras sueltas después de `test` filtran por **archivo**: se corren
+los archivos cuya ruta contiene ese texto.
+
+```bash
+npx playwright test catalogo
+```
+
+```text
+Total: 4 tests in 1 file
+```
+
+Corre `catalogo.spec.ts` en los dos proyectos. Con `:` y un número de
+línea, se corre solo el test que empieza en esa línea:
+
+```bash
+npx playwright test prestamos.spec.ts:13
+```
+
+```text
+  [chromium] › prestamos.spec.ts:13:7 › Préstamos › un email no registrado muestra el error de ingreso
+  [firefox] › prestamos.spec.ts:13:7 › Préstamos › un email no registrado muestra el error de ingreso
+Total: 2 tests in 1 file
+```
+
+Si ningún archivo coincide, Playwright no corre nada y avisa:
+
+```text
+Error: No tests found.
+Make sure that arguments are regular expressions matching test files.
+You may need to escape symbols like "$" or "*" and quote the arguments.
+```
+
+### Filtrar por título y por tag: `-g`
+
+`-g` (forma corta de `--grep`) corre los tests cuyo título completo
+coincide con el texto. El título completo incluye el nombre del grupo y
+los tags, y la comparación no distingue mayúsculas de minúsculas. El texto
+se interpreta como una expresión regular, un tipo de patrón que se ve en
+la entrada de locators: para palabras comunes funciona como "contiene",
+pero algunos caracteres, como `.`, `?`, `(` o `$`, tienen otro
+significado. `-g @smoke` también encontraría un tag `@smoke2`:
+
+```bash
+npx playwright test -g renovar
+```
+
+```text
+  [chromium] › prestamos.spec.ts:4:7 › Préstamos › renovar un préstamo vigente extiende el vencimiento al 24/11
+  [firefox] › prestamos.spec.ts:4:7 › Préstamos › renovar un préstamo vigente extiende el vencimiento al 24/11
+Total: 2 tests in 1 file
+```
+
+Como los tags forman parte del título completo, `-g` también filtra por
+tag:
+
+```bash
+npx playwright test --grep @smoke
+```
+
+```text
+Total: 4 tests in 2 files
+```
+
+Son los dos tests marcados `@smoke`, en los dos proyectos. El inverso es
+`--grep-invert`: corre todo **menos** lo que coincide.
+`npx playwright test --grep-invert @smoke` corre los tests que no son
+smoke.
+
+### Elegir el proyecto: `--project`
+
+`--project` corre solo el proyecto indicado, con el nombre que tiene en
+la configuración:
+
+```bash
+npx playwright test --project=firefox catalogo
+```
+
+```text
+  [firefox] › catalogo.spec.ts:4:7 › Catálogo › buscar por título muestra el libro
+  [firefox] › catalogo.spec.ts:11:7 › Catálogo › una búsqueda sin coincidencias avisa que no hay resultados
+Total: 2 tests in 1 file
+```
+
+Los filtros se combinan, y cada uno achica el conjunto: el archivo
+`catalogo`, y de ese archivo, solo en Firefox.
+
+### Ver el navegador: `--headed`
+
+Por defecto, Playwright corre los navegadores en modo **headless**: sin
+ventana, más rápido y sin interrumpir el trabajo. `--headed` abre la
+ventana y muestra cada acción mientras ocurre. Sirve para entender qué
+hace un test recién escrito; para investigar un fallo hay herramientas
+mejores, que se ven en la entrada de debugging.
+
+```bash
+npx playwright test catalogo --project=chromium --headed
+```
+
+### Concentrarse en un test: `test.only` y `test.skip`
+
+Además de la línea de comandos, el código puede elegir qué corre:
+
+- `test.only(...)` corre solo ese test (o solo los marcados con `.only`)
+  dentro de la corrida. Sirve mientras se escribe un test. Si se olvida en
+  el código, `forbidOnly` lo frena en CI (entrada de configuración).
+- `test.skip(...)` saltea el test. Aparece en el resumen como `skipped`:
+
+  ```text
+    1 skipped
+    3 passed (1.5s)
+  ```
+
+Un test salteado no se ejecuta y no verifica nada. Si se saltea porque la
+funcionalidad tiene un defecto conocido, el motivo tiene que quedar a la
+vista (se ve en la sección IV).
+
+### Cuando algo falla
+
+Un test que falla muestra `✘` en su línea y, al final, el detalle del
+error y un resumen:
+
+```text
+  ✘  4 [chromium] › tests/catalogo.spec.ts:11:7 › Catálogo › una búsqueda sin coincidencias avisa que no hay resultados (5.1s)
+  ...
+  1 failed
+    [chromium] › tests/catalogo.spec.ts:11:7 › Catálogo › una búsqueda sin coincidencias avisa que no hay resultados
+  3 passed (5.6s)
+```
+
+El resumen separa los que fallaron, con su ubicación, de los que pasaron.
+Cómo leer el detalle del error se ve en la entrada de leer un fallo. Para
+volver a correr solo lo que falló, sin buscar el archivo ni la línea:
+
+```bash
+npx playwright test --last-failed
+```
+
+```text
+Running 1 test using 1 worker
+```
+
+Además, el comando termina con **código de salida** 1 cuando algún test
+falla, y 0 cuando todos pasan. La terminal no lo muestra, pero los
+servidores de CI lo leen para marcar la corrida en rojo o en verde.
+
+### El reporte HTML
+
+Con el reporter `html` (el que configura el instalador), cada corrida
+genera un reporte navegable en `playwright-report/`. Se abre con:
+
+```bash
+npx playwright show-report
+```
+
+```text
+  Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.
+```
+
+El comando levanta un servidor local y abre el reporte en el navegador:
+la lista de tests con su resultado, filtros por proyecto y por estado, y
+dentro de cada test sus pasos (`test.step`), el error y la evidencia
+guardada. Cuando algún test falla en una corrida lanzada desde la terminal, el
+reporte se abre solo al terminar. Para cerrarlo, `Ctrl+C` en la terminal.
+
+### Atajos en `package.json`
+
+Los comandos que se usan seguido se guardan como scripts en
+`package.json`:
+
+```json
+"scripts": {
+  "test": "playwright test",
+  "test:smoke": "playwright test --grep @smoke",
+  "test:headed": "playwright test --headed",
+  "report": "playwright show-report"
+}
+```
+
+Se ejecutan con `npm run` y el nombre: `npm run test:smoke`. Dentro de un
+script no hace falta `npx`, porque npm ya busca los programas instalados
+en el proyecto. Todo el equipo corre así exactamente los mismos comandos.
+
+## Cuándo usarlo
+
+Mientras se escribe un test: `-g` o el archivo con línea, más `--headed`
+para ver qué hace. Antes de subir un cambio: la suite completa. Después de
+un fallo: `--last-failed` y el reporte HTML. En CI: los filtros por tag
+para elegir qué subconjunto corre en cada momento.
+
+## Buenas prácticas
+
+- Comprobar con `--list` que un filtro elige los tests esperados.
+- Correr la suite completa antes de subir un cambio, no solo el test que
+  se tocó.
+- Guardar en `package.json` los comandos que usa todo el equipo.
+- Quitar todo `test.only` antes de confirmar el cambio.
+
+## Anti-patrones
+
+- **Dejar un `test.only`** en el código.
+- **Saltear tests con `test.skip`** sin dejar escrito el motivo.
+- **Correr siempre con `--headed`**: la suite se vuelve lenta.
+- **Dar por buena una corrida** sin mirar el resumen: un `skipped` o un
+  `flaky` también son información.
+
+## Práctica
+
+Estos son los 5 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<RunTerminalActivity />
+
+<FilterMultiActivity />
+
+<HeadedBuilderActivity />
+
+<FailPathActivity />
+
+<ScriptTypeActivity />

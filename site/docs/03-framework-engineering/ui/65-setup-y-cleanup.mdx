@@ -1,0 +1,311 @@
+---
+title: "Setup & Cleanup: dónde nacen y mueren los datos"
+sidebar_position: 65
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import Order from '@site/src/components/Order';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  SEED_ITEMS,
+  SEED_COLUMNS,
+  FIXTURE_ITEMS,
+  FIXTURE_CORRECT,
+  FIXTURE_RULES,
+  SEED_PREFIX,
+  SEED_STEPS,
+  SEED_EXPLANATION,
+  STATE_QUIZ,
+} from '@site/src/content/lessons/65-setup-y-cleanup';
+
+export const LESSON_SLUG = 'framework-ui-setup-cleanup';
+
+export function SeedClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['seedclassify']);
+  return (
+    <Activity
+      title="¿Quién prepara y quién limpia?"
+      kind="Clasificar"
+      goal="decidir, para cada test de la agenda, si sus datos van en una fixture, en el propio test o si no hace falta sembrar."
+      done={isDone('seedclassify')}
+      consigna="Son 6 tests de la agenda. Arrastrá cada uno a Fixture que siembra y limpia, Limpiar en el propio test o No hace falta sembrar. Regla para los casos dudosos: pensá quién sabe, al terminar el test, qué hay que borrar; si no se crea nada, no hace falta sembrar. Se completa cuando los 6 están en su caja."
+    >
+      <Classify
+        items={SEED_ITEMS}
+        columns={SEED_COLUMNS}
+        itemLabel="Test"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('seedclassify')}
+        onSolved={() => markDone('seedclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function FixtureOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['fixtureorder']);
+  return (
+    <Activity
+      title="Armar la fixture del paciente con turno"
+      kind="Ordenar"
+      goal="ordenar una fixture que crea dos datos relacionados y los borra en el orden correcto."
+      done={isDone('fixtureorder')}
+      consigna="La fixture pacienteConTurno entrega un paciente con un turno reservado. El sistema no deja borrar un paciente que tiene turnos. Son sus 7 líneas, desordenadas. Ordenalas y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={FIXTURE_ITEMS}
+        correctOrder={FIXTURE_CORRECT}
+        rules={FIXTURE_RULES}
+        onSolved={() => markDone('fixtureorder')}
+      />
+    </Activity>
+  );
+}
+
+export function SeedBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['seedbuilder']);
+  return (
+    <Activity
+      title="Sembrar el turno de las 10:30"
+      kind="Armar"
+      goal="escribir la línea del test que siembra un dato con la fixture y un builder."
+      done={isDone('seedbuilder')}
+      consigna="El test necesita un turno a las 10:30; el resto de los datos le da igual. Armá la línea con la fixture sembrarTurno y el builder unTurno. Elegí un fragmento por paso; el siguiente se habilita cuando acertás. Son 4 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={SEED_PREFIX}
+        steps={SEED_STEPS}
+        explanation={SEED_EXPLANATION}
+        alreadyDone={isDone('seedbuilder')}
+        onSolved={() => markDone('seedbuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function StateQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['statequiz']);
+  return (
+    <Activity
+      title="Datos que no son solo tuyos"
+      kind="Elegí la opción"
+      goal="corregir tests que suponen un estado inicial o que chocan con otra corrida en un entorno compartido."
+      done={isDone('statequiz')}
+      consigna="Son 2 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 2."
+    >
+      <Quiz
+        questions={STATE_QUIZ}
+        onSolved={() => markDone('statequiz')}
+      />
+    </Activity>
+  );
+}
+
+Casi todo test necesita datos que no existen en el entorno: un préstamo, un turno, un paciente. Esta entrada ordena dónde se crean, cómo se arman y quién los borra, para que ningún test dependa de lo que dejó otro.
+
+## Conceptos
+
+### El problema: datos que nadie limpia
+
+Un test de renovación necesita que la socia tenga un préstamo. Si cada
+test lo crea a su manera y no lo borra, los datos se acumulan. Dos tests
+que crean el mismo préstamo de Ficciones, uno después del otro:
+
+```text
+  ✓  2 [chromium] › tests/sucio.spec.ts:6:5 › renovar Ficciones (crea su préstamo y no lo borra) (140ms)
+  ✘  3 [chromium] › tests/sucio.spec.ts:13:5 › renovar Ficciones otra vez, en otro test (53ms)
+
+    Error: locator.click: Error: strict mode violation: getByRole('listitem').filter({ has: getByRole('heading', { name: 'Ficciones' }) }).getByRole('button', { name: 'Renovar' }) resolved to 2 elements:
+        1) <button data-id="100">Renovar</button> aka getByRole('listitem').filter({ hasText: 'FiccionesVence el 17/11Renovar' }).getByRole('button')
+        2) <button data-id="101">Renovar</button> aka getByRole('listitem').filter({ hasText: 'FiccionesVence el 03/11Renovar' }).getByRole('button')
+```
+
+El segundo test encontró dos préstamos de Ficciones: el suyo y el que
+dejó el primero, ya renovado (vence el 17/11). Falla por algo que no
+tiene nada que ver con lo que prueba. En un entorno compartido es peor:
+los datos de una corrida rompen la siguiente, o los tests de otra
+persona.
+
+La regla de esta capa: **ningún test crea sus datos sueltos**. Los datos
+se crean en un lugar conocido, antes de que el test empiece, y se borran
+después, siempre de la misma forma.
+
+### Crear por la API, no por la interfaz
+
+Para que la socia tenga un préstamo, el test podría recorrer el catálogo,
+buscar el libro y reservarlo por la interfaz. Es lento, y si la pantalla
+de reservas falla, fallan todos los tests que necesitan un préstamo,
+aunque prueben otra cosa. Crear el dato con un pedido directo a la API es
+más rápido y no depende de otra pantalla.
+
+La fixture `request` de Playwright hace pedidos HTTP con la `baseURL` de
+la configuración. Las funciones que hablan con la API van en un helper
+(entrada de estructura y capas):
+
+```ts
+// helpers/api.ts
+import { type APIRequestContext } from '@playwright/test';
+
+export type Prestamo = { titulo: string; vence: string };
+export type PrestamoCreado = { id: number; titulo: string; vence: string; renovaciones: number };
+
+const socia = { 'x-socia': 'lucia' };
+
+export async function crearPrestamo(request: APIRequestContext, prestamo: Prestamo): Promise<PrestamoCreado> {
+  const respuesta = await request.post('/api/prestamos', { data: prestamo, headers: socia });
+  return respuesta.json();
+}
+
+export async function borrarPrestamo(request: APIRequestContext, id: number): Promise<void> {
+  await request.delete(`/api/prestamos/${id}`, { headers: socia });
+}
+```
+
+`request.post` envía el préstamo como JSON en `data`; la respuesta trae el
+préstamo creado, con su `id`, que hace falta para borrarlo. (El encabezado
+`x-socia` identifica a la socia ante esta API de prueba; cada API tiene su
+forma de autenticarse.)
+
+### La fixture que siembra y limpia
+
+La creación y la limpieza van en una fixture (entrada de fixtures y
+BaseTest), así ningún test las repite:
+
+```ts
+sembrarPrestamo: async ({ request }, use) => {
+  const creados: PrestamoCreado[] = [];
+  await use(async (prestamo) => {
+    const creado = await crearPrestamo(request, prestamo);
+    console.log('SETUP: creado', creado);
+    creados.push(creado);
+    return creado;
+  });
+  for (const p of creados.reverse()) {
+    await borrarPrestamo(request, p.id);
+    console.log('CLEANUP: borrado', p.id);
+  }
+},
+```
+
+La fixture no entrega un préstamo: entrega una **función** que lo crea,
+para que cada test siembre lo que necesita, uno o varios. Guarda lo que
+creó en `creados`, y después de `use`, cuando el test terminó, pase o
+falle, borra todo en orden inverso. El test:
+
+```ts
+await sembrarPrestamo(unPrestamo().deLibro('Rayuela').queVence('10/11').build());
+```
+
+```text
+SETUP: creado { id: 100, titulo: 'Rayuela', vence: '10/11', renovaciones: 0 }
+CLEANUP: borrado 100
+  ✓  2 [chromium] › tests/prestamos.spec.ts:5:7 › Préstamos › renovar un préstamo extiende el vencimiento 14 días @smoke (136ms)
+```
+
+### Armar el dato: un builder
+
+Un préstamo tiene varios campos, y la mayoría de los tests solo necesita
+cambiar uno. Escribir el objeto completo en cada test lo vuelve largo y
+repite valores. Un **builder** tiene valores por defecto y métodos para
+cambiar solo lo que importa:
+
+```ts
+// helpers/prestamo.builder.ts
+class PrestamoBuilder {
+  private prestamo: Prestamo = { titulo: 'Rayuela', vence: '10/11' };
+
+  deLibro(titulo: string): PrestamoBuilder {
+    this.prestamo.titulo = titulo;
+    return this;
+  }
+
+  queVence(fecha: string): PrestamoBuilder {
+    this.prestamo.vence = fecha;
+    return this;
+  }
+
+  build(): Prestamo {
+    return { ...this.prestamo };
+  }
+}
+
+export const unPrestamo = () => new PrestamoBuilder();
+```
+
+Cada método devuelve `this`, el propio builder (por eso su tipo de
+retorno es `PrestamoBuilder`), y así se pueden encadenar: `unPrestamo().deLibro('Ficciones').build()`. `build()` devuelve
+una copia del objeto (spread, entrada de objetos). Un test que solo
+necesita "un préstamo cualquiera" escribe `unPrestamo().build()`, y uno que
+prueba vencimientos escribe `.queVence('01/11')`: se lee qué dato importa
+en cada test.
+
+Si el dato tiene uno o dos campos que casi nunca cambian, un objeto
+literal es más claro que un builder.
+
+### Cuando la limpieza automática no alcanza
+
+La fixture borra lo que creó, con el `id` que guardó. Eso funciona
+mientras el dato siga existiendo al final. Si el test lo modifica de una
+forma que cambia lo que hay que limpiar (por ejemplo, devuelve el libro y
+el préstamo pasa al historial, o lo transfiere a otra socia), la limpieza
+de la fixture ya no sabe en qué estado quedó. En ese caso, la preparación
+y la limpieza van en el propio test, que es el único que sabe cómo
+terminó el dato.
+
+Hay un tercer caso: el dato no lo siembra nadie, porque lo crea la propia
+acción que se prueba, como dar de alta una socia desde el formulario. La
+fixture no lo creó, así que no tiene nada que borrar; el test, que sabe
+qué creó, lo limpia al terminar.
+
+La regla: si el test no cambia la identidad del dato que siembra, usa la
+fixture; si lo transforma en otra cosa, o si el dato lo crea la acción
+que se prueba, la limpieza va en el propio test.
+
+### Medir el estado real, no asumirlo
+
+Sembrar un dato conocido no significa que todo lo demás sea conocido. Si
+la socia ya tenía préstamos de otro lado, un test que espera «2
+préstamos» después de sembrar uno se rompe. Se lee el estado al empezar y
+se compara el **cambio** (entrada de assertions): «uno más que antes».
+
+Y cuando varias corridas usan el mismo entorno a la vez, conviene que los
+datos sean únicos por corrida, por ejemplo con un sufijo:
+`unPrestamo().deLibro('Rayuela ' + Date.now()).build()`. Así dos corridas
+en paralelo no se pisan.
+
+## Cuándo usarlo
+
+Cada vez que un test necesita datos que no existen en el entorno: se
+crean por API en una fixture, con un builder si tienen varios campos, y
+se borran al terminar.
+
+## Buenas prácticas
+
+- Crear los datos por API, no por la interfaz.
+- Sembrar y limpiar en la misma fixture, para que nadie olvide limpiar.
+- Usar builders con valores por defecto para los datos con varios campos.
+- Comparar contra el estado leído al empezar.
+- Usar datos únicos por corrida en entornos compartidos.
+
+## Anti-patrones
+
+- **Crear datos en el cuerpo del test** sin borrarlos.
+- **Preparar datos recorriendo otras pantallas** por la interfaz.
+- **Depender de datos que "siempre estuvieron"** en el entorno.
+- **Limpiar a mano** en un `afterEach` de cada archivo lo que una fixture
+  podría limpiar sola.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<SeedClassifyActivity />
+
+<FixtureOrderActivity />
+
+<SeedBuilderActivity />
+
+<StateQuizActivity />

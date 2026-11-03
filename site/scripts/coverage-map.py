@@ -3,8 +3,8 @@ Uso: python3 site/scripts/coverage-map.py [filtro]"""
 import sys
 import re,glob,os
 os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-for track in ['testing','programming','git']:
-    for f in sorted(glob.glob(f'docs/01-foundations/{track}/*.mdx')):
+for track in sorted(glob.glob('docs/0*/*/')):
+    for f in sorted(glob.glob(f'{track}**/*.mdx', recursive=True)):
         s=open(f).read()
         if len(sys.argv)>1 and sys.argv[1] not in f: continue
         heads=re.findall(r'^### (.+)$',s,re.M)

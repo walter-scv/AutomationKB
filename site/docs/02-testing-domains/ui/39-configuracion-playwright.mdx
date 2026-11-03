@@ -1,0 +1,333 @@
+---
+title: "La configuración: playwright.config.ts"
+sidebar_position: 39
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import FillBlank from '@site/src/components/FillBlank';
+import Quiz from '@site/src/components/Quiz';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  NEED_LEFT,
+  NEED_RIGHT,
+  NEED_WHY,
+  CONFIG_TEMPLATE,
+  CONFIG_SLOTS,
+  CONFIG_BANK,
+  CONFIG_EXPLANATION,
+  RUN_QUIZ,
+  RUN_OUTPUT,
+} from '@site/src/content/lessons/39-configuracion-playwright';
+
+export const LESSON_SLUG = 'domains-ui-configuracion';
+
+export function NeedMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['needmatch']);
+  return (
+    <Activity
+      title="¿Qué opción resuelve cada necesidad?"
+      kind="Emparejar"
+      goal="elegir la opción de la configuración que corresponde a cada necesidad de una suite."
+      done={isDone('needmatch')}
+      consigna="Son 8 pares. Elegí una necesidad de la izquierda y después la opción de playwright.config.ts que la resuelve (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 8."
+    >
+      <Match
+        left={NEED_LEFT}
+        right={NEED_RIGHT}
+        why={NEED_WHY}
+        leftLabel="Necesidad"
+        rightLabel="Opción"
+        alreadyDone={isDone('needmatch')}
+        onSolved={() => markDone('needmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function ConfigFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['configfill']);
+  return (
+    <Activity
+      title="Configurar la suite de la tienda"
+      kind="Completar huecos"
+      goal="escribir las opciones que distinguen CI de local, definen el servidor y deciden qué evidencia se guarda."
+      done={isDone('configfill')}
+      consigna="La suite de la tienda tiene que: prohibir test.only solo en CI, reintentar 2 veces en CI y ninguna en local, correr contra https://staging.tienda.test, grabar el trace solo en el primer reintento y guardar una captura solo de los tests que fallan. Completá los 5 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={CONFIG_TEMPLATE}
+        slots={CONFIG_SLOTS}
+        bank={CONFIG_BANK}
+        explanation={CONFIG_EXPLANATION}
+        alreadyDone={isDone('configfill')}
+        onSolved={() => markDone('configfill')}
+      />
+    </Activity>
+  );
+}
+
+export function RunQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['runquiz']);
+  return (
+    <Activity
+      title="Leer una corrida con reintentos"
+      kind="Elegí la opción"
+      goal="interpretar el resultado de una corrida en CI y predecir la misma corrida en local, según retries y trace."
+      done={isDone('runquiz')}
+      consigna="Son 3 preguntas de opción única sobre la corrida de arriba, hecha en CI. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <CodeBlock language="text">{RUN_OUTPUT}</CodeBlock>
+      <Quiz
+        questions={RUN_QUIZ}
+        onSolved={() => markDone('runquiz')}
+      />
+    </Activity>
+  );
+}
+
+El instalador dejó un playwright.config.ts con valores por defecto. Antes de escribir tests conviene entender qué decide cada opción, porque de ahí sale contra qué servidor corren, cuántas veces se reintentan y qué evidencia queda cuando fallan.
+
+## Conceptos
+
+### Qué es `playwright.config.ts`
+
+Cada vez que se corre `npx playwright test`, Playwright lee primero
+`playwright.config.ts`, en la raíz del proyecto. Ese archivo define cómo
+corre toda la suite: dónde están los tests, cuántos corren a la vez, qué
+pasa cuando uno falla, contra qué servidor y en qué navegadores. Los tests
+no repiten nada de eso; lo heredan.
+
+El archivo exporta un objeto armado con `defineConfig`:
+
+```ts
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:4321',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+  },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  ],
+});
+```
+
+Con un solo objeto, `defineConfig` lo devuelve tal cual: su aporte es darle
+a TypeScript la forma esperada del objeto, así que una opción mal escrita (`retrys`) se
+marca como error en el editor antes de correr nada. Este es,
+prácticamente, el archivo que genera el instalador, con los comentarios
+quitados y la URL de la biblioteca.
+
+Las opciones se dividen en dos grupos: las de nivel superior, que
+controlan cómo corre la suite, y las de `use`, que configuran el navegador
+y la página que recibe cada test.
+
+### Local y CI: `process.env.CI`
+
+Varias opciones cambian según dónde corre la suite: en la computadora de
+quien la escribe o en un servidor de integración continua (CI). Los
+servidores de CI, como GitHub Actions, definen la variable de entorno
+`CI`. `process.env.CI` lee esa variable desde Node.js: en CI tiene un
+valor (`"true"`), y en una computadora personal es `undefined`.
+
+Dos construcciones de TypeScript la convierten en un valor útil:
+
+- `!!process.env.CI` convierte el valor en booleano. `!` niega un valor
+  según sea *truthy* o *falsy* (entrada de operadores), y el segundo `!`
+  vuelve a negarlo: `"true"` es truthy y termina en `true`; `undefined`
+  es falsy y termina en `false`.
+- `process.env.CI ? 2 : 0` es el operador ternario (entrada de
+  condicionales): 2 en CI, 0 en local.
+
+### Opciones de la corrida
+
+- **`testDir`**: la carpeta donde Playwright busca archivos de test.
+- **`fullyParallel`**: con `true`, los tests de un mismo archivo también
+  corren en paralelo entre sí, no solo los archivos distintos. Funciona
+  solo si cada test es independiente (primera entrada del track).
+- **`workers`**: cuántos procesos corren tests al mismo tiempo.
+  `undefined` deja que Playwright decida según los núcleos de la
+  computadora; un número fijo, como `1` en CI, limita el paralelismo
+  cuando la máquina es chica o compartida.
+- **`retries`**: cuántas veces se reintenta un test que falla antes de
+  darlo por fallado. `0` en local, para ver cada fallo la primera vez.
+- **`forbidOnly`**: prohíbe `test.only`, la marca que hace correr un único
+  test (se ve en la entrada de cómo correr los tests). En local se usa
+  para concentrarse en un test; si se olvida en el código y llega a CI,
+  la suite correría ese único test y daría todo verde. Con
+  `forbidOnly: true`, la corrida se detiene:
+
+  ```text
+  Error: item focused with '.only' is not allowed due to the 'forbidOnly' option in '../playwright.config.ts': "prestamos.spec.ts el login muestra el título"
+  ```
+
+- **`reporter`**: el formato de los resultados. `'list'` imprime una línea
+  por test en la terminal; `'html'` genera además el reporte navegable en
+  `playwright-report/`. Se ven en las entradas de cómo correr los tests y
+  de leer un fallo.
+- **`timeout`**: el tiempo máximo de cada test completo, 30 segundos si no
+  se define. `expect: { timeout: ... }` cambia el plazo de las
+  verificaciones, 5 segundos por defecto.
+
+### Qué hace `retries`
+
+Con `retries: 2`, un test que falla vuelve a correr hasta dos veces. Si un
+reintento pasa, el resultado no es "pasó" sino **flaky**. En esta corrida
+de CI, con el reporter `list`, el test de renovación falló una vez y pasó
+al reintentar:
+
+```text
+  ✘  1 [chromium] › tests/prestamos.spec.ts:3:5 › renovar muestra la confirmación (1.2s)
+  ✓  2 [chromium] › tests/prestamos.spec.ts:3:5 › renovar muestra la confirmación (retry #1) (549ms)
+  ...
+  1 flaky
+```
+
+La primera línea es el intento original; la segunda, el reintento
+(`retry #1`). El resumen no dice `1 passed`: dice `1 flaky`, para que la
+inestabilidad quede a la vista. El reintento absorbe un problema pasajero
+del entorno, como una red lenta en CI, pero no corrige un test inestable
+(primera entrada del track). Qué hacer con un test flaky se ve en la
+sección IV.
+
+### Opciones de `use`
+
+`use` configura el contexto de cada test: el navegador y la página que
+recibe. Las más usadas:
+
+- **`baseURL`**: la dirección del servidor. Con
+  `baseURL: 'http://localhost:4321'`, `page.goto('/login')` abre
+  `http://localhost:4321/login`. Para correr la misma suite contra otro
+  entorno se cambia una línea, no cada test.
+- **`trace`**: cuándo grabar el **trace**, un registro completo de la
+  ejecución (cada acción, el DOM antes y después, la red y la consola) que
+  se abre con el trace viewer (entrada de debugging). Con
+  `'on-first-retry'`, se graba solo en el primer reintento: no ocupa
+  espacio cuando todo pasa, y está disponible justo cuando un test falló.
+  Otros valores: `'off'`, `'on'`, `'retain-on-failure'`.
+- **`screenshot`**: con `'only-on-failure'`, guarda una captura de la
+  página al final de cada test que falla.
+- **`video`**: con `'retain-on-failure'`, graba cada test y conserva el
+  video solo de los que fallan.
+- **`actionTimeout`** y **`navigationTimeout`**: el plazo máximo de cada
+  acción (`click`, `fill`) y de cada navegación (`goto`). Sin definir, no
+  tienen límite propio y los acota el timeout del test.
+
+En la corrida flaky de arriba, con `trace: 'on-first-retry'` y
+`screenshot: 'only-on-failure'`, quedaron estos archivos:
+
+```text
+test-results/prestamos-renovar-muestra-la-confirmación-chromium/test-failed-1.png
+test-results/prestamos-renovar-muestra-la-confirmación-chromium/error-context.md
+test-results/prestamos-renovar-muestra-la-confirmación-chromium-retry1/trace.zip
+```
+
+La carpeta de cada intento lleva el nombre del archivo, el título del
+test y el proyecto; la del reintento termina en `-retry1`. La captura
+quedó en el intento que falló; el trace, en el reintento, que es el
+primero.
+
+### Proyectos
+
+`projects` define en qué navegadores, o con qué configuraciones, se corre
+cada test. Cada proyecto tiene un nombre y su propio `use`.
+`devices['Desktop Chrome']` es un perfil predefinido con el navegador, el
+tamaño de pantalla y el *user agent* de Chrome de escritorio:
+
+```ts
+projects: [
+  { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+  { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+],
+```
+
+Con tres proyectos, cada test corre tres veces, una por navegador: por
+eso el ejemplo del instalador corrió seis tests a partir de dos. La
+sintaxis `...devices[...]` copia las propiedades del perfil dentro del
+objeto (spread, entrada de objetos). Los proyectos para celulares y las
+dependencias entre proyectos se ven en la entrada de cross-browser y
+emulación.
+
+### Levantar la aplicación: `webServer`
+
+Si la aplicación corre en la misma máquina que los tests, `webServer`
+la levanta antes de empezar y la apaga al terminar:
+
+```ts
+webServer: {
+  command: 'npm run start',
+  url: 'http://localhost:4321',
+  reuseExistingServer: !process.env.CI,
+},
+```
+
+`command` es el comando que inicia la aplicación; `url`, la dirección que
+Playwright consulta hasta que responde, para no empezar antes de tiempo.
+Con `reuseExistingServer` en `true` (en local), si la aplicación ya está
+corriendo la usa en lugar de levantar otra; en CI siempre arranca una
+nueva. Si la aplicación está publicada en un entorno de pruebas, no hace
+falta `webServer`: alcanza con `baseURL`.
+
+### Cada opción con su porqué
+
+El archivo que genera el instalador es un punto de partida, no una
+configuración terminada. Cada opción responde a una decisión sobre esta
+suite en particular, y conviene que el motivo quede escrito al lado:
+
+```ts
+retries: process.env.CI ? 2 : 0,
+// CI comparte máquinas y red con otros procesos: un reintento separa un
+// problema pasajero del entorno de un fallo real. En local, 0: el fallo se
+// ve la primera vez.
+
+trace: 'on-first-retry',
+// Grabar siempre ocupa disco y tiempo en corridas que pasan. En el primer
+// reintento, el trace está justo cuando hace falta investigar.
+```
+
+Así, quien abre el archivo meses después sabe por qué `retries` vale 2 y
+no 5, y puede cambiarlo sabiendo qué decisión revierte.
+
+## Cuándo usarlo
+
+La configuración se arma al crear la suite y se revisa cada vez que cambia
+cómo corre: un entorno nuevo (`baseURL`), un navegador más (`projects`),
+una máquina de CI más chica (`workers`). Lo que vale para todos los tests
+va acá; nunca repetido dentro de cada test.
+
+## Buenas prácticas
+
+- Escribir al lado de cada opción la razón por la que tiene ese valor.
+- Activar `forbidOnly` en CI.
+- Usar `retries` solo en CI, y tratar como señal cada resultado flaky.
+- Definir `baseURL` y navegar con rutas relativas.
+- Guardar trace, captura o video solo cuando un test falla o se reintenta.
+
+## Anti-patrones
+
+- **Escribir la URL completa del servidor** dentro de cada test.
+- **Subir `retries`** para que una suite inestable dé verde.
+- **Grabar trace y video siempre**, también en las corridas que pasan.
+- **Dejar la configuración del instalador sin revisar**, sin saber qué
+  hace cada opción.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<NeedMatchActivity />
+
+<ConfigFillActivity />
+
+<RunQuizActivity />

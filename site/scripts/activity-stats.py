@@ -12,7 +12,7 @@ import re
 import sys
 from collections import Counter
 
-ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'docs', '01-foundations')
+DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'docs')
 COMPONENTS = (
     'FindInCode|Classify|SpotToken|Quiz|Order|Compare|FillBlank|TypeAnswer|'
     'Match|CommandBuilder|MultiSelect|DecisionPath|Terminal'
@@ -36,8 +36,9 @@ def lesson_sequence(path: str) -> list[str]:
 def main() -> int:
     show_lessons = '--lessons' in sys.argv
     repeated = 0
-    for track in sorted(os.listdir(ROOT)):
-        files = sorted(glob.glob(os.path.join(ROOT, track, '*.mdx')))
+    for track_dir in sorted(glob.glob(os.path.join(DOCS, '0*', '*', ''))):
+        track = os.path.relpath(track_dir, DOCS)
+        files = [f for f in sorted(glob.glob(os.path.join(track_dir, '**', '*.mdx'), recursive=True)) if lesson_sequence(f)]
         if not files:
             continue
         counts: Counter[str] = Counter()

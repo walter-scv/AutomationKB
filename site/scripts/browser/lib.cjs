@@ -3,14 +3,15 @@
 // Uso: node site/scripts/browser/mi-test.cjs (los tests hacen require('./lib.cjs')).
 const path = require('path');
 const {chromium} = require(path.resolve(__dirname, '../../../project/node_modules/playwright'));
-const BASE='http://localhost:3100/AutomationKB/docs/01-foundations/';
+const BASE='http://localhost:3100/AutomationKB/docs/';
 async function open() {
   const b = await chromium.launch(); const p = await b.newPage({viewport:{width:1280,height:900}});
   const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('console',m=>{ if(m.type()==='error') errs.push(m.text()); });
   return {b,p,errs};
 }
 async function go(p, path, title) {
-  await p.goto(BASE+path);
+  // ruta desde docs/ ('02-testing-domains/ui/36-...') o, para Foundations, desde 01-foundations/
+  await p.goto(BASE+(path.startsWith('0') ? '' : '01-foundations/')+path);
   const h=p.getByRole('heading',{name:title,exact:true}); await h.waitFor();
   await h.evaluate(e=>window.scrollBy(0,e.getBoundingClientRect().top-80));
   return p.locator('div',{has:h}).filter({has:p.locator('.akb-feedback, button')}).last();

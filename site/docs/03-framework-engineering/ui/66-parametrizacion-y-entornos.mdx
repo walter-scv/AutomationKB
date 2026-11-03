@@ -1,0 +1,352 @@
+---
+title: "Parametrización: datos y entornos"
+sidebar_position: 66
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import Terminal from '@site/src/components/Terminal';
+import FillBlank from '@site/src/components/FillBlank';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  VALUE_ITEMS,
+  VALUE_COLUMNS,
+  ENV_STEPS,
+  ENV_EXPLANATION,
+  DD_TEMPLATE,
+  DD_SLOTS,
+  DD_BANK,
+  DD_EXPLANATION,
+  PR_QUESTIONS,
+} from '@site/src/content/lessons/66-parametrizacion-y-entornos';
+
+export const LESSON_SLUG = 'framework-ui-parametrizacion';
+
+export function ValueClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['valueclassify']);
+  return (
+    <Activity
+      title="¿Dónde vive este valor?"
+      kind="Clasificar"
+      goal="decidir dónde va cada valor de la suite de turnos: variable de entorno, constante o Page Object."
+      done={isDone('valueclassify')}
+      consigna="Son 7 valores que usa la suite de turnos. Arrastrá cada uno a Variable de entorno, Constante con nombre en el código o Locator en el Page Object. Regla para los casos dudosos: preguntate si el valor cambia según dónde corre la suite, o si no puede quedar escrito en el repositorio. Se completa cuando los 7 están en su caja."
+    >
+      <Classify
+        items={VALUE_ITEMS}
+        columns={VALUE_COLUMNS}
+        itemLabel="Valor"
+        counterLabel="ubicados en su lugar"
+        alreadyDone={isDone('valueclassify')}
+        onSolved={() => markDone('valueclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function EnvTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['envterm']);
+  return (
+    <Activity
+      title="De tu máquina a staging"
+      kind="Terminal"
+      goal="crear el archivo de variables desde la plantilla y correr la suite contra otro entorno sin tocar el código."
+      done={isDone('envterm')}
+      consigna="Son 2 pasos. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el segundo paso."
+    >
+      <Terminal
+        steps={ENV_STEPS}
+        explanation={ENV_EXPLANATION}
+        alreadyDone={isDone('envterm')}
+        onSolved={() => markDone('envterm')}
+      />
+    </Activity>
+  );
+}
+
+export function DdFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['ddfill']);
+  return (
+    <Activity
+      title="Un test por cada horario"
+      kind="Completar huecos"
+      goal="escribir un test parametrizado que se repite con una lista de casos."
+      done={isDone('ddfill')}
+      consigna="La agenda acepta turnos de 08:00 a 19:30. El test de abajo prueba los dos límites del horario y uno fuera de él. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={DD_TEMPLATE}
+        slots={DD_SLOTS}
+        bank={DD_BANK}
+        explanation={DD_EXPLANATION}
+        alreadyDone={isDone('ddfill')}
+        onSolved={() => markDone('ddfill')}
+      />
+    </Activity>
+  );
+}
+
+export function PrMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['prmulti']);
+  return (
+    <Activity
+      title="Revisar el Pull Request de la configuración"
+      kind="Marcar todas"
+      goal="detectar problemas de manejo de variables, nombres y datos generados en un cambio de la suite."
+      done={isDone('prmulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todos los cambios que son un problema y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={PR_QUESTIONS}
+        alreadyDone={isDone('prmulti')}
+        onSolved={() => markDone('prmulti')}
+      />
+    </Activity>
+  );
+}
+
+La misma suite tiene que correr en la computadora de cada persona, en CI y contra distintos entornos, y a veces probar la misma verificación con varios datos. Esta entrada saca del código los valores que cambian y muestra cómo repetir un test con distintos casos.
+
+## Conceptos
+
+### El problema: un valor escrito en el lugar equivocado
+
+La dirección del servidor, el email de la cuenta de prueba, un plazo: si
+están escritos dentro de los tests, funcionan hoy. El problema aparece
+cuando cambian. La suite tiene que correr contra el entorno de pruebas y
+contra el de preproducción; la contraseña de la cuenta de prueba se
+renueva; otra persona usa otra cuenta. Si el valor está copiado en
+veinte archivos, hay que encontrar las veinte copias, y es fácil cambiar
+diecinueve.
+
+La regla: un valor que se repite, o que cambia según dónde corre la
+suite, vive en **un** lugar con nombre, y los tests lo leen de ahí. Cada
+tipo de valor tiene su lugar:
+
+- **Plazos**: constantes con nombre, como `TIMEOUTS` (entradas de esperas
+  y de BasePage).
+- **Locators**: el Page Object de su pantalla (entradas de Page Object
+  Model y de centralizar los selectores).
+- **Datos que cambian según el entorno** (la dirección del servidor, las
+  cuentas de prueba) y **secretos** (contraseñas, tokens): variables de
+  entorno. Es el tema de esta entrada.
+
+### Variables de entorno
+
+Una **variable de entorno** es un valor con nombre que el sistema operativo
+le pasa a un programa al ejecutarlo. Node.js las expone en
+`process.env`: `process.env.BASE_URL` es el valor de la variable
+`BASE_URL`, o `undefined` si no está definida (entrada de configuración).
+
+Para no definirlas a mano cada vez, se escriben en un archivo `.env` en la
+raíz del proyecto, una por línea:
+
+```bash
+BASE_URL=http://localhost:4322
+SOCIA_EMAIL=lucia@biblio.test
+SOCIA_CLAVE=clave123
+```
+
+El paquete `dotenv` (que se instala con `npm install -D dotenv`) lee ese
+archivo y carga las variables en `process.env`. Se llama al principio de
+`playwright.config.ts`, antes de usarlas:
+
+```ts
+import { defineConfig } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.resolve(__dirname, '.env'), quiet: true });
+
+export default defineConfig({
+  use: { baseURL: process.env.BASE_URL },
+  // ...
+});
+```
+
+`path.resolve(__dirname, '.env')` arma la ruta al archivo desde la carpeta
+de la configuración (entrada de subir y descargar archivos), y
+`quiet: true` evita que dotenv imprima un aviso en cada corrida.
+
+### `.env` no se sube; `.env.example`, sí
+
+`.env` tiene contraseñas y datos de cada persona: **nunca** se versiona, y
+va en `.gitignore`. Para que quien clona el repositorio sepa qué variables
+completar, se versiona una plantilla, `.env.example`, sin valores reales:
+
+```bash
+BASE_URL=http://localhost:4322
+SOCIA_EMAIL=<email de la socia de prueba>
+SOCIA_CLAVE=<contraseña de la socia de prueba>
+```
+
+Cada persona la copia (`cp .env.example .env`) y completa sus valores. En
+CI no hay archivo `.env`: las variables se configuran en la plataforma,
+con su mecanismo de secretos (sección IV).
+
+### Fallar temprano si falta una variable
+
+Si una variable falta, `process.env.SOCIA_EMAIL` es `undefined`, y el
+error aparece mucho después, lejos de la causa: el ingreso falla y un
+`expect` no encuentra la pantalla siguiente. Un helper que exige la
+variable hace que el error diga exactamente qué falta:
+
+```ts
+// helpers/entorno.ts
+export function variable(nombre: string): string {
+  const valor = process.env[nombre];
+  if (!valor) {
+    throw new Error(`Falta la variable de entorno ${nombre}. Copiá .env.example a .env y completala.`);
+  }
+  return valor;
+}
+```
+
+```ts
+await page.getByLabel('Email').fill(variable('SOCIA_EMAIL'));
+```
+
+Con la variable vacía:
+
+```text
+Error: Falta la variable de entorno SOCIA_EMAIL. Copiá .env.example a .env y completala.
+   at ../helpers/entorno.ts:4
+```
+
+(`throw new Error(...)` corta la ejecución con un error, entrada de manejo
+de errores.)
+
+### Cambiar de entorno sin tocar código
+
+Una variable definida en la terminal, antes del comando, le gana al
+archivo `.env` (dotenv no pisa las que ya existen). Así se corre la misma
+suite contra otro servidor:
+
+```bash
+BASE_URL=https://preproduccion.biblio.test npx playwright test
+```
+
+La sintaxis `NOMBRE=valor comando` define la variable solo para ese
+comando, en macOS y Linux; en Windows (PowerShell) es distinta. Si se
+apunta a un servidor que no responde, el primer pedido lo dice. Con
+`BASE_URL=http://localhost:9999`, donde no hay nada escuchando, falla la
+siembra por API del primer paso:
+
+```text
+  1) [chromium] › tests/prestamos.spec.ts:5:7 › Préstamos › renovar un préstamo extiende el vencimiento 14 días @smoke › 1- La socia tiene Rayuela, que vence el 10/11
+
+    AggregateError: apiRequestContext.post: connect ECONNREFUSED 127.0.0.1:9999
+    connect ECONNREFUSED ::1:9999
+    Call log:
+      - → POST http://localhost:9999/api/prestamos
+```
+
+`ECONNREFUSED` significa que nadie aceptó la conexión en esa dirección y
+puerto. Si el nombre del servidor no existe, el error es otro:
+
+```text
+Error: apiRequestContext.post: getaddrinfo ENOTFOUND preproduccion.biblio.test
+```
+
+`ENOTFOUND` significa que ese nombre no corresponde a ningún servidor:
+conviene revisar que la dirección esté bien escrita.
+
+### Nombrar por rol
+
+El nombre de la variable describe qué papel cumple el dato en la suite,
+no cuál es su valor de hoy: `SOCIA_EMAIL`, no `LUCIA_EMAIL`. Si mañana la
+cuenta de prueba es otra, cambia el valor en `.env`, no el nombre en el
+código. Y los datos que van juntos (el email y la contraseña de la misma
+cuenta) se definen juntos, para no cambiar uno y olvidar el otro.
+
+### El mismo test con varios datos
+
+A veces la misma verificación se repite con distintos datos: los casos de
+una partición de equivalencia o de un valor límite (entrada de partición
+de equivalencia y valores límite). En lugar de copiar el test, se recorre
+una lista de casos y se declara un test por cada uno (entrada de loops):
+
+```ts
+const casos = [
+  { vence: '10/11', despuesDeRenovar: '24/11' },
+  { vence: '25/11', despuesDeRenovar: '09/12' },
+  { vence: '20/12', despuesDeRenovar: '03/01' },
+];
+
+test.describe('Vencimiento al renovar', () => {
+  for (const caso of casos) {
+    test(`un préstamo que vence el ${caso.vence} pasa al ${caso.despuesDeRenovar}`, async ({ prestamosPage, sembrarPrestamo }) => {
+      await sembrarPrestamo(unPrestamo().queVence(caso.vence).build());
+      await prestamosPage.abrir();
+      await prestamosPage.renovar('Rayuela');
+      await expect(prestamosPage.vencimiento('Rayuela')).toHaveText(`Vence el ${caso.despuesDeRenovar}`);
+    });
+  }
+});
+```
+
+```text
+  ✓  2 [chromium] › tests/vencimientos.spec.ts:12:9 › Vencimiento al renovar › un préstamo que vence el 10/11 pasa al 24/11 (140ms)
+  ✓  3 [chromium] › tests/vencimientos.spec.ts:12:9 › Vencimiento al renovar › un préstamo que vence el 25/11 pasa al 09/12 (96ms)
+  ✓  4 [chromium] › tests/vencimientos.spec.ts:12:9 › Vencimiento al renovar › un préstamo que vence el 20/12 pasa al 03/01 (94ms)
+```
+
+Cada caso es un test aparte, con su propio resultado: si falla el cambio
+de año, el reporte dice cuál. El título incluye los datos (con un template
+string, entrada de strings), porque Playwright exige títulos distintos
+(entrada de anatomía de un test). Los casos elegidos no son tres al azar:
+un vencimiento común, uno que cruza de mes y uno que cruza de año.
+
+### Datos generados
+
+Para datos que solo tienen que ser válidos y distintos en cada corrida,
+como el nombre de un socio nuevo, existen librerías que los generan. La
+más usada en JavaScript es Faker (`npm install -D @faker-js/faker`), con
+versiones por idioma:
+
+```ts
+import { fakerES } from '@faker-js/faker';
+
+fakerES.person.fullName();     // 'Jerónimo Navarrete Guzmán'
+fakerES.string.numeric(8);     // '58909008'
+```
+
+Cada llamada devuelve un valor distinto. Sirven para evitar choques entre
+corridas (entrada de Setup & Cleanup), no para los datos que el test
+verifica: un caso de valor límite necesita el valor exacto del límite, no
+uno al azar.
+
+## Cuándo usarlo
+
+Variables de entorno para todo lo que cambia según dónde corre la suite y
+para los secretos. Tests con una lista de casos cuando la misma
+verificación aplica a varios datos. Datos generados cuando solo importa
+que sean válidos y únicos.
+
+## Buenas prácticas
+
+- Versionar `.env.example` y mantener `.env` fuera del repositorio.
+- Validar las variables al leerlas, con un error que diga qué falta.
+- Nombrar las variables por el rol del dato.
+- Elegir los casos de un test parametrizado con técnicas de diseño, e
+  incluir los datos en el título.
+
+## Anti-patrones
+
+- **Contraseñas o URLs escritas en los tests.**
+- **Subir `.env`** al repositorio.
+- **Copiar el mismo test** para cada dato en lugar de recorrer una lista.
+- **Datos al azar en lo que se verifica**: el test deja de ser repetible.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ValueClassifyActivity />
+
+<EnvTerminalActivity />
+
+<DdFillActivity />
+
+<PrMultiActivity />

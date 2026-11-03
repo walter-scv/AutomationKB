@@ -1,0 +1,334 @@
+---
+title: "Repaso integrador: IA en la suite de UI"
+sidebar_position: 97.5
+---
+
+import Activity from '@site/src/components/Activity';
+import DecisionPath from '@site/src/components/DecisionPath';
+import Classify from '@site/src/components/Classify';
+import FillBlank from '@site/src/components/FillBlank';
+import Order from '@site/src/components/Order';
+import FindInCode from '@site/src/components/FindInCode';
+import Match from '@site/src/components/Match';
+import Quiz from '@site/src/components/Quiz';
+import MultiSelect from '@site/src/components/MultiSelect';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  GROW_START,
+  GROW_NODES,
+  GROW_EXPLANATION,
+  PIECE_ITEMS,
+  PIECE_COLUMNS,
+  SKILL_TEMPLATE,
+  SKILL_SLOTS,
+  SKILL_BANK,
+  SKILL_EXPLANATION,
+  ROUTER_ITEMS,
+  ROUTER_CORRECT,
+  ROUTER_RULES,
+  CFG_LINES,
+  CFG_RULE_LABELS,
+  AUTO_LEFT,
+  AUTO_RIGHT,
+  AUTO_WHY,
+  READ_QUIZ,
+  BASE_ITEMS,
+  BASE_COLUMNS,
+  SCOPE_QUESTIONS,
+  HEAL_PREFIX,
+  HEAL_STEPS,
+  HEAL_EXPLANATION,
+  RULE_ACCEPTED,
+  RULE_HINTS,
+  RULE_EXPLANATION,
+} from '@site/src/content/lessons/97b-repaso-integrador-ia-ui';
+
+export const LESSON_SLUG = 'ai-ui-repaso-integrador';
+
+export function GrowPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['growpath']);
+  return (
+    <Activity
+      title="Configurar el asistente del equipo"
+      kind="Escenario encadenado"
+      goal="resolver problemas de memoria, revisión y protección eligiendo la pieza adecuada (entradas 79, 82, 84 y 86)."
+      done={isDone('growpath')}
+      consigna="Son 3 decisiones encadenadas sobre el asistente del equipo de la agenda. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la tercera."
+    >
+      <DecisionPath
+        startId={GROW_START}
+        nodes={GROW_NODES}
+        explanation={GROW_EXPLANATION}
+        alreadyDone={isDone('growpath')}
+        onSolved={() => markDone('growpath')}
+      />
+    </Activity>
+  );
+}
+
+export function PieceClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['piececlassify']);
+  return (
+    <Activity
+      title="¿Dónde va cada cosa?"
+      kind="Clasificar"
+      goal="decidir si algo va en las instrucciones, en un comando o skill, o en un permiso o hook (entradas 79, 80, 81, 84 y 85)."
+      done={isDone('piececlassify')}
+      consigna="Son 7 necesidades del equipo de la agenda. Arrastrá cada una a CLAUDE.md o regla, Comando o skill, o Permiso o hook. Regla para los casos dudosos: si es contexto que se necesita al trabajar, instrucciones; si es una tarea que se invoca, comando o skill; si tiene que cumplirse siempre, permiso o hook. Se completa cuando las 7 están en su caja."
+    >
+      <Classify
+        items={PIECE_ITEMS}
+        columns={PIECE_COLUMNS}
+        itemLabel="Necesidad"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('piececlassify')}
+        onSolved={() => markDone('piececlassify')}
+      />
+    </Activity>
+  );
+}
+
+export function SkillFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['skillfill']);
+  return (
+    <Activity
+      title="La skill de reportar defectos"
+      kind="Completar huecos"
+      goal="escribir una skill con efecto externo que solo se invoca a pedido (entrada 81)."
+      done={isDone('skillfill')}
+      consigna="La skill reportar-defecto crea tickets en Jira: tiene que recibir el test y el ticket del Pull Request, correr solo cuando la pedís y confirmar antes de crear. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={SKILL_TEMPLATE}
+        slots={SKILL_SLOTS}
+        bank={SKILL_BANK}
+        explanation={SKILL_EXPLANATION}
+        alreadyDone={isDone('skillfill')}
+        onSolved={() => markDone('skillfill')}
+      />
+    </Activity>
+  );
+}
+
+export function RouterOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['routerorder']);
+  return (
+    <Activity
+      title="Una noche con el router"
+      kind="Ordenar"
+      goal="ordenar lo que pasa desde que falla la regresión nocturna hasta que cada grupo llega a su destino (entradas 93 y 94)."
+      done={isDone('routerorder')}
+      consigna="Son 6 pasos de una noche roja de la agenda con el router de causa raíz, desordenados. Ordenalos y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={ROUTER_ITEMS}
+        correctOrder={ROUTER_CORRECT}
+        rules={ROUTER_RULES}
+        onSolved={() => markDone('routerorder')}
+      />
+    </Activity>
+  );
+}
+
+export function CfgFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['cfgfind']);
+  return (
+    <Activity
+      title="Revisión de la configuración"
+      kind="Buscar en el código"
+      goal="detectar secretos expuestos, protecciones que no protegen y alcances demasiado amplios (entradas 78, 79, 82, 83 y 84)."
+      done={isDone('cfgfind')}
+      consigna="Son 7 líneas de la configuración de IA de la agenda. Elegí cada una y decí qué problema tiene (secreto expuesto, protección que no protege o alcance demasiado amplio), o si no tiene problema. Se completa cuando encontrás las 4 que tienen un problema."
+    >
+      <FindInCode
+        lines={CFG_LINES}
+        ruleLabels={CFG_RULE_LABELS}
+        okLabel="Sin problema"
+        prompt="¿qué problema tiene?"
+        itemLabel="Línea de configuración"
+        counterLabel="líneas con problema encontradas"
+        alreadyDone={isDone('cfgfind')}
+        onSolved={() => markDone('cfgfind')}
+      />
+    </Activity>
+  );
+}
+
+export function AutoMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['automatch']);
+  return (
+    <Activity
+      title="Cada situación con su automatización"
+      kind="Emparejar"
+      goal="elegir la automatización con agentes que corresponde a cada situación del equipo (entradas 87, 88, 89, 91, 93, 96 y 97)."
+      done={isDone('automatch')}
+      consigna="Son 6 pares. Elegí una situación del equipo de la agenda (izquierda) y después la automatización que la resuelve (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={AUTO_LEFT}
+        right={AUTO_RIGHT}
+        why={AUTO_WHY}
+        leftLabel="Situación"
+        rightLabel="Automatización"
+        alreadyDone={isDone('automatch')}
+        onSolved={() => markDone('automatch')}
+      />
+    </Activity>
+  );
+}
+
+export function ReadQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['readquiz']);
+  return (
+    <Activity
+      title="Leer lo que pasa"
+      kind="Elegí la opción"
+      goal="detectar una alucinación, descartar lo sistémico, comprobar que un test puede fallar y deshacer lo que hizo el agente (entradas 75, 77, 78a y 95)."
+      done={isDone('readquiz')}
+      consigna="Son 4 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 4."
+    >
+      <Quiz
+        questions={READ_QUIZ}
+        onSolved={() => markDone('readquiz')}
+      />
+    </Activity>
+  );
+}
+
+export function BaseClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['baseclassify']);
+  return (
+    <Activity
+      title="¿Qué le faltaba al proyecto?"
+      kind="Clasificar"
+      goal="reconocer qué base faltaba detrás de un problema de un agente: documentos, entorno o configuración en CI (entradas 85a, 85b, 85c y 85d)."
+      done={isDone('baseclassify')}
+      consigna="Son 6 problemas que tuvo el equipo de la agenda con sus agentes. Arrastrá cada uno a la base que faltaba: Casos de uso o mapa, Entorno y datos, o Agente en CI. Regla para los casos dudosos: si el agente no sabía qué tenía que pasar o cómo llegar, casos de uso o mapa; si trabajó donde no debía o sin datos propios, entorno y datos; si el problema es cómo corre dentro de GitHub Actions, agente en CI. Se completa cuando los 6 están en su caja."
+    >
+      <Classify
+        items={BASE_ITEMS}
+        columns={BASE_COLUMNS}
+        itemLabel="Problema"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('baseclassify')}
+        onSolved={() => markDone('baseclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function ScopeMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['scopemulti']);
+  return (
+    <Activity
+      title="El diff de una reparación"
+      kind="Marcar todas"
+      goal="aplicar la tabla de alcance y la línea anti-gaming a un diff de auto-heal (entradas 90 y 92)."
+      done={isDone('scopemulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todos los cambios que se aceptan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={SCOPE_QUESTIONS}
+        alreadyDone={isDone('scopemulti')}
+        onSolved={() => markDone('scopemulti')}
+      />
+    </Activity>
+  );
+}
+
+export function HealBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['healbuilder']);
+  return (
+    <Activity
+      title="El pedido del auto-heal"
+      kind="Armar"
+      goal="armar el pedido de un agente de reparación con causa, alcance, verificación y salida (entradas 76, 91 y 92)."
+      done={isDone('healbuilder')}
+      consigna="Un Pull Request cambió el botón «Cancelar» por «Cancelar turno» en FilaTurno.tsx, fallaron 3 tests de cancelación y el diagnóstico respondió «Sí». Vas a escribir el pedido que recibe el agente del auto-heal, que repara locators. Elegí un fragmento por paso; el siguiente se habilita cuando acertás. Son 4 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={HEAL_PREFIX}
+        steps={HEAL_STEPS}
+        explanation={HEAL_EXPLANATION}
+        alreadyDone={isDone('healbuilder')}
+        onSolved={() => markDone('healbuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function RuleTypeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['ruletype']);
+  return (
+    <Activity
+      title="Bloquear el .env"
+      kind="Respuesta escrita"
+      goal="escribir la regla de permisos que impide leer un secreto (entrada 84)."
+      done={isDone('ruletype')}
+      consigna="Escribí la regla que va en la lista deny de .claude/settings.json para que el agente no pueda leer el .env del directorio del proyecto, y presioná Enter."
+    >
+      <TypeAnswer
+        accepted={RULE_ACCEPTED}
+        hints={RULE_HINTS}
+        explanation={RULE_EXPLANATION}
+        placeholder="Herramienta(ruta)"
+        alreadyDone={isDone('ruletype')}
+        onSolved={() => markDone('ruletype')}
+      />
+    </Activity>
+  );
+}
+
+Ya viste las 28 entradas de IA aplicada a la suite de UI, en cinco unidades: la IA como asistente, tu agente en el proyecto, la base que necesitan los agentes, los sistemas multiagente y los casos prácticos. En un equipo real se combinan: instrucciones, skills, subagentes y permisos, sobre casos de uso, entornos y CI preparados, sostienen pipelines y automatizaciones que reparan, exploran y revisan, con personas que deciden.
+
+## La agenda, con IA
+
+Todos los ejercicios de abajo usan el mismo proyecto: la suite de la
+agenda de turnos, con su framework (sección III) y su entrega en CI
+(sección IV), a la que el equipo le suma IA en etapas:
+
+- **Asistente**: cada persona usa Claude Code, aprobado por la empresa,
+  en una rama propia, con cuentas y datos de prueba.
+- **Configuración**: un `CLAUDE.md` con comandos y reglas, reglas por
+  ruta en `.claude/rules/`, comandos y skills del equipo, subagentes
+  revisores de solo lectura, el servidor MCP de Playwright en `.mcp.json`,
+  permisos en `.claude/settings.json` y un hook que solo permite cuentas
+  de prueba.
+- **Base para los agentes**: casos de uso con reglas y cobertura, un mapa
+  de navegación con pantallas, señales y transiciones, un entorno local que se
+  levanta y se siembra con un comando, herramientas de datos que solo
+  operan en local, y la acción de Claude en GitHub Actions con su clave
+  como secreto.
+- **Sistema multiagente**: un pipeline que explora, planifica, construye,
+  revisa, ejecuta y documenta los casos de cada pantalla nueva.
+- **Casos prácticos**: un contrato de locators, auto-heal en los Pull
+  Requests, un router de causa raíz sobre la regresión nocturna,
+  exploración disparada por Pull Request y design review.
+
+## Práctica
+
+Son 11 ejercicios y entre todos cubren las 28 entradas de la sección: cada uno dice en su objetivo qué entradas repasa. Todos usan el proyecto de la agenda con IA. Son independientes entre sí y cada bloque avisa cuándo está resuelto.
+
+<GrowPathActivity />
+
+<PieceClassifyActivity />
+
+<SkillFillActivity />
+
+<RouterOrderActivity />
+
+<CfgFindActivity />
+
+<AutoMatchActivity />
+
+<ReadQuizActivity />
+
+<BaseClassifyActivity />
+
+<ScopeMultiActivity />
+
+<HealBuilderActivity />
+
+<RuleTypeActivity />

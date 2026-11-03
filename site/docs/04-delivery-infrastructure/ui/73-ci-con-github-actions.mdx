@@ -1,0 +1,506 @@
+---
+title: "CI con GitHub Actions"
+sidebar_position: 73
+---
+
+import Activity from '@site/src/components/Activity';
+import Order from '@site/src/components/Order';
+import FillBlank from '@site/src/components/FillBlank';
+import SpotToken from '@site/src/components/SpotToken';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  STEP_ITEMS,
+  STEP_CORRECT,
+  STEP_RULES,
+  NIGHT_TEMPLATE,
+  NIGHT_SLOTS,
+  NIGHT_BANK,
+  NIGHT_EXPLANATION,
+  YAML_ROUNDS,
+  YAML_PROMPT,
+  CI_QUIZ,
+} from '@site/src/content/lessons/73-ci-con-github-actions';
+
+export const LESSON_SLUG = 'delivery-ui-ci-github-actions';
+
+export function StepOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['steporder']);
+  return (
+    <Activity
+      title="Los pasos del workflow"
+      kind="Ordenar"
+      goal="ordenar los pasos de un workflow de Playwright, desde el código hasta el reporte."
+      done={isDone('steporder')}
+      consigna="Son los 6 pasos del job de la suite de turnos, desordenados. Ordenalos y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={STEP_ITEMS}
+        correctOrder={STEP_CORRECT}
+        rules={STEP_RULES}
+        onSolved={() => markDone('steporder')}
+      />
+    </Activity>
+  );
+}
+
+export function NightFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['nightfill']);
+  return (
+    <Activity
+      title="La regresión de lunes a viernes"
+      kind="Completar huecos"
+      goal="escribir un workflow con horario, variables, secretos y condiciones de paso."
+      done={isDone('nightfill')}
+      consigna="La regresión de turnos corre de lunes a viernes a las 9 UTC y también a mano. La dirección de staging puede verla cualquiera del equipo; la contraseña, nadie. El reporte tiene que subirse aunque fallen los tests, pero no si alguien frena la corrida, y el canal de Slack solo quiere enterarse de los problemas. Completá los 5 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={NIGHT_TEMPLATE}
+        slots={NIGHT_SLOTS}
+        bank={NIGHT_BANK}
+        explanation={NIGHT_EXPLANATION}
+        alreadyDone={isDone('nightfill')}
+        onSolved={() => markDone('nightfill')}
+      />
+    </Activity>
+  );
+}
+
+export function YamlSpotActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['yamlspot']);
+  return (
+    <Activity
+      title="Lo que rompe el workflow"
+      kind="Señalar en la línea"
+      goal="encontrar errores de sintaxis, de contexto y de seguridad en líneas de un workflow."
+      done={isDone('yamlspot')}
+      consigna="Son 4 líneas de workflows de la suite de turnos, cada una con un comentario que da el contexto. En cada una, hacé clic en la palabra que causa el problema. Si no es esa, aparece una pista y podés volver a elegir. Se completa al resolver las 4."
+    >
+      <SpotToken
+        rounds={YAML_ROUNDS}
+        prompt={YAML_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('yamlspot')}
+        onSolved={() => markDone('yamlspot')}
+      />
+    </Activity>
+  );
+}
+
+export function CiQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['ciquiz']);
+  return (
+    <Activity
+      title="Leer lo que pasó en CI"
+      kind="Elegí la opción"
+      goal="explicar un aviso que no salió, un reporte que no se guardó, la hora de un cron y una matriz que se cortó."
+      done={isDone('ciquiz')}
+      consigna="Son 4 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 4."
+    >
+      <Quiz
+        questions={CI_QUIZ}
+        onSolved={() => markDone('ciquiz')}
+      />
+    </Activity>
+  );
+}
+
+Una suite que corre sola en cada cambio y cada noche es la que realmente protege al equipo. Esta entrada lee línea por línea el workflow de GitHub Actions que creó el instalador de Playwright y lo extiende con horarios, secretos, caché, avisos y shards.
+
+## Conceptos
+
+### Integración continua
+
+Una suite que solo corre cuando alguien se acuerda llega tarde: el
+defecto ya está mezclado con otros cambios. La **integración continua**
+(CI) corre la suite automáticamente en un servidor cada vez que pasa algo
+en el repositorio, como un push o un Pull Request (entrada de Pull
+Requests), y deja el resultado a la vista de todo el equipo.
+
+**GitHub Actions** es el servicio de CI de GitHub. Lee archivos de
+configuración guardados en el propio repositorio, en la carpeta
+`.github/workflows/`, y los ejecuta en máquinas de GitHub. El instalador
+de Playwright ya creó uno (entrada de instalación); esta entrada lo lee
+línea por línea y lo extiende.
+
+### YAML en cinco reglas
+
+Los workflows se escriben en **YAML**, un formato de datos como JSON
+(entrada de JSON) pensado para leerse fácil:
+
+```yaml
+name: Playwright Tests        # clave: valor
+on:
+  push:                       # la sangría indica qué está adentro de qué
+    branches: [ main ]        # una lista en una línea
+steps:
+  - name: Instalar            # cada guion es un elemento de una lista
+    run: npm ci
+```
+
+1. Cada línea es `clave: valor`.
+2. La **sangría** (los espacios al principio) indica qué está adentro de
+   qué. Se usan espacios, nunca tabulaciones, y un espacio de más o de
+   menos cambia el significado.
+3. Un guion `-` empieza un elemento de una lista.
+4. `[ a, b ]` es una lista escrita en una línea.
+5. `#` empieza un comentario.
+
+### El workflow que generó el instalador
+
+```yaml
+name: Playwright Tests
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+    - name: Install dependencies
+      run: npm ci
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+    - name: Run Playwright tests
+      run: npx playwright test
+    - uses: actions/upload-artifact@v4
+      if: ${{ !cancelled() }}
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30
+```
+
+- `name`: el nombre que se ve en la pestaña Actions de GitHub.
+- `on`: los **eventos** que lo disparan: un push a `main` o a `master`, y
+  un Pull Request hacia esas ramas.
+- `jobs`: los trabajos. Este tiene uno, `test`.
+- `timeout-minutes: 60`: si tarda más, GitHub lo corta.
+- `runs-on: ubuntu-latest`: la máquina, un Linux nuevo y vacío en cada
+  corrida. Por eso hay que instalar todo cada vez.
+- `steps`: los pasos, en orden. Un paso hace una de dos cosas:
+  - `uses` ejecuta una **acción**, un paso ya armado que publica otra
+    persona u organización: `actions/checkout` baja el código del
+    repositorio; `actions/setup-node` instala Node.js, con la versión de
+    `with`. El `@v4` fija la versión de la acción.
+  - `run` ejecuta un comando de terminal, como en tu computadora.
+- `npm ci` instala exactamente las versiones de `package-lock.json`. A
+  diferencia de `npm install`, no actualiza nada: la corrida usa lo mismo
+  que se probó.
+- `npx playwright install --with-deps` baja los navegadores y las
+  librerías del sistema que necesitan en Linux.
+- El último paso sube `playwright-report/` como **artefacto**: un archivo
+  que queda guardado en la corrida, 30 días, y se descarga desde la página
+  de la corrida en GitHub.
+
+### Que el reporte se guarde aunque fallen los tests
+
+Cuando un paso falla, GitHub saltea los siguientes. El reporte hace falta
+justamente cuando los tests fallan, y por eso el paso que lo sube tiene
+una condición:
+
+```yaml
+if: ${{ !cancelled() }}
+```
+
+`${{ }}` encierra una **expresión** que GitHub evalúa. `cancelled()` es
+verdadero si alguien canceló la corrida, y `!` lo niega: el paso corre
+siempre, salvo que la corrida se haya cancelado. Las otras condiciones
+habituales:
+
+- `failure()`: solo si un paso anterior falló. Sirve para avisar.
+- `always()`: siempre, incluso si se canceló.
+
+El job sigue terminando en rojo si los tests fallaron: la condición solo
+hace que el paso del reporte corra igual.
+
+Hay equipos que lo resuelven de otra forma: marcan el paso de los tests
+con `continue-on-error: true`, para que su falla no corte nada, y agregan
+al final un paso que falla a mano si los tests fallaron:
+
+```yaml
+- name: Correr la suite
+  id: tests
+  continue-on-error: true
+  run: npx playwright test
+# ... reporte y aviso ...
+- name: Fallar si los tests fallaron
+  if: steps.tests.outcome == 'failure'
+  run: exit 1
+```
+
+`steps.tests.outcome` es el resultado real del paso con `id: tests`. Si
+falta ese último paso, el job queda verde con tests fallados. Las
+condiciones con `!cancelled()` y `failure()` llegan al mismo resultado
+sin ese riesgo.
+
+### Cuándo corre: los disparadores
+
+Además de `push` y `pull_request`, dos eventos sirven para una suite:
+
+```yaml
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag a correr (vacío = toda la suite)'
+        required: false
+        default: ''
+```
+
+- `schedule` lo corre en un horario, con la sintaxis **cron**: minuto,
+  hora, día del mes, mes y día de la semana; `*` es «cualquiera».
+  `'0 6 * * *'` es todos los días a las 6:00. La hora es UTC: en Buenos
+  Aires son las 3:00. Así se programa la regresión nocturna, que se
+  explica en la entrada siguiente, de qué corre y cuándo. GitHub puede demorar unos minutos el inicio si está muy
+  cargado.
+- `workflow_dispatch` agrega un botón **Run workflow** en la pestaña
+  Actions para correrlo a mano, con `inputs` que se completan en un
+  formulario. El valor llega como `${{ inputs.tag }}`.
+
+Un valor que escribe una persona no se pega directo dentro de `run`: se
+pasa por una variable de entorno, para que nunca se ejecute como parte del
+comando.
+
+```yaml
+- name: Correr la suite
+  env:
+    TAG: ${{ inputs.tag }}
+  run: npx playwright test --project=chromium --grep "$TAG"
+```
+
+### Secretos y variables
+
+En CI no hay archivo `.env` (entrada de parametrización y entornos): los
+valores se configuran en GitHub, en **Settings → Secrets and variables →
+Actions**, y el workflow los convierte en variables de entorno:
+
+```yaml
+jobs:
+  e2e:
+    env:
+      BASE_URL: ${{ vars.BASE_URL }}
+      SOCIA_EMAIL: ${{ vars.SOCIA_EMAIL }}
+      SOCIA_CLAVE: ${{ secrets.SOCIA_CLAVE }}
+```
+
+- `vars` son **variables**: valores que no son secretos, como la
+  dirección del servidor de pruebas.
+- `secrets` son **secretos**: contraseñas y tokens. GitHub los guarda
+  cifrados, nadie puede volver a leerlos desde la interfaz, y si un paso
+  los imprime, el log muestra `***` en su lugar.
+
+Con `env` en el job, todos sus pasos ven las variables, y `variable()`
+(entrada de parametrización y entornos) las lee igual que en tu
+computadora.
+
+### Instalar más rápido: la caché
+
+Cada corrida arranca en una máquina vacía. `actions/setup-node` puede
+guardar la caché de npm entre corridas:
+
+```yaml
+- uses: actions/setup-node@v4
+  with:
+    node-version: lts/*
+    cache: npm
+```
+
+`npm ci` encuentra los paquetes ya descargados y tarda menos. La caché se
+renueva sola cuando cambia `package-lock.json`.
+
+¿Y los navegadores? Se pueden guardar con la acción `actions/cache`, pero
+la documentación de Playwright no lo recomienda: restaurar la caché tarda
+lo mismo que descargarlos, y las librerías del sistema que agrega
+`--with-deps` se instalan igual. Lo que sí ayuda es instalar solo los
+navegadores que la suite usa:
+
+```bash
+npx playwright install --with-deps chromium
+```
+
+### Avisar cuando falla
+
+Un resultado que nadie mira no sirve. Un paso con `if: failure()` puede
+mandar un mensaje a un canal de Slack a través de un **webhook**: una
+dirección que Slack da para publicar en un canal. La dirección es un
+secreto:
+
+```yaml
+- name: Avisar en Slack
+  if: failure()
+  env:
+    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  run: |
+    curl -X POST -H 'Content-type: application/json' \
+      --data "{\"text\":\"La regresión falló: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+      "$SLACK_WEBHOOK_URL"
+```
+
+- `run: |` permite escribir el comando en varias líneas.
+- `curl` manda un pedido HTTP: `-X POST` es el método, `-H` un
+  encabezado y `--data` el cuerpo, un JSON con el texto del mensaje.
+- `github.server_url`, `github.repository` y `github.run_id` arman el
+  enlace a la corrida, para que quien lee el aviso llegue directo al
+  reporte.
+
+### Revisar el workflow antes de subirlo
+
+Un error en el YAML recién aparece cuando GitHub intenta correrlo.
+**actionlint** es una herramienta que revisa los workflows en tu
+computadora. Con un `runs_on` (guion bajo en lugar de guion) y un secreto
+usado en una condición:
+
+```text
+.github/workflows/e2e.yml:6:3: "runs-on" section is missing in job "test" [syntax-check]
+.github/workflows/e2e.yml:7:5: unexpected key "runs_on" for "job" section. expected one of "concurrency", "container", "continue-on-error", "defaults", "env", "environment", "if", "name", "needs", "outputs", "permissions", "runs-on", "secrets", "services", "snapshot", "steps", "strategy", "timeout-minutes", "uses", "with" [syntax-check]
+.github/workflows/e2e.yml:13:17: context "secrets" is not allowed here. available contexts are "env", "github", "inputs", "job", "matrix", "needs", "runner", "steps", "strategy", "vars". see https://docs.github.com/en/actions/learn-github-actions/contexts#context-availability for more details [expression]
+```
+
+Cada error dice archivo, línea y columna. El último es una regla de
+GitHub: en una condición `if` de un paso no se puede leer `secrets`.
+
+### Sharding en CI
+
+Los shards de la entrada de paralelismo se lanzan con una **matriz**: el
+mismo job, repetido con distintos valores.
+
+```yaml
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3]
+        shardTotal: [3]
+    steps:
+      # ... checkout, setup-node, npm ci, navegadores ...
+      - name: Correr un shard
+        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=blob
+      - name: Guardar el resultado blob
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shardIndex }}
+          path: blob-report
+          retention-days: 1
+
+  reporte:
+    if: ${{ !cancelled() }}
+    needs: [tests]
+    runs-on: ubuntu-latest
+    steps:
+      # ... checkout, setup-node, npm ci ...
+      - name: Bajar los resultados de los shards
+        uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+      - name: Unir los reportes
+        run: npx playwright merge-reports --reporter html ./all-blob-reports
+```
+
+- La matriz crea tres copias del job `tests`, una por valor de
+  `shardIndex`, que corren al mismo tiempo en tres máquinas.
+- `fail-fast: false` evita que, si un shard falla, GitHub cancele los
+  otros: se quieren todos los resultados.
+- Cada shard sube su resultado `blob` con un nombre distinto.
+- `needs: [tests]` hace que `reporte` espere a los tres; baja los
+  artefactos en una sola carpeta y los une.
+
+`--reporter=blob` en el comando hace que cada shard escriba su resultado
+`blob` sin cambiar la configuración: los demás workflows, como la
+regresión nocturna, siguen generando el reporte HTML que suben como
+artefacto.
+
+### Avisar cuando falla un workflow con varios jobs
+
+`failure()` en un paso mira solo los pasos de su propio job. En el
+workflow de shards, el job `reporte` termina bien aunque los tests hayan
+fallado: un aviso dentro de ese job nunca saldría. El aviso va en un job
+propio, que depende de los anteriores:
+
+```yaml
+  aviso:
+    needs: [tests, reporte]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Avisar en Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"Fallaron los tests del Pull Request"}' \
+            "$SLACK_WEBHOOK_URL"
+```
+
+En la condición de un job, `failure()` es verdadero si falló alguno de
+los jobs de los que depende con `needs`.
+
+### Correr solo lo que cambió en un Pull Request
+
+`--only-changed` (entrada de tags y subsets) compara con una rama, y para
+eso Git necesita su historia. Por defecto, `actions/checkout` baja solo
+el último commit: no hay con qué comparar. `fetch-depth: 0` baja la
+historia completa:
+
+```yaml
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # ... setup-node, npm ci, navegadores ...
+      - name: Correr lo que cambió
+        run: npx playwright test --only-changed="origin/$GITHUB_BASE_REF"
+```
+
+`GITHUB_BASE_REF` es una variable de entorno que GitHub define en los
+Pull Requests, con el nombre de la rama de destino, por ejemplo `main`.
+`origin/main` es esa rama tal como está en GitHub.
+
+## Cuándo usarlo
+
+Desde el primer test que se integra al repositorio: la suite corre en
+cada Pull Request, con el reporte como artefacto. La regresión completa,
+con `schedule`. Secretos para todo lo que no puede quedar escrito, y un
+aviso para las fallas que tienen que verse.
+
+## Buenas prácticas
+
+- Guardar el reporte con `if: ${{ !cancelled() }}`.
+- Avisar desde un job propio cuando el workflow tiene varios.
+- Pasar contraseñas y tokens como `secrets`, y el resto como `vars`.
+- Usar `npm ci` y la caché de npm.
+- Revisar los workflows con actionlint antes de subirlos.
+
+## Anti-patrones
+
+- **Un paso de reporte sin condición**: falta justo cuando hace falta.
+- **Contraseñas escritas en el YAML.**
+- **`continue-on-error` sin un paso final que haga fallar el job.**
+- **Un aviso en cada corrida**, también cuando pasa: el canal se vuelve
+  ruido.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<StepOrderActivity />
+
+<NightFillActivity />
+
+<YamlSpotActivity />
+
+<CiQuizActivity />

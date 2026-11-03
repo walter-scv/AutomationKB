@@ -1,0 +1,183 @@
+---
+title: "Qué no compartir y quién decide"
+sidebar_position: 78
+---
+
+import Activity from '@site/src/components/Activity';
+import Quiz from '@site/src/components/Quiz';
+import Classify from '@site/src/components/Classify';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  POLICY_QUIZ,
+  SHARE_ITEMS,
+  SHARE_COLUMNS,
+  DECIDE_QUESTIONS,
+} from '@site/src/content/lessons/78-que-no-compartir';
+
+export const LESSON_SLUG = 'ai-ui-que-no-compartir';
+
+export function PolicyQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['policyquiz']);
+  return (
+    <Activity
+      title="Proteger lo sensible"
+      kind="Elegí la opción"
+      goal="elegir cómo evitar que un agente lea un secreto y cómo pedir ayuda sin exponer datos reales."
+      done={isDone('policyquiz')}
+      consigna="Son 2 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 2."
+    >
+      <Quiz
+        questions={POLICY_QUIZ}
+        onSolved={() => markDone('policyquiz')}
+      />
+    </Activity>
+  );
+}
+
+export function ShareClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['shareclassify']);
+  return (
+    <Activity
+      title="¿Se puede compartir?"
+      kind="Clasificar"
+      goal="distinguir lo que se puede compartir con un asistente de lo que no se comparte nunca."
+      done={isDone('shareclassify')}
+      consigna="Son 7 cosas que alguien de la suite de turnos quiere darle a un asistente. Arrastrá cada una a Se puede compartir o No se comparte. Regla para los casos dudosos: lo que no va en el repositorio, o expone datos de personas reales, tampoco va en un pedido. Se completa cuando las 7 están en su caja."
+    >
+      <Classify
+        items={SHARE_ITEMS}
+        columns={SHARE_COLUMNS}
+        itemLabel="Contenido"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('shareclassify')}
+        onSolved={() => markDone('shareclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function DecideMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['decidemulti']);
+  return (
+    <Activity
+      title="Delegar o decidir"
+      kind="Marcar todas"
+      goal="separar las tareas que se delegan a un agente de las decisiones que siguen siendo de las personas."
+      done={isDone('decidemulti')}
+      consigna="Es 1 pregunta con 6 opciones. Marcá todas las que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={DECIDE_QUESTIONS}
+        alreadyDone={isDone('decidemulti')}
+        onSolved={() => markDone('decidemulti')}
+      />
+    </Activity>
+  );
+}
+
+Usar un asistente implica mandarle información y delegarle trabajo. Esta entrada muestra qué no se comparte nunca, cómo se evita que un agente lo lea, y qué decisiones siguen siendo de las personas.
+
+## Conceptos
+
+### Lo que escribís en un pedido sale de tu computadora
+
+El modelo de lenguaje no corre en tu computadora: corre en los servidores
+de la empresa que lo ofrece, el **proveedor** (Anthropic en el caso de
+Claude). Para responder, el proveedor tiene que recibir todo el contexto
+(entrada de cómo funciona un asistente): lo que escribís, los archivos
+que se leen y la salida de los comandos que se corren. Todo eso viaja por
+internet hasta sus servidores.
+
+Con un asistente de chat, viaja lo que pegás vos. Con un agente, también
+viaja lo que él decide leer. Si un agente abre el archivo `.env` para
+entender por qué falla el ingreso, el contenido de `.env`, con sus
+contraseñas, sale de tu computadora aunque vos nunca lo hayas pegado.
+
+Por eso la regla es la misma que para un repositorio (entrada de
+parametrización: datos y entornos): lo que no se sube al repositorio
+tampoco se comparte con un asistente.
+
+### Lo que nunca va
+
+- **Secretos**: contraseñas, tokens de acceso, el contenido de `.env`,
+  claves de servicios.
+- **Sesiones guardadas**: un archivo como `playwright/.auth/recepcion.json`
+  tiene la sesión iniciada de una cuenta; con él, cualquiera entra como
+  esa cuenta sin la contraseña (entrada de sesión reutilizada).
+- **Datos personales reales**: nombres, documentos, teléfonos o historias
+  clínicas de pacientes reales, aunque estén copiados en un entorno de
+  pruebas.
+- **Código o documentos que la empresa no autorizó** a compartir con esa
+  herramienta.
+
+Con un agente, «no pegarlo» no alcanza: puede leerlo solo. Lo que no
+tiene que leer se bloquea con una regla de **permisos**: una
+configuración que le prohíbe a Claude Code, por ejemplo, leer `.env`, aunque
+el agente lo intente (entrada de permisos).
+
+### La política de la empresa
+
+Cada organización decide qué asistentes se pueden usar, con qué tipo de
+cuenta y con qué datos. Los proveedores ofrecen planes distintos: en
+algunos se comprometen a no usar tus conversaciones para entrenar sus
+modelos futuros, y en otros no. Antes de usar un asistente con el código
+de un cliente, se consulta esa política; si no existe, se pregunta.
+
+### Datos de prueba que se pueden compartir
+
+Lo que sí se puede compartir son datos inventados para las pruebas: las
+cuentas de prueba del entorno, los turnos y pacientes que crean las
+fixtures, nombres generados con Faker, la librería que inventa nombres,
+emails y documentos con forma realista (entrada de parametrización: datos
+y entornos). Si un defecto solo aparece con los datos de un paciente
+real, primero se reproduce con datos inventados equivalentes, y recién
+ahí se le pide ayuda a un asistente.
+
+### Qué se delega y qué decide una persona
+
+Un asistente es muy bueno en lo mecánico y verificable: recorrer una
+pantalla, escribir un borrador, proponer causas de un fallo, revisar que
+un archivo cumpla una regla. Hay decisiones que siguen siendo de las
+personas, porque dependen de información o de responsabilidades que el
+asistente no tiene:
+
+- **Qué se prueba y con qué prioridad**: sale del análisis de riesgo
+  (entrada de estrategia de testing) y del conocimiento del negocio.
+- **Si un comportamiento es un defecto o un cambio aprobado**: depende
+  del diseño y de lo que decidió el equipo, que el asistente no sabe.
+- **Qué entra a la rama principal**: aprobar un Pull Request es asumir
+  una responsabilidad sobre ese código.
+- **Qué hacer con un hallazgo**: reportarlo, priorizarlo o descartarlo.
+
+El criterio general: se delega lo que se puede verificar rápido; se
+decide lo que requiere conocer el negocio o asumir una responsabilidad.
+
+## Cuándo usarlo
+
+Cada vez que vayas a pegar algo en un pedido o a darle a un agente acceso
+a una carpeta, y cada vez que una tarea incluya una decisión.
+
+## Buenas prácticas
+
+- Consultar la política de la empresa antes de usar un asistente con
+  código de un cliente.
+- Bloquear con permisos los archivos que un agente no tiene que leer.
+- Reproducir con datos inventados lo que se encontró con datos reales.
+- Delegar lo verificable y decidir lo que requiere responsabilidad.
+
+## Anti-patrones
+
+- **Pegar el `.env`** «para que entienda por qué falla el ingreso».
+- **Confiar en que el agente no va a leer** un archivo sensible.
+- **Dejar que el asistente apruebe** lo que entra a la rama principal.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<PolicyQuizActivity />
+
+<ShareClassifyActivity />
+
+<DecideMultiActivity />

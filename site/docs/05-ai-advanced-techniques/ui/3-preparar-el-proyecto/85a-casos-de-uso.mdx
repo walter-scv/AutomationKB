@@ -1,0 +1,285 @@
+---
+title: "Casos de uso: lo que la aplicación tiene que hacer"
+sidebar_position: 85.1
+---
+
+import Activity from '@site/src/components/Activity';
+import FindInCode from '@site/src/components/FindInCode';
+import DecisionPath from '@site/src/components/DecisionPath';
+import Classify from '@site/src/components/Classify';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  UC_LINES,
+  UC_RULE_LABELS,
+  START_START,
+  START_NODES,
+  START_EXPLANATION,
+  DOC_ITEMS,
+  DOC_COLUMNS,
+} from '@site/src/content/lessons/85a-casos-de-uso';
+
+export const LESSON_SLUG = 'ai-ui-casos-de-uso';
+
+export function UcFindActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['ucfind']);
+  return (
+    <Activity
+      title="Revisar un caso de uso"
+      kind="Buscar en el código"
+      goal="detectar en un caso de uso los resultados que no se pueden comprobar, los detalles de implementación y las precondiciones que no alcanzan para preparar datos."
+      done={isDone('ucfind')}
+      consigna="Son 8 líneas del borrador de UC-09, reprogramar un turno. Elegí cada una y decí qué problema tiene (resultado o regla que no se puede comprobar, detalle de implementación, o no alcanza para preparar los datos), o si no tiene problema. Se completa cuando encontrás las 5 que tienen un problema."
+    >
+      <FindInCode
+        lines={UC_LINES}
+        ruleLabels={UC_RULE_LABELS}
+        okLabel="Sin problema"
+        prompt="¿qué problema tiene?"
+        itemLabel="Línea del caso de uso"
+        counterLabel="líneas con problema encontradas"
+        alreadyDone={isDone('ucfind')}
+        onSolved={() => markDone('ucfind')}
+      />
+    </Activity>
+  );
+}
+
+export function StartPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['startpath']);
+  return (
+    <Activity
+      title="Empezar sin nada escrito"
+      kind="Escenario encadenado"
+      goal="escribir los casos de uso de un proyecto que no tiene nada, en el orden que corresponde."
+      done={isDone('startpath')}
+      consigna="Son 3 decisiones encadenadas sobre los casos de uso de la agenda. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={START_START}
+        nodes={START_NODES}
+        explanation={START_EXPLANATION}
+        alreadyDone={isDone('startpath')}
+        onSolved={() => markDone('startpath')}
+      />
+    </Activity>
+  );
+}
+
+export function DocClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['docclassify']);
+  return (
+    <Activity
+      title="¿En qué documento va?"
+      kind="Clasificar"
+      goal="distinguir lo que va en un caso de uso, en un Page Object y en las instrucciones del proyecto."
+      done={isDone('docclassify')}
+      consigna="Son 7 datos sobre la agenda y su suite. Arrastrá cada uno a Caso de uso, Page Object o Instrucciones del proyecto. Regla para los casos dudosos: si dice qué tiene que hacer la aplicación, caso de uso; si dice cómo encuentra el test un elemento, Page Object; si dice cómo se trabaja en la suite, instrucciones del proyecto. Se completa cuando los 7 están en su caja."
+    >
+      <Classify
+        items={DOC_ITEMS}
+        columns={DOC_COLUMNS}
+        itemLabel="Dato"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('docclassify')}
+        onSolved={() => markDone('docclassify')}
+      />
+    </Activity>
+  );
+}
+
+Un agente no sabe las reglas del negocio ni qué flujos importan: lo sabe si está escrito. Esta entrada muestra qué es un caso de uso, qué contiene y qué no, cómo se une con los tests y cómo se escriben en un proyecto que no tiene nada escrito.
+
+## Conceptos
+
+### Lo que un agente no puede adivinar
+
+Un agente con un navegador ve la pantalla, y con acceso al repositorio lee
+el código. Con eso sabe qué botones hay, pero no sabe:
+
+- **qué reglas tiene que cumplir la aplicación**: si un turno se puede
+  cancelar hasta 2 horas antes o hasta 24, no lo dice ningún botón;
+- **qué flujos importan**: el principal, los alternativos y los de error
+  de cada funcionalidad;
+- **qué está probado y qué no**: sin esa información, propone tests que ya
+  existen y deja afuera los que faltan.
+
+Una persona nueva en el equipo lo aprende preguntando. Un agente arranca
+cada sesión de cero (entrada de instrucciones del proyecto): lo que no
+está escrito, no lo sabe. Y cuando le falta una regla, hace algo peor que
+preguntar: toma como correcto lo que muestra la aplicación. Si la agenda
+deja cancelar un turno 1 hora antes y nadie escribió que el límite es de
+2 horas, un agente que explora informa que «la cancelación funciona».
+
+En las unidades siguientes vas a ver agentes que automatizan casos
+nuevos, que reparan tests rotos, que exploran la aplicación buscando
+defectos y que comparan pantallas antes y después de un cambio. Todos
+dependen de saber qué tiene que hacer la aplicación. Eso se escribe en
+los **casos de uso**, el tema de esta entrada. Cómo se llega a cada
+pantalla es otro documento, el mapa de navegación, que se ve en la
+entrada siguiente.
+
+### El caso de uso: qué hace el usuario y qué reglas se cumplen
+
+Un **caso de uso** describe, para una funcionalidad, qué quiere lograr un
+usuario, los pasos para lograrlo y lo que tiene que pasar en cada
+variante. Es un documento por funcionalidad, en Markdown, dentro del
+repositorio, por ejemplo en `docs/casos-de-uso/agenda/uc-07-cancelar-turno.md`:
+
+```markdown
+# UC-07 · Cancelar un turno
+
+**Actor:** recepcionista
+**Pantalla:** agenda del día
+
+## Precondiciones
+- La recepcionista ingresó al sistema.
+- Hay un turno reservado para dentro de más de 2 horas.
+
+## Flujo principal
+1. Abre la agenda del día del turno.
+2. Presiona «Cancelar turno» en la fila del turno.
+3. Confirma en el diálogo.
+4. El turno se muestra como «Libre».
+
+## Flujos alternativos
+- A1. En el diálogo presiona «Volver»: el turno sigue «Reservado».
+
+## Flujos de error
+- E1. Faltan menos de 2 horas: el botón está deshabilitado y se muestra
+  «No se puede cancelar con menos de 2 horas».
+
+## Reglas de negocio
+- RN-1. Un turno se puede cancelar hasta 2 horas antes de su horario.
+- RN-2. Al cancelar, el paciente recibe un email de aviso.
+
+## Datos necesarios
+- Un turno reservado para dentro de más de 2 horas.
+- Un turno reservado para dentro de menos de 2 horas (para E1).
+
+## Cobertura
+| Flujo | Test |
+| :- | :- |
+| Principal | cancelar un turno lo libera |
+| A1 | — |
+| E1 | — |
+```
+
+Cada sección le sirve a alguien:
+
+| Sección | Para qué la usa un agente |
+| :- | :- |
+| Precondiciones y datos necesarios | Preparar el estado antes de probar |
+| Flujo principal | El escenario que no puede faltar en el plan |
+| Flujos alternativos y de error | Los escenarios que más defectos encuentran |
+| Reglas de negocio | Saber cuál es el valor correcto, en lugar de copiar el que muestra la aplicación |
+| Cobertura | Saber qué ya está automatizado y qué falta |
+
+### Qué va y qué no va en un caso de uso
+
+Va:
+
+- **lo que ve y hace el usuario**, con los textos de la pantalla;
+- **valores concretos**: «hasta 2 horas antes», no «con anticipación
+  suficiente»;
+- **resultados que se pueden comprobar**: «el turno se muestra como
+  Libre», no «el sistema funciona correctamente».
+
+No va:
+
+- **cómo está hecho**: endpoints, tablas de la base de datos, nombres de
+  componentes. Cambian sin que cambie lo que hace el usuario;
+- **locators**: viven en los Page Objects (sección III);
+- **código de tests**: el caso de uso dice qué se prueba; el cómo está en
+  la suite.
+
+Es el mismo criterio que un buen caso de test (entrada de anatomía de un
+caso de test), un nivel más arriba: un caso de uso da origen a varios
+casos de test.
+
+### Unir los tests con los documentos
+
+Para que la tabla de cobertura sea confiable, cada test lleva el
+identificador de su caso de uso como tag (entrada de tags, anotaciones y
+subsets):
+
+```ts
+test('cancelar un turno lo libera', { tag: ['@p0', '@UC-07'] }, async ({ agendaPage, turnoReservado }) => {
+  // ...
+});
+```
+
+Con eso:
+
+- `npx playwright test --grep @UC-07` corre los tests de ese caso de uso;
+- un agente que planifica busca `@UC-07` en la suite y sabe qué flujos ya
+  tienen test;
+- cuando un agente termina de automatizar un caso de uso, puede
+  actualizar la tabla de cobertura con los tests que efectivamente
+  corrieron, en lugar de con los que dice haber escrito.
+
+Por qué dos cifras: `--grep` busca texto, y si los casos de uso se
+numeraran con una sola, `--grep @UC-7` también encontraría los tests de
+`@UC-70`. Con dos cifras desde el principio (`UC-07`), cada búsqueda
+encuentra solo lo suyo.
+
+### Empezar cuando no hay nada escrito
+
+En la mayoría de los proyectos, estos documentos no existen. No hace falta
+escribirlos todos antes de empezar: se arma por partes, empezando por lo
+que más riesgo tiene.
+
+1. **Los casos de uso de los flujos críticos.** Los que más riesgo tienen
+   (entrada de estrategia de testing): en la agenda, reservar, cancelar
+   y reprogramar. El resto se suma después.
+2. **Las reglas, de quien las conoce.** Las reglas de negocio salen de los
+   criterios de aceptación, de los tickets y de quien define el producto,
+   no de la aplicación. Un agente que escribe un caso de uso a partir de lo
+   que ve documenta los defectos como si fueran reglas. Un borrador
+   escrito por un agente se marca como borrador hasta que alguien
+   confirma cada regla.
+3. **Los tags en los tests que ya existen**, y la tabla de cobertura
+   completa.
+4. **En el repositorio, revisados como código.** Un cambio en un caso de
+   uso se revisa en un Pull Request, igual que un test.
+
+### ¿Está listo el proyecto?
+
+Antes de sumar un sistema de agentes, conviene comprobar:
+
+- cada flujo crítico tiene su caso de uso, con reglas que tienen valores
+  concretos;
+- cada test de esos flujos tiene el tag de su caso de uso;
+- las tablas de cobertura coinciden con lo que corre la suite.
+
+Lo que se gana no es solo para los agentes: es la misma documentación que
+necesita una persona que se suma al equipo.
+
+## Cuándo usarlo
+
+Antes de cualquier sistema de agentes que planifique, explore o decida si
+un cambio es correcto. Se empieza por los flujos críticos y se completa a
+medida que se automatiza.
+
+## Buenas prácticas
+
+- Un caso de uso por funcionalidad, con reglas de valores concretos.
+- El identificador del caso de uso como tag en cada test.
+- Las reglas confirmadas por quien define el producto.
+- Documentos en el repositorio, revisados en Pull Requests.
+
+## Anti-patrones
+
+- **Documentar lo que hace la aplicación** como si fuera la regla.
+- **Resultados sin valor concreto**: «funciona correctamente».
+- **Detalles de implementación** en el caso de uso.
+- **Una tabla de cobertura mantenida a mano**, sin tags que la respalden.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<UcFindActivity />
+
+<StartPathActivity />
+
+<DocClassifyActivity />

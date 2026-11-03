@@ -1,0 +1,281 @@
+---
+title: "Agentes en CI"
+sidebar_position: 85.4
+---
+
+import Activity from '@site/src/components/Activity';
+import FillBlank from '@site/src/components/FillBlank';
+import Match from '@site/src/components/Match';
+import DecisionPath from '@site/src/components/DecisionPath';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  WF_TEMPLATE,
+  WF_SLOTS,
+  WF_BANK,
+  WF_EXPLANATION,
+  WHERE_LEFT,
+  WHERE_RIGHT,
+  WHERE_WHY,
+  CI_START,
+  CI_NODES,
+  CI_EXPLANATION,
+} from '@site/src/content/lessons/85d-agentes-en-ci';
+
+export const LESSON_SLUG = 'ai-ui-agentes-en-ci';
+
+export function WfFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['wffill']);
+  return (
+    <Activity
+      title="Un workflow con agente"
+      kind="Completar huecos"
+      goal="escribir un job con agente que tiene límites de tiempo y de vueltas, permisos mínimos y la clave como secreto."
+      done={isDone('wffill')}
+      consigna="El job del resumen nocturno tiene que cortarse a los 20 minutos, solo leer el repositorio, tomar la clave de un secreto y no dar más de 15 vueltas. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={WF_TEMPLATE}
+        slots={WF_SLOTS}
+        bank={WF_BANK}
+        explanation={WF_EXPLANATION}
+        alreadyDone={isDone('wffill')}
+        onSolved={() => markDone('wffill')}
+      />
+    </Activity>
+  );
+}
+
+export function WhereMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['wherematch']);
+  return (
+    <Activity
+      title="Dónde se configura cada límite"
+      kind="Emparejar"
+      goal="ubicar cada límite de un agente en CI en el lugar donde se configura."
+      done={isDone('wherematch')}
+      consigna="Son 5 pares. Elegí una necesidad de la izquierda y después dónde se configura (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={WHERE_LEFT}
+        right={WHERE_RIGHT}
+        why={WHERE_WHY}
+        leftLabel="Necesidad"
+        rightLabel="Dónde"
+        alreadyDone={isDone('wherematch')}
+        onSolved={() => markDone('wherematch')}
+      />
+    </Activity>
+  );
+}
+
+export function CiPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['cipath']);
+  return (
+    <Activity
+      title="Un agente que corre solo"
+      kind="Escenario encadenado"
+      goal="resolver los problemas habituales de un agente en CI: commits que no disparan la suite, procedimientos sin probar y corridas sin señal."
+      done={isDone('cipath')}
+      consigna="Son 3 situaciones encadenadas con agentes en el CI de la agenda. En cada una elegí qué hacés; si no es lo correcto, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={CI_START}
+        nodes={CI_NODES}
+        explanation={CI_EXPLANATION}
+        alreadyDone={isDone('cipath')}
+        onSolved={() => markDone('cipath')}
+      />
+    </Activity>
+  );
+}
+
+Algunos sistemas de agentes se disparan solos, sin nadie en la terminal. Esta entrada muestra cómo correr Claude Code dentro de un workflow de GitHub Actions: la acción oficial, las credenciales, cómo se limita lo que puede hacer, los límites de tiempo y costo, cómo ver qué hizo y una trampa de GitHub que conviene conocer antes de reparar con agentes.
+
+## Conceptos
+
+### Un agente sin nadie en la terminal
+
+Hasta acá, el agente corrió en tu computadora: vos escribías el pedido y
+aprobabas cada acción. Algunos sistemas de la unidad 5 funcionan de otra
+forma: se disparan solos, cuando falla la suite de un Pull Request o
+cada noche, y nadie está mirando. Para eso, el agente corre en **CI**,
+dentro de un workflow de GitHub Actions, igual que la suite (entrada de
+CI con GitHub Actions).
+
+Correr ahí cambia tres cosas:
+
+- **No hay a quién preguntarle.** Ningún aviso de permiso se puede
+  aprobar: lo que el agente puede hacer se decide de antemano, en la
+  configuración.
+- **Necesita credenciales propias.** No tiene tu sesión iniciada: hay que
+  darle una forma de usar el modelo y una forma de trabajar en el
+  repositorio.
+- **Cada corrida cuesta, aunque nadie la mire.** Un workflow mal
+  configurado puede correr cien veces en un día.
+
+Esta entrada muestra cómo se arma, antes de ver los sistemas que lo usan.
+
+### La acción oficial
+
+Anthropic publica una acción de GitHub, `anthropics/claude-code-action`,
+que corre Claude Code dentro de un workflow. Se agrega como un paso más,
+después de bajar el repositorio:
+
+```yaml
+name: Resumen de la regresión
+on:
+  workflow_dispatch:
+
+jobs:
+  resumen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "/resumen-regresion"
+          claude_args: "--max-turns 15"
+```
+
+- `prompt` es el pedido. Puede ser texto o el nombre de una skill del
+  repositorio (entrada de skills): así el procedimiento queda escrito y
+  revisado en un archivo, no en el workflow.
+- `claude_args` pasa opciones a Claude Code. `--max-turns 15` corta el
+  trabajo después de quince vueltas del ciclo del agente; `--model`
+  elige el modelo; `--allowedTools` dice qué herramientas puede usar sin
+  preguntar.
+- Sin `prompt`, la acción funciona de otra forma: espera que alguien
+  escriba `@claude` en un comentario de un Pull Request o de un issue, y
+  responde ahí.
+
+### Las credenciales
+
+El agente necesita dos accesos:
+
+- **Al modelo.** Una clave de la API de Claude, que se crea en Claude
+  Console, o un token de una suscripción, que se genera con
+  `claude setup-token`. Se guarda como **secreto** del repositorio, en la
+  configuración de GitHub, y el workflow la lee con
+  `${{ secrets.ANTHROPIC_API_KEY }}`. Nunca se escribe en el archivo
+  (entrada de qué no compartir).
+- **Al repositorio.** Para leer código, crear ramas o comentar en un Pull
+  Request, la acción usa la aplicación de GitHub de Claude, que se instala
+  en el repositorio. Desde una sesión, el comando `/install-github-app`
+  instala la aplicación, guarda el secreto y prepara el workflow, en un
+  solo paso. Hace falta ser administrador del repositorio.
+
+Un caso que aparece seguido en suites de testing: los tests están en un
+repositorio y la aplicación en otro. Si el agente tiene que leer el
+código de la aplicación, por ejemplo para ver qué texto tiene hoy un
+botón, necesita acceso a los dos, y eso se configura de forma explícita.
+
+### Qué puede hacer: permisos sin nadie que apruebe
+
+En CI no hay avisos de permiso. El alcance se fija en tres lugares, y
+conviene usar los tres:
+
+- **El bloque `permissions` del workflow**: qué puede hacer el job en
+  GitHub. `contents: read` permite leer el repositorio; `contents: write`,
+  subir cambios; `pull-requests: write`, comentar o abrir Pull Requests;
+  `issues: write`, crear o comentar issues, como hace el resumen del
+  ejemplo; `id-token: write` lo necesita la acción para autenticarse. Se da lo
+  mínimo para la tarea.
+- **Las herramientas de Claude Code**: con `--allowedTools` o con las
+  reglas de `.claude/settings.json` del repositorio (entrada de
+  permisos). Un agente que resume una corrida no necesita editar
+  archivos.
+- **El pedido**: qué archivos puede tocar y cuáles no, escrito en la
+  skill o en el `prompt` (entrada de pedirle bien).
+
+### Límites de tiempo y de costo
+
+Cada corrida consume dos cosas: minutos de GitHub Actions y tokens del
+modelo. Para que un error no se convierta en una factura:
+
+- `--max-turns` en `claude_args`, para cortar un agente que da vueltas;
+- `timeout-minutes` en el job, para cortar el workflow entero;
+- `concurrency` en el workflow, para que una ejecución nueva sobre la
+  misma rama cancele la anterior en lugar de sumarse:
+
+  ```yaml
+  concurrency:
+    group: resumen-${{ github.ref }}
+    cancel-in-progress: true
+  ```
+
+  Las ejecuciones con el mismo `group` (acá, «resumen» más la rama)
+  corren de a una; con `cancel-in-progress: true`, la nueva cancela a la
+  que estaba corriendo;
+- condiciones de disparo estrictas: que corra cuando hace falta, no en
+  cada push.
+
+### Ver qué hizo
+
+Si nadie miró la corrida, lo que hizo el agente se lee después:
+
+- en el **registro del workflow**, en la pestaña Actions de GitHub, que
+  muestra el trabajo del agente paso a paso;
+- en lo que dejó: un comentario en el Pull Request, una rama nueva, un
+  issue;
+- en los **artefactos** que suba el workflow, como el reporte de la suite
+  o las capturas (entrada de reportes).
+
+Un sistema que corre en CI tiene que dejar siempre una señal visible,
+también cuando decide no hacer nada: «no corrí porque…». Si no deja
+nada, no se distingue un agente que decidió no actuar de uno que no
+arrancó.
+
+### Una trampa de GitHub
+
+Los commits que se suben con el token automático de cada workflow,
+`GITHUB_TOKEN`, no disparan otros workflows. Si un agente sube una
+corrección con ese token, la suite no vuelve a correr sobre esa
+corrección. La acción de Claude, cuando no se le pasa un `github_token`,
+usa su propia aplicación de GitHub, y sus commits sí disparan la suite.
+Es un detalle que importa en cuanto el agente repara algo y se espera que
+la suite lo confirme (unidad 5).
+
+### Antes de llevarlo a CI
+
+Un procedimiento se lleva a CI cuando ya funciona a mano: primero se
+invoca la skill en tu computadora, se mira cada paso y se corrige; recién
+cuando da resultados confiables, se programa en un workflow. Un agente
+que todavía no funciona bien a mano, en CI solo falla más caro y sin que
+nadie lo vea.
+
+## Cuándo usarlo
+
+Cuando una tarea de agente tiene que dispararse sola, ante un evento del
+repositorio o en un horario, y el procedimiento ya se probó a mano.
+
+## Buenas prácticas
+
+- La clave del modelo como secreto, nunca en el archivo.
+- Permisos mínimos en el workflow y en las herramientas del agente.
+- `--max-turns`, `timeout-minutes` y `concurrency` en todo workflow con
+  un agente.
+- Una señal visible en cada corrida, también cuando no actúa.
+- Probar el procedimiento a mano antes de programarlo.
+
+## Anti-patrones
+
+- **`contents: write` y todas las herramientas** para un agente que solo
+  tiene que leer.
+- **Un workflow con agente sin límites** de vueltas ni de tiempo.
+- **Llevar a CI un procedimiento** que nunca se corrió a mano.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<WfFillActivity />
+
+<WhereMatchActivity />
+
+<CiPathActivity />

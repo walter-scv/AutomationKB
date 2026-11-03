@@ -1,0 +1,405 @@
+---
+title: "Instalar Playwright y recorrer el proyecto"
+sidebar_position: 38
+---
+
+import Activity from '@site/src/components/Activity';
+import Terminal from '@site/src/components/Terminal';
+import Classify from '@site/src/components/Classify';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import DecisionPath from '@site/src/components/DecisionPath';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  SETUP_STEPS,
+  SETUP_EXPLANATION,
+  GIT_ITEMS,
+  GIT_COLUMNS,
+  UPDATE_PREFIX,
+  UPDATE_STEPS,
+  UPDATE_EXPLANATION,
+  CLONE_START,
+  CLONE_NODES,
+  CLONE_EXPLANATION,
+} from '@site/src/content/lessons/38-instalar-playwright';
+
+export const LESSON_SLUG = 'domains-ui-instalar-playwright';
+
+export function SetupTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['setupterm']);
+  return (
+    <Activity
+      title="Crear la suite desde cero"
+      kind="Terminal"
+      goal="crear un proyecto de Playwright, confirmar que funciona y consultar su versión, leyendo cada salida."
+      done={isDone('setupterm')}
+      consigna="Son 4 pasos en una carpeta vacía. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el cuarto paso."
+    >
+      <Terminal
+        steps={SETUP_STEPS}
+        explanation={SETUP_EXPLANATION}
+        alreadyDone={isDone('setupterm')}
+        onSolved={() => markDone('setupterm')}
+      />
+    </Activity>
+  );
+}
+
+export function GitClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['gitclassify']);
+  return (
+    <Activity
+      title="¿Va al repositorio?"
+      kind="Clasificar"
+      goal="decidir qué archivos y carpetas de un proyecto de Playwright se versionan en Git."
+      done={isDone('gitclassify')}
+      consigna="Son 9 archivos y carpetas de la suite de turnos. Arrastrá cada uno a Se versiona o No se versiona. Regla para los casos dudosos: pensá si otra persona que clona el repositorio necesita ese archivo tal cual, o si lo puede obtener corriendo un comando. Se completa cuando los 9 están en su caja."
+    >
+      <Classify
+        items={GIT_ITEMS}
+        columns={GIT_COLUMNS}
+        itemLabel="Archivo"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('gitclassify')}
+        onSolved={() => markDone('gitclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function UpdateBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['updatebuilder']);
+  return (
+    <Activity
+      title="Armar el comando de actualización"
+      kind="Armar"
+      goal="construir el comando que actualiza Playwright a su última versión como dependencia de desarrollo."
+      done={isDone('updatebuilder')}
+      consigna="Armá el comando eligiendo un fragmento por paso; el siguiente se habilita cuando acertás. Son 3 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={UPDATE_PREFIX}
+        steps={UPDATE_STEPS}
+        explanation={UPDATE_EXPLANATION}
+        alreadyDone={isDone('updatebuilder')}
+        onSolved={() => markDone('updatebuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function CloneActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['clone']);
+  return (
+    <Activity
+      title="La suite en otra computadora"
+      kind="Escenario encadenado"
+      goal="resolver la instalación de una suite existente, el error de navegadores faltantes y su instalación en integración continua."
+      done={isDone('clone')}
+      consigna="Son 4 decisiones encadenadas: cada una depende de la anterior. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la cuarta."
+    >
+      <DecisionPath
+        startId={CLONE_START}
+        nodes={CLONE_NODES}
+        explanation={CLONE_EXPLANATION}
+        alreadyDone={isDone('clone')}
+        onSolved={() => markDone('clone')}
+      />
+    </Activity>
+  );
+}
+
+Playwright es la herramienta de este track: un framework de Microsoft para automatizar Chromium, Firefox y WebKit con un mismo código, que incluye su propio runner de tests. Esta entrada lo instala, recorre cada archivo que crea y confirma que funciona.
+
+## Conceptos
+
+### Qué se instala
+
+Playwright tiene dos partes que se instalan por separado:
+
+- **El paquete `@playwright/test`**: el *test runner*, el programa que
+  encuentra los archivos de test, los ejecuta y arma el reporte. Incluye
+  `test`, `expect` y todas las funciones para manejar el navegador. Se
+  instala con npm, como cualquier dependencia del proyecto, dentro de
+  `node_modules/`.
+- **Los navegadores**: versiones de Chromium, Firefox y WebKit (el motor de
+  Safari) preparadas para Playwright. No van dentro del proyecto sino en
+  una carpeta compartida de la computadora: `~/Library/Caches/ms-playwright`
+  en macOS, `~/.cache/ms-playwright` en Linux y
+  `%USERPROFILE%\AppData\Local\ms-playwright` en Windows.
+
+Cada versión de `@playwright/test` funciona con una versión exacta de cada
+navegador. Por eso, cuando se actualiza el paquete, también hay que
+descargar los navegadores nuevos.
+
+El único requisito previo es Node.js. La documentación de Playwright pide
+una versión actual de las ramas 22, 24 o 26, y se comprueba con el comando de la entrada
+sobre cómo se ejecuta el código:
+
+```bash
+node -v
+```
+
+```text
+v24.0.0
+```
+
+### Crear el proyecto
+
+En una carpeta vacía, por ejemplo `biblioteca-e2e`, un solo comando crea
+el proyecto:
+
+```bash
+npm init playwright@latest
+```
+
+`npm init` descarga y ejecuta el instalador de Playwright, que hace cuatro
+preguntas. Cada una muestra entre paréntesis o después de `›` la opción
+por defecto, que se acepta con Enter:
+
+```text
+? Do you want to use TypeScript or JavaScript? … TypeScript
+? Where to put your end-to-end tests? › tests
+? Add a GitHub Actions workflow? (Y/n) › true
+? Install Playwright browsers (can be done manually via 'npx playwright install')? (Y/n) › true
+```
+
+1. **TypeScript o JavaScript**: el lenguaje de los tests. En este curso,
+   TypeScript.
+2. **Dónde poner los tests**: el nombre de la carpeta. Por defecto,
+   `tests` (o `e2e`, si ya existe una carpeta `tests`).
+3. **Workflow de GitHub Actions**: un archivo para que GitHub corra los
+   tests en cada cambio. Se ve en la sección IV; aceptarlo ahora no tiene
+   costo.
+4. **Instalar los navegadores**: si se contesta que no, se pueden
+   descargar después con `npx playwright install`.
+
+Después, el instalador informa lo que hace:
+
+```text
+Installing Playwright Test (npm install --save-dev @playwright/test)…
+Installing Types (npm install --save-dev @types/node)…
+Writing playwright.config.ts.
+Writing .github/workflows/playwright.yml.
+Writing tests/example.spec.ts.
+Writing package.json.
+Downloading browsers (npx playwright install)…
+```
+
+Las dos primeras líneas instalan el paquete y los tipos de Node.js como
+dependencias de desarrollo (`--save-dev`): herramientas para trabajar en
+el proyecto, no partes de una aplicación. Las cuatro `Writing` crean los
+archivos. La última descarga los tres navegadores, que pesan entre 80 y
+190 MB cada uno; la primera vez tarda unos minutos.
+
+En un proyecto que ya existe, por ejemplo el repositorio de la aplicación,
+se corre el mismo comando en su carpeta raíz: el instalador agrega
+Playwright a ese `package.json` en lugar de crear uno nuevo.
+
+### Qué se creó
+
+```text
+biblioteca-e2e/
+├── .github/
+│   └── workflows/
+│       └── playwright.yml
+├── .gitignore
+├── node_modules/
+├── package-lock.json
+├── package.json
+├── playwright.config.ts
+└── tests/
+    └── example.spec.ts
+```
+
+- `package.json`: describe el proyecto. Lo que importa ahora es la
+  sección de dependencias de desarrollo:
+
+  ```json
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.6"
+  }
+  ```
+
+  Quien clone el repositorio corre `npm install` y obtiene esas mismas
+  dependencias.
+- `package-lock.json`: registra la versión exacta de cada paquete que se
+  instaló, incluidas las dependencias de las dependencias. Se versiona
+  junto al `package.json` para que todo el equipo, y el servidor de
+  integración continua, instalen exactamente lo mismo.
+- `node_modules/`: el código de los paquetes instalados. Se regenera con
+  `npm install`, así que no se versiona.
+- `playwright.config.ts`: la configuración de la suite. Es el tema de la
+  entrada siguiente.
+- `tests/example.spec.ts`: un archivo de ejemplo con dos tests contra el
+  sitio de Playwright. Sirve para comprobar que la instalación funciona;
+  después se borra. Las partes de un test se ven en la entrada de
+  anatomía de un test.
+- `.github/workflows/playwright.yml`: el workflow de GitHub Actions.
+- `.gitignore`: lo que Git no tiene que versionar (entrada de primer
+  commit). El instalador agrega estas líneas:
+
+  ```text
+  # Playwright
+  node_modules/
+  /test-results/
+  /playwright-report/
+  /blob-report/
+  /playwright/.cache/
+  /playwright/.auth/
+  ```
+
+  Todas son carpetas que se generan solas: los paquetes, los resultados y
+  los reportes de cada corrida, y (más adelante) archivos con sesiones de
+  usuarios que no pueden subirse al repositorio.
+
+### La primera corrida
+
+Para comprobar que todo funciona, se corren los tests de ejemplo:
+
+```bash
+npx playwright test
+```
+
+`npx` ejecuta un programa instalado en el proyecto, en este caso el
+runner de Playwright. La salida:
+
+```text
+Running 6 tests using 5 workers
+
+[1/6] [webkit] › tests/example.spec.ts:3:5 › has title
+[2/6] [chromium] › tests/example.spec.ts:3:5 › has title
+[3/6] [chromium] › tests/example.spec.ts:10:5 › get started link
+[4/6] [firefox] › tests/example.spec.ts:10:5 › get started link
+[5/6] [firefox] › tests/example.spec.ts:3:5 › has title
+[6/6] [webkit] › tests/example.spec.ts:10:5 › get started link
+  6 passed (8.5s)
+```
+
+El archivo tiene dos tests, pero corrieron seis: la configuración generada
+pide correr cada test en los tres navegadores. *Workers* son los procesos
+que corren tests al mismo tiempo; con cinco, los seis terminan casi a la
+vez y en cualquier orden. Cada línea dice navegador, archivo, línea y
+columna donde empieza el test, y su título. La última, el resultado: seis
+pasaron, en 8,5 segundos.
+
+Después de la corrida aparecen dos carpetas nuevas, `test-results/` y
+`playwright-report/`, con los resultados y el reporte HTML. Son las que
+el `.gitignore` ya excluye. Cómo correr un solo archivo, un solo
+navegador o abrir el reporte se ve en la entrada de cómo correr los
+tests.
+
+### Los navegadores
+
+`npx playwright install` descarga los navegadores que corresponden a la
+versión instalada del paquete. Acepta opciones:
+
+- `npx playwright install chromium`: descarga solo Chromium. Útil cuando
+  la suite corre en un único navegador y no hace falta ocupar espacio con
+  los otros dos.
+- `npx playwright install --with-deps`: además de los navegadores,
+  instala las librerías del sistema operativo que necesitan. Hace falta en
+  Linux, en particular en los servidores de integración continua, donde la
+  máquina viene sin entorno gráfico. El workflow generado lo usa.
+
+Si un test corre y el navegador no está, el error lo dice con todas las
+letras:
+
+```text
+Error: browserType.launch: Executable doesn't exist at /Users/.../ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-mac-arm64/chrome-headless-shell
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║                                                            ║
+║     npx playwright install                                 ║
+║                                                            ║
+║ <3 Playwright Team                                         ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+`Executable doesn't exist` indica que falta el ejecutable del navegador
+en la ruta esperada. El número de la carpeta (`1248`) es la versión de
+navegador que pide el paquete instalado. El recuadro da la solución:
+descargar los navegadores. Pasa al clonar un proyecto en una computadora
+nueva, o después de actualizar el paquete sin actualizar los navegadores.
+
+### Versión y actualización
+
+La versión instalada se consulta con:
+
+```bash
+npx playwright --version
+```
+
+```text
+Version 1.64.1
+```
+
+Playwright publica una versión nueva aproximadamente una vez por mes, con
+los navegadores actualizados. Actualizar son dos comandos, en este orden:
+
+```bash
+npm install -D @playwright/test@latest
+npx playwright install --with-deps
+```
+
+El primero actualiza el paquete a la última versión (`-D` es la forma
+corta de `--save-dev`); el segundo descarga los navegadores que esa
+versión necesita. Saltear el segundo produce el error de la sección
+anterior.
+
+### La extensión de VS Code
+
+La extensión oficial, **Playwright Test for VSCode**, se instala desde el
+panel de extensiones de VS Code. Con el proyecto abierto:
+
+- El ícono de tests de la barra lateral (**Testing**) lista todos los
+  tests del proyecto. Un triángulo verde al lado de cada uno lo corre, y
+  uno al lado de un archivo corre todos sus tests. Cada test queda marcado
+  como pasado o fallado.
+- La sección **Playwright** de esa vista tiene la opción **Show browser**,
+  para ver el navegador mientras el test corre, y las herramientas **Pick
+  locator** y **Record new**, que se usan en la entrada de data-attributes
+  y codegen.
+- Si el proyecto todavía no tiene Playwright, el comando **Test: Install
+  Playwright** de la paleta de comandos lo instala, con las mismas
+  preguntas que `npm init playwright@latest`.
+
+## Cuándo usarlo
+
+`npm init playwright@latest` se usa una vez, al crear la suite o al
+agregarla a un repositorio existente. `npm install` y
+`npx playwright install` se corren cada vez que se clona el proyecto en
+una computadora nueva, y la actualización, cuando sale una versión que se
+quiere adoptar.
+
+## Buenas prácticas
+
+- Versionar `package.json` y `package-lock.json`, y nunca `node_modules/`.
+- Después de actualizar `@playwright/test`, descargar los navegadores de
+  esa versión.
+- Usar `--with-deps` en Linux y en integración continua.
+- Correr los tests de ejemplo para confirmar la instalación, y después
+  borrarlos.
+- Actualizar Playwright con regularidad, para probar contra versiones
+  recientes de los navegadores.
+
+## Anti-patrones
+
+- **Subir `node_modules/`** o las carpetas de resultados al repositorio.
+- **Borrar `package-lock.json`** para "resolver" un problema de
+  instalación: cada persona termina con versiones distintas.
+- **Actualizar el paquete sin actualizar los navegadores.**
+- **Dejar `example.spec.ts`** en la suite real.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<SetupTerminalActivity />
+
+<GitClassifyActivity />
+
+<UpdateBuilderActivity />
+
+<CloneActivity />

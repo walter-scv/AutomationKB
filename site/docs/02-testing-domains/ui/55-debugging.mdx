@@ -1,0 +1,241 @@
+---
+title: "Debugging: UI mode, Inspector y trace viewer"
+sidebar_position: 55
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import Terminal from '@site/src/components/Terminal';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  TOOL_ITEMS,
+  TOOL_COLUMNS,
+  TRACE_STEPS,
+  TRACE_EXPLANATION,
+  TRACE_QUIZ,
+} from '@site/src/content/lessons/55-debugging';
+
+export const LESSON_SLUG = 'domains-ui-debugging';
+
+export function ToolClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['toolclassify']);
+  return (
+    <Activity
+      title="¿Qué herramienta corresponde?"
+      kind="Clasificar"
+      goal="elegir la herramienta de debugging que conviene en cada situación de la suite de turnos."
+      done={isDone('toolclassify')}
+      consigna="Son 6 situaciones. Arrastrá cada una a UI mode, Inspector o Trace viewer. Regla para los casos dudosos: pensá si el test ya falló en otra máquina, si querés detenerlo o avanzar paso a paso, o si querés verlo correr entero y repetirse mientras lo escribís. Se completa cuando las 6 están en su caja."
+    >
+      <Classify
+        items={TOOL_ITEMS}
+        columns={TOOL_COLUMNS}
+        itemLabel="Situación"
+        counterLabel="ubicadas en su herramienta"
+        alreadyDone={isDone('toolclassify')}
+        onSolved={() => markDone('toolclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function TraceTerminalActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['traceterm']);
+  return (
+    <Activity
+      title="Grabar y abrir un trace"
+      kind="Terminal"
+      goal="forzar la grabación del trace en una corrida y abrir el archivo generado."
+      done={isDone('traceterm')}
+      consigna="Son 2 pasos. Escribí en cada uno el comando que pide la instrucción y presioná Enter. Si el comando no es el esperado, aparece una pista y podés corregirlo. Se completa al terminar el segundo paso."
+    >
+      <Terminal
+        steps={TRACE_STEPS}
+        explanation={TRACE_EXPLANATION}
+        alreadyDone={isDone('traceterm')}
+        onSolved={() => markDone('traceterm')}
+      />
+    </Activity>
+  );
+}
+
+export function TraceQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['tracequiz']);
+  return (
+    <Activity
+      title="Leer un trace de CI"
+      kind="Elegí la opción"
+      goal="usar las fotos y las pestañas del trace para encontrar la causa de un fallo de CI."
+      done={isDone('tracequiz')}
+      consigna="Son 2 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 2."
+    >
+      <Quiz
+        questions={TRACE_QUIZ}
+        onSolved={() => markDone('tracequiz')}
+      />
+    </Activity>
+  );
+}
+
+Cuando la salida de un fallo no alcanza, hace falta ver la ejecución: la página antes y después de cada acción, los pedidos al servidor, la consola. Esta entrada presenta las tres herramientas de Playwright para eso y en qué momento conviene cada una.
+
+## Conceptos
+
+### Tres herramientas, tres momentos
+
+La salida de un fallo (entrada anterior) alcanza muchas veces para
+encontrar la causa. Cuando no alcanza, hace falta ver la ejecución:
+qué había en la página antes y después de cada acción, qué pedidos se
+hicieron al servidor, qué mensajes aparecieron en la consola. Playwright
+tiene tres herramientas para eso, y cada una sirve en un momento:
+
+- **UI mode**: para escribir y depurar tests en la propia computadora,
+  con todo a la vista.
+- **Playwright Inspector** (modo debug): para avanzar paso a paso dentro
+  de un test, deteniéndose donde haga falta.
+- **Trace viewer**: para investigar un fallo que ya ocurrió, en
+  particular en CI, donde nadie estaba mirando.
+
+### UI mode
+
+```bash
+npx playwright test --ui
+```
+
+Abre una ventana con todos los tests de la suite a la izquierda,
+agrupados por archivo y por `describe`, con un triángulo para correr
+cada uno. Se filtran por texto o `@tag`, por resultado (pasados, fallados,
+salteados) y por proyecto.
+
+Al correr un test, la ventana muestra su ejecución completa:
+
+- una **línea de tiempo** arriba, con una miniatura de la página en cada
+  acción;
+- la pestaña **Actions**, con cada acción, el locator que usó y cuánto
+  tardó; al elegir una, se ve una foto del DOM de ese momento, con las
+  pestañas **Before** y **After** para comparar el antes y el después;
+- el código del test, con la línea de la acción elegida resaltada;
+- las pestañas **Console**, **Network** y **Errors**, con lo que pasó en el
+  navegador durante el test.
+
+El ícono del ojo al lado de un test activa el **watch mode**: el test se
+vuelve a correr cada vez que se guarda un cambio en su archivo. Es la
+forma más cómoda de escribir un test nuevo: se escribe una línea, se
+guarda y se ve el resultado.
+
+**Pick locator** permite pasar el mouse sobre la foto del DOM y ver el
+locator de cada elemento, igual que en codegen (entrada de data-attributes
+y codegen).
+
+### Playwright Inspector: paso a paso
+
+```bash
+npx playwright test prestamos --debug
+```
+
+`--debug` corre los tests con el navegador visible, sin timeout y de a
+uno, y abre el **Playwright Inspector**, una ventana con el código del
+test. La ejecución se detiene antes de la primera acción y avanza con los
+botones de la barra: **Step over** ejecuta la siguiente acción y se
+detiene otra vez; **Resume** sigue hasta el final o hasta la próxima
+pausa. Mientras está detenido, resalta en la página el elemento que va a
+usar la próxima acción y muestra el log de actionability: si espera a que
+sea visible, si está estable, si algo lo tapa.
+
+Para no avanzar paso a paso desde el principio, se agrega una pausa en
+el punto que interesa:
+
+```ts
+await page.getByLabel('Email').fill('lucia@biblio.test');
+await page.pause();    // con --debug, o con el navegador visible, se detiene acá
+await page.getByLabel('Contraseña').fill('clave123');
+```
+
+`page.pause()` detiene el test y abre el Inspector justo en esa línea.
+Con el test detenido, la página real queda abierta: se puede inspeccionar
+con DevTools (entrada de HTML, DOM y DevTools) para ver qué tiene el DOM
+en ese momento. La pausa es una herramienta de trabajo: se quita antes de
+confirmar el cambio.
+
+La extensión de VS Code ofrece lo mismo dentro del editor: un punto de
+interrupción (click al lado del número de línea) y **Debug Test** detienen
+el test en esa línea, con el navegador visible.
+
+### Trace viewer: lo que pasó en otra máquina
+
+En CI no hay nadie mirando ni se puede pausar. Para eso está el **trace**,
+el registro completo de una ejecución, que se graba según la opción
+`trace` de la configuración (entrada de configuración). Con
+`trace: 'on-first-retry'`, queda grabado en el primer reintento de un test
+que falló. También se puede forzar desde la línea de comandos:
+
+```bash
+npx playwright test --trace on
+```
+
+Cada test deja un archivo `trace.zip` en su carpeta de `test-results/`.
+Se abre de tres formas:
+
+- `npx playwright show-trace test-results/.../trace.zip`;
+- desde el reporte HTML (`npx playwright show-report`), con el ícono de
+  trace del test;
+- arrastrando el archivo a trace.playwright.dev, que lo abre en el
+  navegador sin enviarlo a ningún servidor.
+
+El trace viewer muestra lo mismo que UI mode, pero de una ejecución que
+ya terminó: la línea de tiempo con miniaturas, la lista de acciones con
+fotos **Before**, **Action** y **After** del DOM (la de Action marca dónde
+se hizo click), el código, el **Log** de cada acción con sus esperas, y
+las pestañas **Errors**, **Console** y **Network**, además de
+**Source** (el código del test) y **Metadata** (el navegador, el tamaño
+de pantalla y la duración). Las fotos del DOM no son imágenes: se pueden inspeccionar con DevTools, como una página real.
+
+Por eso la documentación de Playwright recomienda el trace, y no videos
+ni capturas, para investigar fallos de CI: una captura muestra un
+instante; el trace, toda la ejecución, con el estado de la página en cada
+paso.
+
+### Cuál usar
+
+- **Escribiendo un test nuevo**: UI mode, con watch mode.
+- **Un test que falla en la propia computadora y no se entiende por
+  qué**: `--debug` o `page.pause()`, para detenerse justo antes del paso
+  sospechoso.
+- **Un test que falló en CI**: el trace de esa ejecución. Volver a correrlo
+  localmente puede no reproducir el problema.
+
+## Cuándo usarlo
+
+Cuando la salida del fallo y su evidencia no alcanzan para encontrar la
+causa, y siempre que se escribe un test nuevo, para verlo correr en lugar
+de suponer qué hace.
+
+## Buenas prácticas
+
+- Escribir los tests nuevos en UI mode, viendo cada acción.
+- Usar `page.pause()` para detenerse en el punto sospechoso, y quitarlo
+  después.
+- Configurar `trace: 'on-first-retry'` para tener el trace de los fallos
+  de CI.
+- Investigar un fallo de CI con su trace antes de intentar reproducirlo
+  en local.
+
+## Anti-patrones
+
+- **Llenar el test de `console.log`** para adivinar qué pasa, cuando el
+  trace lo muestra todo.
+- **Dejar un `page.pause()`** en el código confirmado.
+- **Grabar trace en todas las corridas** sin necesidad.
+- **Investigar un fallo de CI solo con la captura**: muestra un instante,
+  no la ejecución.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ToolClassifyActivity />
+
+<TraceTerminalActivity />
+
+<TraceQuizActivity />

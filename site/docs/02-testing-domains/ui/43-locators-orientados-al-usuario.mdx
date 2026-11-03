@@ -1,0 +1,365 @@
+---
+title: "Locators orientados al usuario"
+sidebar_position: 43
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import Classify from '@site/src/components/Classify';
+import CommandBuilder from '@site/src/components/CommandBuilder';
+import DecisionPath from '@site/src/components/DecisionPath';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  PICK_LEFT,
+  PICK_RIGHT,
+  PICK_WHY,
+  COUNT_ITEMS,
+  COUNT_COLUMNS,
+  MITURNO_HTML,
+  LOCATOR_PREFIX,
+  LOCATOR_STEPS,
+  LOCATOR_EXPLANATION,
+  DEBUG_START,
+  DEBUG_NODES,
+  DEBUG_EXPLANATION,
+} from '@site/src/content/lessons/43-locators-orientados-al-usuario';
+
+export const LESSON_SLUG = 'domains-ui-locators-usuario';
+
+export function PickMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['pickmatch']);
+  return (
+    <Activity
+      title="El locator para cada elemento"
+      kind="Emparejar"
+      goal="elegir el locator recomendado para cada elemento de una pantalla de turnos."
+      done={isDone('pickmatch')}
+      consigna="Son 6 pares. Elegí un elemento de la izquierda y después el locator que corresponde (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={PICK_LEFT}
+        right={PICK_RIGHT}
+        why={PICK_WHY}
+        leftLabel="Elemento"
+        rightLabel="Locator"
+        alreadyDone={isDone('pickmatch')}
+        onSolved={() => markDone('pickmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function CountClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['countclassify']);
+  return (
+    <Activity
+      title="¿Cuántos encuentra?"
+      kind="Clasificar"
+      goal="predecir cuántos elementos encuentra cada locator en una página, aplicando las reglas de coincidencia."
+      done={isDone('countclassify')}
+      consigna="Son 9 locators sobre el HTML de arriba. Arrastrá cada uno a Ninguno, Uno o Varios según cuántos elementos encuentra. Regla para los casos dudosos: antes de decidir entre Uno y Varios, buscá en el HTML si algún otro elemento también cumple el locator. Se completa cuando los 9 están en su caja."
+    >
+      <CodeBlock language="html">{MITURNO_HTML}</CodeBlock>
+      <Classify
+        items={COUNT_ITEMS}
+        columns={COUNT_COLUMNS}
+        itemLabel="Locator"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('countclassify')}
+        onSolved={() => markDone('countclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function LocatorBuilderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['locatorbuilder']);
+  return (
+    <Activity
+      title="Armar el locator del botón Cancelar"
+      kind="Armar"
+      goal="construir un locator por rol que encuentre un solo botón aunque otro tenga un nombre parecido."
+      done={isDone('locatorbuilder')}
+      consigna="En la página de turnos hay dos botones: Cancelar y Cancelar todos los turnos. Armá el locator del primero eligiendo un fragmento por paso; el siguiente se habilita cuando acertás. Son 3 pasos, y si elegís mal aparece por qué."
+    >
+      <CommandBuilder
+        prefix={LOCATOR_PREFIX}
+        steps={LOCATOR_STEPS}
+        explanation={LOCATOR_EXPLANATION}
+        alreadyDone={isDone('locatorbuilder')}
+        onSolved={() => markDone('locatorbuilder')}
+      />
+    </Activity>
+  );
+}
+
+export function DebugLocatorActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['debuglocator']);
+  return (
+    <Activity
+      title="Un locator que no encuentra y otro que encuentra de más"
+      kind="Escenario encadenado"
+      goal="diagnosticar un locator que no encuentra el elemento y otro que encuentra varios, a partir del error."
+      done={isDone('debuglocator')}
+      consigna="Son 3 decisiones encadenadas: cada una depende de la anterior. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la tercera."
+    >
+      <DecisionPath
+        startId={DEBUG_START}
+        nodes={DEBUG_NODES}
+        explanation={DEBUG_EXPLANATION}
+        alreadyDone={isDone('debuglocator')}
+        onSolved={() => markDone('debuglocator')}
+      />
+    </Activity>
+  );
+}
+
+Todo lo que un test hace sobre la página empieza por encontrar un elemento. Playwright ofrece locators que lo buscan como lo haría una persona: por su rol y su nombre, su etiqueta o su texto. Esta entrada los recorre y muestra qué pasa cuando encuentran de más o de menos.
+
+## Conceptos
+
+### Qué es un locator
+
+Un **locator** es la descripción de cómo encontrar un elemento en la
+página: "el botón llamado Reservar", "el campo con la etiqueta Tu
+opinión". No es el elemento en sí. Crear un locator no busca nada; la
+búsqueda ocurre recién cuando se ejecuta una acción o una verificación
+sobre él, y se repite cada vez:
+
+```ts
+const reservar = page.getByRole('button', { name: 'Reservar', exact: true });
+// todavía no se buscó nada
+
+await reservar.click();
+// ahora sí: Playwright busca el botón en el DOM de este momento y hace click
+```
+
+Por eso un locator se puede crear antes de que el elemento exista, y
+sigue sirviendo aunque la página cambie después: cada uso vuelve a buscar
+en el DOM actual.
+
+Los ejemplos de esta entrada usan la ficha de un libro de la biblioteca.
+Así la describe el árbol de accesibilidad (entrada de HTML, DOM y
+DevTools):
+
+```text
+- navigation:
+  - link "Catálogo":
+    - /url: /catalogo
+  - link "Mis préstamos":
+    - /url: /prestamos
+- heading "Rayuela" [level=1]
+- heading "Disponibilidad" [level=2]
+- paragraph: "Ejemplares disponibles: 2"
+- img "Tapa de Rayuela"
+- button "Reservar"
+- button "Reservar ejemplar digital"
+- button "♡"
+- heading "Opiniones" [level=2]
+- text: Tu opinión
+- textbox "Tu opinión":
+  - /placeholder: Escribí qué te pareció
+- checkbox "Avisarme cuando haya ejemplares" [checked]
+- text: Avisarme cuando haya ejemplares
+- button "Publicar opinión"
+```
+
+### Por rol y nombre: `getByRole`
+
+`page.getByRole(rol, { name })` busca por el rol y el nombre accesible,
+los mismos que muestra el árbol: es la forma en que una persona, o un
+lector de pantalla, identifica el elemento.
+
+```ts
+page.getByRole('link', { name: 'Mis préstamos' })
+page.getByRole('heading', { name: 'Rayuela' })
+page.getByRole('button', { name: 'Publicar opinión' })
+```
+
+Por defecto, `name` busca **una parte del nombre** y **no distingue
+mayúsculas**. En la ficha, `{ name: 'reservar' }` encuentra los dos
+botones: «Reservar» y «Reservar ejemplar digital». Para el nombre
+completo y exacto se agrega `exact: true`, que además sí distingue
+mayúsculas:
+
+| Locator | Elementos |
+|---|---|
+| `getByRole('button', { name: 'Reservar' })` | 2 |
+| `getByRole('button', { name: 'reservar' })` | 2 |
+| `getByRole('button', { name: 'Reservar', exact: true })` | 1 |
+| `getByRole('button', { name: 'reservar', exact: true })` | 0 |
+
+`name` también acepta una **expresión regular**: un patrón de texto que
+se escribe entre barras, `/.../`, en lugar de comillas. Dentro del
+patrón, `^` significa "el texto empieza acá" y `$`, "el texto termina
+acá". `{ name: /^Reservar$/ }` exige un nombre que empiece y termine en
+«Reservar», así que encuentra solo el primer botón. Sin `^` ni `$`,
+`/Reservar/` vuelve a buscar una parte del nombre.
+
+Otras opciones filtran por estado: `level` para el nivel de un título
+(`getByRole('heading', { level: 2 })` encuentra «Disponibilidad» y
+«Opiniones») y `checked` para casillas marcadas
+(`getByRole('checkbox', { checked: true })`).
+
+El nombre que importa es el accesible, no el que parece. El botón del
+corazón tiene `title="Agregar a favoritos"`, pero su contenido es «♡», y
+el contenido tiene prioridad: `getByRole('button', { name: 'Agregar a
+favoritos' })` no encuentra nada. El árbol de accesibilidad, o la pestaña
+Accessibility de DevTools, muestra el nombre real antes de escribir el
+locator.
+
+### Formularios: `getByLabel` y `getByPlaceholder`
+
+`page.getByLabel(texto)` encuentra el campo asociado a un `<label>`, el
+mismo mecanismo de `for` e `id` de la entrada de HTML, DOM y DevTools.
+También encuentra elementos nombrados con `aria-label` o
+`aria-labelledby`:
+
+```ts
+await page.getByLabel('Tu opinión').fill('Un libro para releer.');
+await page.getByLabel('Avisarme').check();
+```
+
+Como `name`, busca una parte del texto: «Avisarme» encuentra la casilla
+«Avisarme cuando haya ejemplares». (`.check()` marca una casilla; se ve
+con los formularios.)
+
+`page.getByPlaceholder(texto)` encuentra un campo por su placeholder. Es
+para campos que no tienen etiqueta:
+
+```ts
+page.getByPlaceholder('Escribí qué te pareció')
+```
+
+Si el campo tiene etiqueta, conviene `getByLabel`: el placeholder
+desaparece en cuanto se escribe y muchas veces cambia de redacción sin
+aviso.
+
+### Por texto: `getByText`
+
+`page.getByText(texto)` encuentra el elemento que contiene ese texto. Se
+usa para elementos sin rol útil, como párrafos y mensajes:
+
+```ts
+page.getByText('Ejemplares disponibles')
+```
+
+Igual que `name`, por defecto busca una parte del texto, no distingue
+mayúsculas y normaliza los espacios (varios espacios cuentan como uno y
+los saltos de línea como espacios). Eso lo vuelve amplio:
+`getByText('ejemplares')` encuentra dos elementos, el párrafo de
+disponibilidad y la etiqueta de la casilla. `{ exact: true }` y las
+expresiones regulares funcionan igual que en `getByRole`.
+
+Para botones, enlaces y campos, `getByText` es una segunda opción: no
+dice qué tipo de elemento es. `getByText('Reservar')` encuentra el texto
+aunque el "botón" sea un `<div>` sin rol; `getByRole('button', ...)` no,
+y así el test detecta un problema de accesibilidad.
+
+### Imágenes y títulos: `getByAltText` y `getByTitle`
+
+`page.getByAltText(texto)` encuentra una imagen por su `alt`, y
+`page.getByTitle(texto)` un elemento por su atributo `title`:
+
+```ts
+page.getByAltText('Tapa de Rayuela')
+page.getByTitle('Agregar a favoritos')
+```
+
+`getByTitle` resuelve el caso del corazón: el elemento tiene un `title`
+descriptivo aunque su nombre accesible sea «♡».
+
+### Cuál elegir
+
+La documentación de Playwright presenta sus locators en este orden, y
+recomienda empezar por `getByRole`:
+
+1. `getByRole`, con `name`.
+2. `getByText`.
+3. `getByLabel`.
+4. `getByPlaceholder`.
+5. `getByAltText`.
+6. `getByTitle`.
+7. `getByTestId` (entrada de data-attributes).
+
+El criterio detrás del orden: un locator tiene que describir lo que ve y
+usa la persona, no cómo está construida la página. Una persona busca "el
+botón Reservar", no "el tercer `<button>` dentro del segundo `<div>`". Un
+cambio de diseño que mueve el botón o le cambia la clase no rompe un
+`getByRole`; cambiarle el texto sí, y eso también es un cambio que la
+persona nota. En la práctica, `getByLabel` va antes que `getByText` para
+los campos de un formulario, porque el texto suelto no identifica un
+campo.
+
+### Strictness: un locator, un elemento
+
+Las acciones exigen que el locator encuentre **exactamente un** elemento.
+Si encuentra varios, Playwright no elige uno al azar: falla.
+
+```ts
+await page.getByRole('button', { name: 'Reservar' }).click();
+```
+
+```text
+locator.click: Error: strict mode violation: getByRole('button', { name: 'Reservar' }) resolved to 2 elements:
+    1) <button>Reservar</button> aka getByRole('button', { name: 'Reservar', exact: true })
+    2) <button>Reservar ejemplar digital</button> aka getByRole('button', { name: 'Reservar ejemplar digital' })
+```
+
+`strict mode violation` dice que el locator es ambiguo. Debajo, la lista
+de lo que encontró, y para cada elemento un locator alternativo que lo
+identifica solo (`aka`). El primero sugiere justamente la corrección:
+`exact: true`.
+
+Si no encuentra ninguno, la acción espera a que aparezca (entrada de
+anatomía de un test) y, si nunca aparece, falla por tiempo. En un test
+común el límite es el del test, 30 segundos; en este ejemplo, el click
+se hizo con `{ timeout: 2000 }` para no esperar tanto:
+
+```text
+locator.click: Timeout 2000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: 'Reservar ahora' })
+```
+
+`waiting for` indica que el locator no encontró nada durante todo el
+plazo. La causa más común es un nombre que no coincide con el accesible:
+se compara contra el árbol y se corrige.
+
+## Cuándo usarlo
+
+En cada interacción y cada verificación de un test. Antes de escribir el
+locator se mira el elemento en el árbol de accesibilidad o en DevTools
+para conocer su rol y su nombre reales.
+
+## Buenas prácticas
+
+- Empezar por `getByRole` con `name`, y bajar en la lista solo cuando el
+  elemento no tiene rol o nombre útil.
+- Usar `getByLabel` para los campos de formulario.
+- Agregar `exact: true` cuando el nombre es parte de otros nombres.
+- Leer la lista de un `strict mode violation`: incluye un locator que
+  identifica cada elemento.
+
+## Anti-patrones
+
+- **Buscar un botón o un enlace con `getByText`**, que no verifica que
+  sea un botón o un enlace.
+- **Usar el placeholder** de un campo que tiene etiqueta.
+- **Copiar el texto visible como `name`** sin comprobar el nombre
+  accesible.
+- **Resolver un `strict mode violation`** quedándose con el primer
+  elemento que encuentre, en lugar de describir el correcto.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<PickMatchActivity />
+
+<CountClassifyActivity />
+
+<LocatorBuilderActivity />
+
+<DebugLocatorActivity />

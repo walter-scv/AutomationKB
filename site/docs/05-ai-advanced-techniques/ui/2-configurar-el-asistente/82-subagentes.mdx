@@ -1,0 +1,258 @@
+---
+title: "Subagentes: roles con contexto propio"
+sidebar_position: 82
+---
+
+import Activity from '@site/src/components/Activity';
+import FillBlank from '@site/src/components/FillBlank';
+import Classify from '@site/src/components/Classify';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  AGENT_TEMPLATE,
+  AGENT_SLOTS,
+  AGENT_BANK,
+  AGENT_EXPLANATION,
+  KIND_ITEMS,
+  KIND_COLUMNS,
+  AGENT_QUIZ,
+} from '@site/src/content/lessons/82-subagentes';
+
+export const LESSON_SLUG = 'ai-ui-subagentes';
+
+export function AgentFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['agentfill']);
+  return (
+    <Activity
+      title="El revisor de datos"
+      kind="Completar huecos"
+      goal="escribir la definición de un subagente revisor con herramientas mínimas y una salida fija."
+      done={isDone('agentfill')}
+      consigna="El equipo de turnos quiere un subagente que revise los datos de prueba, que solo pueda leer, que use un modelo intermedio y que responda con un veredicto fijo. Completá los 5 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={AGENT_TEMPLATE}
+        slots={AGENT_SLOTS}
+        bank={AGENT_BANK}
+        explanation={AGENT_EXPLANATION}
+        alreadyDone={isDone('agentfill')}
+        onSolved={() => markDone('agentfill')}
+      />
+    </Activity>
+  );
+}
+
+export function KindClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['kindclassify']);
+  return (
+    <Activity
+      title="¿Comando, skill o subagente?"
+      kind="Clasificar"
+      goal="elegir la pieza adecuada para cada necesidad del equipo."
+      done={isDone('kindclassify')}
+      consigna="Son 6 necesidades del equipo de turnos. Arrastrá cada una a Comando, Skill o Subagente. Regla para los casos dudosos: si necesita independencia o va a leer mucho, subagente; si son instrucciones con archivos de apoyo para el trabajo en curso, skill; si es un pedido corto que se repite, comando. Se completa cuando las 6 están en su caja."
+    >
+      <Classify
+        items={KIND_ITEMS}
+        columns={KIND_COLUMNS}
+        itemLabel="Necesidad"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('kindclassify')}
+        onSolved={() => markDone('kindclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function AgentQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['agentquiz']);
+  return (
+    <Activity
+      title="Lo que ve y lo que puede hacer"
+      kind="Elegí la opción"
+      goal="explicar fallas de subagentes por su contexto aislado y por sus herramientas."
+      done={isDone('agentquiz')}
+      consigna="Son 2 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 2."
+    >
+      <Quiz
+        questions={AGENT_QUIZ}
+        onSolved={() => markDone('agentquiz')}
+      />
+    </Activity>
+  );
+}
+
+Un subagente es un agente con su propio contexto, sus instrucciones y sus herramientas, al que el agente principal le delega una tarea. Esta entrada muestra cuándo conviene, cómo se define, qué herramientas darle y en qué se diferencia de una skill.
+
+## Conceptos
+
+### El problema: revisar lo que uno mismo escribió
+
+Pediste en una sesión que el agente escriba `CancelacionPage.ts`. Durante
+media hora probó tres locators para el botón de confirmar, descartó dos y
+decidió buscar la fila del turno por posición. Ahora le pedís, en la
+misma conversación, que revise el Page Object. La revisión sale bien:
+el agente revisa con todo lo que razonó mientras escribía, incluido el
+supuesto de que buscar por posición estaba bien. Es lo mismo que le pasa
+a una persona que revisa su propio código, y la razón por la que un Pull
+Request lo revisa otra persona.
+
+Hay un segundo problema: la conversación ya tiene media hora de intentos,
+archivos leídos y salidas de comandos. Todo eso ocupa contexto
+(entrada de cómo funciona un asistente), y la revisión se hace en medio
+de ese ruido.
+
+### Un agente dentro de otro
+
+Un **subagente** es otro agente que tu sesión puede lanzar para una
+tarea concreta. El agente con el que hablás, el **agente principal**, le
+pasa un pedido; el subagente trabaja por su cuenta y, al terminar, le
+devuelve solo el resultado. Tiene tres cosas propias:
+
+- **Su contexto.** Arranca vacío: no ve tu conversación ni los archivos
+  que el principal leyó. Recibe el pedido de la tarea y, además, las
+  instrucciones del proyecto (`CLAUDE.md` y reglas, entrada de
+  instrucciones del proyecto).
+- **Sus instrucciones.** Un rol definido, como «revisor de Page
+  Objects», con sus reglas.
+- **Sus herramientas.** Solo las que se le dan: un revisor puede tener
+  permiso para leer y no para editar.
+
+Todo lo que el subagente lee y prueba en el camino queda en su propio
+contexto. Al principal solo le llega la conclusión.
+
+### Para qué sirve
+
+- **Revisar con independencia**: el subagente revisor no vio cómo se
+  escribió el código, así que no arrastra sus supuestos.
+- **Especializar**: un rol acotado, con reglas propias, se cumple mejor
+  que un agente que hace todo.
+- **Proteger el contexto principal**: una búsqueda que lee cuarenta
+  archivos la hace el subagente, y a tu conversación solo llega la
+  respuesta.
+- **Limitar lo que puede hacer**: un revisor que solo puede leer no
+  puede «arreglar» lo que revisa sin que nadie revise ese arreglo.
+
+### El archivo de un subagente
+
+En Claude Code, cada subagente es un archivo Markdown en
+`.claude/agents/` del repositorio (para el equipo) o en
+`~/.claude/agents/` (personal). Tiene un frontmatter con su
+configuración y, debajo, sus instrucciones:
+
+```markdown
+---
+name: revisor-pom
+description: Revisa Page Objects de la suite contra sus reglas. Usalo después de crear o modificar un archivo en pages/.
+tools: Read, Grep, Glob
+model: sonnet
+---
+
+Sos el revisor de Page Objects de la suite de la agenda.
+
+Revisá el archivo que te indiquen contra .claude/rules/page-objects.md.
+No edites nada.
+
+Respondé solo con este formato:
+VEREDICTO: APROBADO | RECHAZADO
+PROBLEMAS:
+- <línea> · <regla> · <corrección>
+```
+
+- `name` y `description` son obligatorios. Como en una skill, la
+  descripción es lo que el agente principal lee para decidir cuándo
+  delegarle una tarea (entrada de skills).
+- `tools` es la lista de herramientas que puede usar. `Read` lee
+  archivos, `Grep` busca un texto dentro de los archivos y `Glob` busca
+  archivos por nombre: con esas tres, revisa sin poder modificar nada.
+  **Si `tools` se omite, el subagente recibe todas las herramientas del
+  principal**, incluidas editar y correr comandos: conviene declararla
+  siempre.
+- `model` elige el modelo de lenguaje. Los modelos de Claude vienen en
+  tres tamaños: `haiku`, el más chico y barato; `sonnet`, el intermedio;
+  y `opus`, el más capaz y caro (entrada de cómo funciona un asistente).
+  Para revisar código alcanza uno intermedio; para borrar archivos
+  temporales, uno chico.
+
+Otros campos útiles: `permissionMode`, que fija el modo de permisos del
+subagente (los modos de la entrada de tu primer agente), `skills`, para
+cargarle skills desde el principio, y `maxTurns`, que lo corta si da
+demasiadas vueltas.
+
+### Lo que recibe y lo que devuelve
+
+Como el subagente no ve tu conversación, el pedido que recibe tiene que
+ser completo: qué archivo, contra qué reglas, qué devolver. Si en la
+conversación acordaste que la fila del turno se busca por la hora, y eso
+no está en el pedido ni en las reglas, el revisor no lo sabe.
+
+Y como su resultado lo va a leer otro agente, conviene que tenga un
+**formato fijo**, como el `VEREDICTO: APROBADO | RECHAZADO` del ejemplo.
+Con un formato fijo, el agente principal decide qué hacer leyendo una
+palabra, sin interpretar un párrafo. Esa idea es la base de los sistemas
+en los que varios agentes trabajan juntos (unidad 4).
+
+### Las herramientas mínimas
+
+Cada subagente recibe solo lo que su rol necesita:
+
+| Rol | Herramientas |
+| :- | :- |
+| Revisor | `Read, Grep, Glob`: lee y busca, no edita |
+| Explorador de la aplicación | Lectura y las de manejar un navegador (entrada de MCP) |
+| Escritor de tests | Lectura y escritura de archivos, sin terminal |
+| Ejecutor | Lectura y la terminal, para correr los tests |
+
+Un revisor con permiso de edición tiende a corregir lo que encuentra, y
+entonces nadie revisa esa corrección.
+
+### Skill o subagente
+
+- Una **skill** agrega instrucciones al agente que ya está trabajando, en
+  su misma conversación (entrada de skills).
+- Un **subagente** es otro agente, con contexto, instrucciones y
+  herramientas propias.
+
+Si la tarea necesita lo que se habló en la conversación, va una skill.
+Si necesita independencia, como una revisión, o va a leer mucho, va un
+subagente. Las dos se combinan: una skill con `context: fork` corre
+dentro de un subagente.
+
+Un ejemplo: las reglas para **escribir** un Page Object son una skill,
+que el agente aplica mientras escribe; la **revisión** de ese Page
+Object, hecha con independencia, es un subagente o una skill con
+`context: fork`.
+
+### Cuándo no
+
+Cada subagente arranca de cero y vuelve a leer lo que necesita: suma su
+propio consumo de tokens. Para una tarea corta, o que depende de todo lo
+que se habló, delegarla cuesta más de lo que aporta.
+
+## Cuándo usarlo
+
+Para revisiones independientes, búsquedas que leen mucho, y roles con
+herramientas acotadas dentro de un proceso más grande.
+
+## Buenas prácticas
+
+- Declarar siempre `tools`, con lo mínimo para el rol.
+- Un formato de salida fijo, fácil de leer para otro agente.
+- Una descripción que diga qué hace y cuándo usarlo.
+- Un modelo acorde a la tarea.
+
+## Anti-patrones
+
+- **Un revisor que puede editar.**
+- **Omitir `tools`** y que el subagente reciba todas las herramientas.
+- **Delegar una tarea de una línea** en un subagente.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<AgentFillActivity />
+
+<KindClassifyActivity />
+
+<AgentQuizActivity />

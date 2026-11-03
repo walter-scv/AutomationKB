@@ -14,7 +14,7 @@ export type TrackPickerProps = {
 };
 
 /**
- * Selector de track de la sección II (Testing Domains). Cada track es una
+ * Selector de track de las secciones II a V. Cada track es una
  * bifurcación real de navegación, no un tab: lleva a su propio sub-árbol de
  * capítulos.
  */

@@ -1,0 +1,281 @@
+---
+title: "Permisos: qué puede hacer el agente"
+sidebar_position: 84
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import FillBlank from '@site/src/components/FillBlank';
+import DecisionPath from '@site/src/components/DecisionPath';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  RULE_ITEMS,
+  RULE_COLUMNS,
+  SET_TEMPLATE,
+  SET_SLOTS,
+  SET_BANK,
+  SET_EXPLANATION,
+  MODE_START,
+  MODE_NODES,
+  MODE_EXPLANATION,
+} from '@site/src/content/lessons/84-permisos';
+
+export const LESSON_SLUG = 'ai-ui-permisos';
+
+export function RuleClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['ruleclassify']);
+  return (
+    <Activity
+      title="¿allow, ask o deny?"
+      kind="Clasificar"
+      goal="decidir qué lista de permisos corresponde a cada acción del agente en la suite."
+      done={isDone('ruleclassify')}
+      consigna="Son 7 acciones que un agente hace en la suite de turnos. Arrastrá cada una a allow, ask o deny. Regla para los casos dudosos: si no tiene riesgo y se repite, allow; si sale afuera o cambia algo de otros, ask; si no tiene que pasar nunca, deny. Se completa cuando las 7 están en su caja."
+    >
+      <Classify
+        items={RULE_ITEMS}
+        columns={RULE_COLUMNS}
+        itemLabel="Acción"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('ruleclassify')}
+        onSolved={() => markDone('ruleclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function SetFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['setfill']);
+  return (
+    <Activity
+      title="El settings.json de la suite"
+      kind="Completar huecos"
+      goal="escribir las reglas de permisos de un proyecto: permitir los tests, preguntar antes de publicar y bloquear secretos y carpetas."
+      done={isDone('setfill')}
+      consigna="El equipo de turnos quiere que los tests corran sin preguntar, que se pregunte antes de cada git push, y que el agente nunca lea el .env ni edite la carpeta legacy/. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={SET_TEMPLATE}
+        slots={SET_SLOTS}
+        bank={SET_BANK}
+        explanation={SET_EXPLANATION}
+        alreadyDone={isDone('setfill')}
+        onSolved={() => markDone('setfill')}
+      />
+    </Activity>
+  );
+}
+
+export function ModePathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['modepath']);
+  return (
+    <Activity
+      title="Bloqueos, excepciones y modos"
+      kind="Escenario encadenado"
+      goal="elegir entre instrucción y regla, predecir el resultado de reglas que se cruzan y elegir dónde usar el modo sin preguntas."
+      done={isDone('modepath')}
+      consigna="Son 3 decisiones encadenadas sobre los permisos del agente de la suite de turnos. En cada paso elegí una opción; si no es la mejor, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={MODE_START}
+        nodes={MODE_NODES}
+        explanation={MODE_EXPLANATION}
+        alreadyDone={isDone('modepath')}
+        onSolved={() => markDone('modepath')}
+      />
+    </Activity>
+  );
+}
+
+Un agente que edita archivos y corre comandos necesita límites que no dependan de que siga una instrucción. Esta entrada muestra dónde se configuran los permisos, cómo se evalúan las reglas, qué modos existen y los casos que se resolvieron en este mismo curso.
+
+## Conceptos
+
+### De aprobar cada acción a escribir reglas
+
+En tu primera sesión, Claude Code te preguntó antes de editar un archivo
+o correr un comando, y vos aprobaste o rechazaste cada vez (entrada de tu
+primer agente). Eso alcanza para empezar, pero con el uso aparecen tres
+necesidades que una aprobación suelta no resuelve:
+
+- **Lo que se repite**: correr los tests cincuenta veces por día no
+  debería preguntarse cincuenta veces.
+- **Lo que no puede pasar nunca**: que el agente lea `.env` o edite la
+  carpeta `legacy/`, que el equipo congeló. Una instrucción en el
+  `CLAUDE.md` no lo garantiza (entrada de instrucciones del proyecto), y
+  una persona cansada puede aprobarlo sin leer.
+- **Lo que vale para todo el equipo**: que cada persona configure lo
+  mismo a mano no escala.
+
+Los **permisos** de Claude Code son reglas escritas en un archivo que
+deciden, para cada acción, si se hace sin preguntar, si se pregunta o si
+no se hace nunca.
+
+### Lo que pide permiso por defecto
+
+Sin ninguna regla, en el modo Manual:
+
+- **leer** archivos del proyecto no pide permiso;
+- **editar** pide permiso, y la aprobación dura hasta que termina la
+  sesión;
+- **correr un comando** pide permiso, salvo un grupo de comandos que
+  solo leen, como `ls`, `cat` o `git status`. Cuando elegís «Yes, and
+  don't ask again», Claude Code guarda una regla en el repositorio y no
+  vuelve a preguntar por ese comando.
+
+### Dónde se escriben
+
+Las reglas se guardan en archivos `settings.json`: archivos de
+configuración en formato JSON, en distintos lugares según a quién se
+aplican:
+
+| Archivo | Alcance |
+| :- | :- |
+| `~/.claude/settings.json` | Tuyo, en todos los proyectos |
+| `.claude/settings.json` | El proyecto. Se sube al repositorio y vale para todo el equipo |
+| `.claude/settings.local.json` | Tuyo, en este proyecto. Ahí se guardan las aprobaciones de «don't ask again» |
+| Configuración administrada | La que define el área de sistemas de la organización. Nadie la puede pisar |
+
+El comando `/permissions`, dentro de una sesión, muestra todas las
+reglas activas y de qué archivo viene cada una.
+
+### allow, ask y deny
+
+Las reglas van en la clave `permissions`, en tres listas:
+
+```json
+{
+  "permissions": {
+    "allow": ["Bash(npx playwright test *)", "Bash(npx tsc *)"],
+    "ask": ["Bash(git push *)"],
+    "deny": ["Read(./.env)", "Edit(/legacy/**)"]
+  }
+}
+```
+
+- `allow`: se hace sin preguntar. Correr los tests y revisar los tipos.
+- `ask`: pregunta siempre, aunque otra regla lo permita. Subir cambios
+  al repositorio remoto.
+- `deny`: no se hace nunca. Leer `.env` y editar `legacy/`.
+
+Cuando una acción coincide con varias reglas, se evalúan en este orden:
+**primero deny, después ask, después allow**, y gana la primera que
+coincide. Por eso una regla `allow` no abre una excepción dentro de un
+`deny`: si se deniega `Bash(git *)`, agregar `Bash(git status)` a `allow`
+no lo habilita, porque el `deny` ya decidió.
+
+### La sintaxis de las reglas
+
+Cada regla nombra una herramienta del agente y, entre paréntesis, a qué
+se aplica:
+
+| Regla | Qué cubre |
+| :- | :- |
+| `Bash(npx playwright test *)` | Cualquier comando de la terminal que empiece así |
+| `Bash(npm run build)` | Solo ese comando exacto |
+| `Read(./.env)` | Leer el `.env` de la carpeta actual |
+| `Edit(/legacy/**)` | Editar cualquier archivo dentro de `legacy/`, desde la raíz del proyecto |
+| `WebFetch(domain:playwright.dev)` | Pedir páginas de ese dominio |
+| `mcp__playwright__browser_navigate` | Esa herramienta de ese servidor MCP (entrada de MCP) |
+| `mcp__playwright__*` | Todas las herramientas de ese servidor |
+| `Agent(revisor-pom)` | Lanzar ese subagente (entrada de subagentes) |
+| `Skill(revisar-pom)` | Usar esa skill (entrada de skills) |
+
+`Bash` es la herramienta que corre comandos en la terminal; `Read` y
+`Edit`, las que leen y editan archivos. El `*` es un **comodín**: vale
+por cualquier texto. `**` vale por cualquier cantidad de carpetas. Un
+patrón demasiado amplio, como `Bash(*)` o `Edit(~/**)`, aprueba mucho
+más de lo que se pensó al escribirlo: el primero permite cualquier
+comando; el segundo, editar cualquier archivo de tu carpeta personal.
+
+### Los modos
+
+El **modo de permisos** cambia qué se pregunta cuando no hay una regla
+que decida. Con `Shift+Tab` se pasa entre los tres primeros (entrada de
+tu primer agente):
+
+- `default` (Manual): pregunta antes de editar o correr comandos.
+- `acceptEdits`: acepta sin preguntar las ediciones de archivos del
+  proyecto y algunos comandos comunes de archivos, como `mkdir` o `cp`;
+  el resto de los comandos sigue preguntando.
+- `plan`: el agente solo lee y explora; no edita hasta que aprobás el
+  plan.
+
+Y otros tres, para usos más avanzados:
+
+- `auto`: en lugar de preguntarte, un **clasificador**, otro modelo que
+  revisa cada acción, decide si es segura.
+- `dontAsk`: no pregunta nunca; lo que habría preguntado, lo deniega.
+  Solo hace lo que una regla `allow` permite. Sirve para correr un agente
+  sin nadie mirando, con una lista cerrada de acciones.
+- `bypassPermissions`: no pregunta nada y permite todo. La documentación
+  lo reserva para entornos aislados, como un contenedor de Docker sin
+  acceso a tus archivos ni a tus credenciales (entrada de Docker), donde
+  el agente no puede causar daño.
+
+### Casos resueltos en proyectos reales
+
+En un repositorio con el que trabajamos, dos carpetas de material
+histórico tenían que quedar congeladas: no se editan ni se usan como
+fuente. Una instrucción en el `CLAUDE.md` lo pedía, y alguna vez el
+agente igual editó un archivo de esas carpetas. Lo que lo garantizó fue
+una regla en el `.claude/settings.json` del repositorio, acá con nombres
+genéricos:
+
+```json
+{
+  "permissions": {
+    "deny": [
+      "Edit(/legacy/**)",
+      "Edit(/docs/archivo/**)"
+    ]
+  }
+}
+```
+
+Otros casos habituales en una suite de testing:
+
+- **Que corran los tests sin preguntar**: `allow` para
+  `Bash(npx playwright test *)` y `Bash(npx tsc *)`, y nada más amplio.
+- **Que nunca lea secretos**: `deny` para `Read(./.env)` y para
+  `Read(./playwright/.auth/**)`, donde se guardan las sesiones iniciadas
+  (entrada de sesión reutilizada).
+- **Que pregunte antes de publicar**: `ask` para `Bash(git push *)`,
+  aunque haya un `allow` más amplio.
+- **Herramientas MCP de a una**: permitir sin preguntar las que solo
+  miran, como `mcp__playwright__browser_snapshot`, y dejar que pregunte
+  las que modifican algo afuera, como crear un ticket.
+- **Revisar las aprobaciones guardadas**: con el tiempo, cada «don't ask
+  again» suma una regla en `.claude/settings.local.json`. Una aprobación
+  apurada de `Edit(~/**)` termina permitiendo editar cualquier archivo de
+  tu usuario. Cada tanto se revisan con `/permissions` y se recortan.
+
+## Cuándo usarlo
+
+Desde la primera semana con un agente en el proyecto: `deny` para lo
+intocable, `allow` acotado para lo que se hace todo el tiempo, `ask` para
+lo que sale afuera.
+
+## Buenas prácticas
+
+- `deny` para secretos y carpetas que no se tocan, en el archivo del
+  proyecto.
+- `allow` con comandos concretos, no con comodines amplios.
+- `bypassPermissions` solo en un contenedor aislado.
+- Revisar periódicamente las aprobaciones guardadas.
+
+## Anti-patrones
+
+- **Proteger una carpeta solo con una instrucción.**
+- **`Bash(*)` en allow** para no ver más avisos.
+- **Aprobar todo con «don't ask again»** sin leer qué se aprueba.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<RuleClassifyActivity />
+
+<SetFillActivity />
+
+<ModePathActivity />

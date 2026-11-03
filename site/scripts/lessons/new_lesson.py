@@ -1,7 +1,7 @@
 """Genera una lección nueva (.mdx) a partir de un spec en Python.
 
 spec = {
-  'track': 'git', 'file': '32a-ramas-remotas', 'title': '...', 'position': 32.5,
+  'track': 'git' (Foundations) o la ruta desde docs/ ('02-testing-domains/ui'), 'file': '32a-ramas-remotas', 'title': '...', 'position': 32.5,
   'slug': 'foundations-ramas-remotas', 'intro': '...', 'theory': 'path.md' (desde ## Conceptos hasta antes de ## Práctica),
   'activities': [
      {'fn': 'XActivity', 'id': 'x', 'title': '...', 'kind': '...', 'goal': '...', 'consigna': '...',
@@ -83,7 +83,8 @@ def build(spec):
     for a in acts:
         lines += [f"<{a['fn']} />", '']
     out = '\n'.join(lines).rstrip() + '\n'
-    path = f"{SITE}/docs/01-foundations/{spec['track']}/{spec['file']}.mdx"
+    track = spec['track'] if '/' in spec['track'] else f"01-foundations/{spec['track']}"
+    path = f"{SITE}/docs/{track}/{spec['file']}.mdx"
     open(path, 'w').write(out)
     print('ok', path)
 

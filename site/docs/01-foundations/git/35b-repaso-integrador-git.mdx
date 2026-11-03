@@ -66,13 +66,13 @@ export function DiagnosisActivity() {
           </table>
         </div>
       }
-      consigna="Son 8 situaciones. Este integrador usa cinco prácticas del bloque: mensaje de commit que describe el cambio, uso correcto de `restore`/`stash`/`revert`, traer los cambios del remoto antes de empezar, no reescribir una rama compartida y no commitear directo en main. Elegí cuál de esas cinco no se aplicó; en las que estén bien, elegí «Está bien». La actividad se completa cuando encontraste los 5 problemas."
+      consigna="Son 8 situaciones. Este integrador usa cinco prácticas del bloque: mensaje de commit que describe el cambio, uso correcto de `restore`/`stash`/`revert`, traer los cambios del remoto antes de empezar, no reescribir una rama compartida y no commitear directo en main. Elegí cuál de esas cinco no se aplicó; en las que no tengan problema, elegí «Sin problema». La actividad se completa cuando encontraste los 5 problemas."
     >
       <FindInCode
         lines={DIAGNOSIS_LINES}
         ruleLabels={DIAGNOSIS_RULE_LABELS}
-        okLabel="Está bien"
-        prompt="¿Qué práctica no se aplicó, o está bien?"
+        okLabel="Sin problema"
+        prompt="¿Qué práctica no se aplicó, o no tiene problema?"
         itemLabel="Situación"
         alreadyDone={isDone('diagnosis')}
         onSolved={() => markDone('diagnosis')}

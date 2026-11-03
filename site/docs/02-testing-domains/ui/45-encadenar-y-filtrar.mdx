@@ -1,0 +1,307 @@
+---
+title: "Encadenar y filtrar locators"
+sidebar_position: 45
+---
+
+import Activity from '@site/src/components/Activity';
+import FillBlank from '@site/src/components/FillBlank';
+import MultiSelect from '@site/src/components/MultiSelect';
+import SpotToken from '@site/src/components/SpotToken';
+import DecisionPath from '@site/src/components/DecisionPath';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  CHAIN_TEMPLATE,
+  CHAIN_SLOTS,
+  CHAIN_BANK,
+  CHAIN_EXPLANATION,
+  CART_HTML,
+  PICK_QUESTIONS,
+  WRONG_ROUNDS,
+  WRONG_PROMPT,
+  SORT_START,
+  SORT_NODES,
+  SORT_EXPLANATION,
+} from '@site/src/content/lessons/45-encadenar-y-filtrar';
+
+export const LESSON_SLUG = 'domains-ui-encadenar-y-filtrar';
+
+export function ChainFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['chainfill']);
+  return (
+    <Activity
+      title="Quitar un producto del carrito"
+      kind="Completar huecos"
+      goal="componer un locator que filtra un ítem de una lista y busca un botón adentro."
+      done={isDone('chainfill')}
+      consigna="Con el carrito de arriba, el test tiene que quitar la mochila urbana. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <CodeBlock language="html">{CART_HTML}</CodeBlock>
+      <FillBlank
+        template={CHAIN_TEMPLATE}
+        slots={CHAIN_SLOTS}
+        bank={CHAIN_BANK}
+        explanation={CHAIN_EXPLANATION}
+        alreadyDone={isDone('chainfill')}
+        onSolved={() => markDone('chainfill')}
+      />
+    </Activity>
+  );
+}
+
+export function PickMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['pickmulti']);
+  return (
+    <Activity
+      title="¿Cuáles describen el elemento correcto?"
+      kind="Marcar todas"
+      goal="evaluar qué combinaciones de filtros encuentran un único elemento sin depender del orden."
+      done={isDone('pickmulti')}
+      consigna="Son 2 preguntas sobre el carrito de la actividad anterior, de 5 y 4 opciones. En cada una, marcá todos los locators que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={PICK_QUESTIONS}
+        alreadyDone={isDone('pickmulti')}
+        onSolved={() => markDone('pickmulti')}
+      />
+    </Activity>
+  );
+}
+
+export function WrongSpotActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['wrongspot']);
+  return (
+    <Activity
+      title="Encuentra de más o encuentra otro"
+      kind="Señalar en la línea"
+      goal="detectar la parte de un locator que lo hace ambiguo o dependiente de la posición."
+      done={isDone('wrongspot')}
+      consigna="Son 3 líneas de tests sobre el mismo carrito. En cada una, hacé click en la parte que hace que el locator encuentre otro elemento o más de uno. Si no es esa, leé la pista y probá otra. Se completa al resolver las 3."
+    >
+      <SpotToken
+        rounds={WRONG_ROUNDS}
+        prompt={WRONG_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('wrongspot')}
+        onSolved={() => markDone('wrongspot')}
+      />
+    </Activity>
+  );
+}
+
+export function SortActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['sort']);
+  return (
+    <Activity
+      title="El carrito cambió de orden"
+      kind="Escenario encadenado"
+      goal="diagnosticar un locator por posición, reemplazarlo por un filtro y confirmar el resultado por nombre."
+      done={isDone('sort')}
+      consigna="Son 3 decisiones encadenadas: cada una depende de la anterior. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la tercera."
+    >
+      <DecisionPath
+        startId={SORT_START}
+        nodes={SORT_NODES}
+        explanation={SORT_EXPLANATION}
+        alreadyDone={isDone('sort')}
+        onSolved={() => markDone('sort')}
+      />
+    </Activity>
+  );
+}
+
+Listas, tablas y tarjetas repiten los mismos botones en cada fila. Para actuar sobre uno hay que decir de cuál fila, sin depender de su posición. Esta entrada combina locators para describir el elemento como lo haría una persona: el botón Renovar de Rayuela.
+
+## Conceptos
+
+### El problema: elementos repetidos
+
+Las pantallas reales repiten estructura. En «Mis préstamos», cada libro es
+un ítem de una lista con los mismos dos botones:
+
+```html
+<ul>
+  <li><h3>Rayuela</h3><p>Vence el 10/11</p><button>Renovar</button><button>Devolver</button></li>
+  <li><h3>Ficciones</h3><p>Vencido</p><button disabled>Renovar</button><button>Devolver</button></li>
+  <li><h3>El Aleph</h3><p>Vence el 18/11</p><button>Renovar</button><button>Devolver</button></li>
+</ul>
+<button>Devolver todos</button>
+<p style="display:none">Renovar</p>
+```
+
+`getByRole('button', { name: 'Renovar' })` encuentra tres botones, y
+`exact: true` no ayuda: los tres se llaman igual. Lo que distingue al
+botón de Rayuela no es el botón, sino **dónde está**: en el ítem que dice
+«Rayuela». Una persona lo describe igual: "el botón Renovar de Rayuela".
+
+Elegir por posición, `nth(0)`, resuelve hoy y se rompe cuando el orden
+cambia (entrada anterior). La alternativa es combinar locators.
+
+### Encadenar: buscar dentro de otro locator
+
+Todo locator tiene los mismos métodos que `page`: `getByRole`,
+`getByText`, `getByLabel` y los demás. Llamados sobre un locator, buscan
+solo **dentro** de los elementos que ese locator encontró:
+
+```ts
+const items = page.getByRole('listitem');              // los 3 ítems
+const titulos = items.getByRole('heading');            // los 3 títulos, uno por ítem
+```
+
+Encadenar achica la búsqueda, pero no elige un ítem: dentro de los tres
+ítems, el botón Devolver aparece tres veces.
+
+```ts
+await page.getByRole('listitem').getByRole('button', { name: 'Devolver' }).click();
+```
+
+```text
+locator.click: Error: strict mode violation: getByRole('listitem').getByRole('button', { name: 'Devolver' }) resolved to 3 elements:
+    1) <button>Devolver</button> aka getByRole('button', { name: 'Devolver' }).first()
+    2) <button>Devolver</button> aka getByRole('button', { name: 'Devolver' }).nth(1)
+    3) <button>Devolver</button> aka getByRole('button', { name: 'Devolver' }).nth(2)
+```
+
+Cuando no encuentra otra forma de distinguirlos, Playwright sugiere la
+posición (`first()`, `nth(1)`). Es una pista de que falta un filtro, no la
+solución. Y el encadenamiento sí dejó afuera algo: el botón «Devolver
+todos», que no está dentro de ningún ítem.
+
+### Filtrar por texto: `filter({ hasText })`
+
+`filter` se queda con los elementos de un locator que cumplen una
+condición. Con `hasText`, los que contienen ese texto en cualquier lugar
+adentro:
+
+```ts
+const rayuela = page.getByRole('listitem').filter({ hasText: 'Rayuela' });
+await rayuela.getByRole('button', { name: 'Renovar' }).click();
+```
+
+La primera línea encuentra un solo ítem, el de Rayuela; la segunda busca
+el botón Renovar dentro de él. Se lee como lo diría una persona, y no
+depende del orden de la lista: si Rayuela pasa al final, el test sigue
+haciendo click en el botón correcto.
+
+`hasText` busca una parte del texto y no distingue mayúsculas, igual que
+`getByText`: `filter({ hasText: 'vence' })` se queda con dos ítems, los
+que dicen «Vence el...». También acepta una expresión regular:
+`{ hasText: /^Ficciones/ }` exige que el texto del ítem empiece así.
+
+`hasNotText` hace lo contrario: `filter({ hasNotText: 'Vencido' })`
+descarta Ficciones y se queda con los otros dos.
+
+### Filtrar por contenido: `filter({ has })`
+
+`has` recibe otro locator y se queda con los elementos que lo contienen:
+
+```ts
+page.getByRole('listitem').filter({
+  has: page.getByRole('heading', { name: 'El Aleph' }),
+})
+```
+
+Encuentra el ítem que contiene el **título** «El Aleph». Es más preciso
+que `hasText: 'El Aleph'`, que también coincidiría con un ítem que
+mencionara El Aleph en su descripción. El locator interno se escribe
+desde `page`, pero se evalúa dentro de cada ítem.
+
+`hasNot` descarta los elementos que contienen el locator. Por ejemplo,
+los préstamos que no tienen un botón Renovar deshabilitado:
+
+```ts
+page.getByRole('listitem').filter({
+  hasNot: page.getByRole('button', { name: 'Renovar', disabled: true }),
+})
+```
+
+(`disabled: true` es otra opción de estado de `getByRole`, como `checked`.)
+
+Los filtros se encadenan: cada `filter` aplica una condición más sobre el
+resultado del anterior.
+
+### Combinar condiciones: `and` y `or`
+
+`and` exige que el mismo elemento cumpla dos locators a la vez:
+
+```ts
+page.getByRole('button', { name: 'Renovar' }).and(page.locator(':disabled'))
+```
+
+Encuentra el único botón Renovar deshabilitado. `:disabled` es una
+pseudo-clase de CSS, como `:nth-child`: encuentra los controles
+deshabilitados. `or` acepta el elemento
+que cumpla cualquiera de los dos; se usa cuando la página puede mostrar
+una cosa u otra, por ejemplo un mensaje de confirmación o uno de error.
+
+### Visibles e invisibles
+
+Algunas páginas tienen elementos repetidos que no se ven, como el
+párrafo oculto del final del HTML, que se usa en otra vista.
+`getByText('Renovar')` encuentra cuatro elementos: los tres botones y
+ese párrafo. `filter({ visible: true })` se queda con los visibles,
+los tres botones.
+
+### Listas: contar y recorrer
+
+A veces lo que interesa es la lista completa. Sobre un locator de varios
+elementos:
+
+- `await locator.count()` devuelve cuántos encontró: `3` para los ítems.
+- `await locator.allTextContents()` devuelve el texto de cada uno:
+
+  ```ts
+  await page.getByRole('listitem').getByRole('heading').allTextContents();
+  // [ 'Rayuela', 'Ficciones', 'El Aleph' ]
+  ```
+
+- `first()`, `last()` y `nth(i)` eligen por posición, contando desde 0:
+  `nth(1)` es el segundo ítem, Ficciones.
+
+Para verificar una lista se usan las assertions de la entrada de
+assertions, como `toHaveCount`. Elegir por posición tiene sentido solo
+cuando la posición **es** lo que se prueba, por ejemplo "el préstamo que
+vence primero aparece arriba". En cualquier otro caso, la documentación
+de Playwright desaconseja `first`, `last` y `nth`: si la página cambia, el
+test actúa sobre otro elemento sin avisar.
+
+## Cuándo usarlo
+
+Cada vez que un elemento se repite: filas de tablas, ítems de listas,
+tarjetas de productos, turnos de una agenda. El patrón es siempre el
+mismo: encontrar el contenedor por lo que lo distingue y buscar adentro
+el elemento sobre el que se actúa.
+
+## Buenas prácticas
+
+- Identificar el contenedor con `filter({ hasText })` o `filter({ has })`
+  y después buscar adentro.
+- Preferir `has` con un rol cuando el texto podría aparecer en otro lugar
+  del contenedor.
+- Leer el resultado de un locator con `count()` o `allTextContents()`
+  cuando hay dudas sobre qué encuentra.
+- Reservar `nth`, `first` y `last` para cuando la posición es lo que se
+  verifica.
+
+## Anti-patrones
+
+- **Usar `nth()` para elegir un elemento** que tiene algo que lo
+  distingue.
+- **Aceptar la sugerencia `first()`** de un `strict mode violation` sin
+  buscar un filtro.
+- **Filtrar por un texto demasiado corto**, que coincide con varios
+  contenedores.
+- **Encadenar sin filtrar**, esperando que el encadenamiento solo elija
+  uno.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ChainFillActivity />
+
+<PickMultiActivity />
+
+<WrongSpotActivity />
+
+<SortActivity />

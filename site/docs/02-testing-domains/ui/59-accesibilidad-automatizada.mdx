@@ -1,0 +1,249 @@
+---
+title: "Accesibilidad automatizada"
+sidebar_position: 59
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import Classify from '@site/src/components/Classify';
+import FillBlank from '@site/src/components/FillBlank';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  RULE_LEFT,
+  RULE_RIGHT,
+  RULE_WHY,
+  DETECT_ITEMS,
+  DETECT_COLUMNS,
+  AXE_TEMPLATE,
+  AXE_SLOTS,
+  AXE_BANK,
+  AXE_EXPLANATION,
+} from '@site/src/content/lessons/59-accesibilidad-automatizada';
+
+export const LESSON_SLUG = 'domains-ui-accesibilidad';
+
+export function RuleMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['rulematch']);
+  return (
+    <Activity
+      title="Cada violación con su corrección"
+      kind="Emparejar"
+      goal="conectar cada regla de axe que falló en una tienda con la corrección que la resuelve."
+      done={isDone('rulematch')}
+      consigna="Son 6 pares. Elegí una violación de la izquierda y después la corrección que la resuelve (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 6."
+    >
+      <Match
+        left={RULE_LEFT}
+        right={RULE_RIGHT}
+        why={RULE_WHY}
+        leftLabel="Violación"
+        rightLabel="Corrección"
+        alreadyDone={isDone('rulematch')}
+        onSolved={() => markDone('rulematch')}
+      />
+    </Activity>
+  );
+}
+
+export function DetectClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['detectclassify']);
+  return (
+    <Activity
+      title="¿Lo encuentra axe?"
+      kind="Clasificar"
+      goal="distinguir los problemas de accesibilidad que detecta un análisis automático de los que requieren una persona."
+      done={isDone('detectclassify')}
+      consigna="Son 7 problemas del checkout. Arrastrá cada uno a Lo detecta axe o Requiere revisión manual. Regla para los casos dudosos: pensá si para decidirlo alcanza con leer el HTML y aplicar una regla fija. Se completa cuando los 7 están en su caja."
+    >
+      <Classify
+        items={DETECT_ITEMS}
+        columns={DETECT_COLUMNS}
+        itemLabel="Problema"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('detectclassify')}
+        onSolved={() => markDone('detectclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function AxeFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['axefill']);
+  return (
+    <Activity
+      title="Analizar el formulario de pago"
+      kind="Completar huecos"
+      goal="escribir un test de accesibilidad con axe acotado a una parte de la página."
+      done={isDone('axefill')}
+      consigna="El test tiene que analizar con las reglas de WCAG A y AA solo el formulario de pago, y fallar si hay alguna violación. Completá los 5 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={AXE_TEMPLATE}
+        slots={AXE_SLOTS}
+        bank={AXE_BANK}
+        explanation={AXE_EXPLANATION}
+        alreadyDone={isDone('axefill')}
+        onSolved={() => markDone('axefill')}
+      />
+    </Activity>
+  );
+}
+
+Varios criterios de accesibilidad ya aparecieron en el track: etiquetas, nombres accesibles, navegación con teclado. Esta entrada suma un análisis automático con axe, que revisa cientos de reglas en cada pantalla, y marca qué parte sigue necesitando una persona.
+
+## Conceptos
+
+### Accesibilidad, y qué parte se puede automatizar
+
+Una aplicación es **accesible** cuando la pueden usar personas con
+discapacidad: quien usa un lector de pantalla, quien navega solo con el
+teclado, quien ve con poco contraste o amplía la pantalla. La referencia
+es WCAG (*Web Content Accessibility Guidelines*), un conjunto de criterios
+agrupados en niveles: A, el mínimo, AA, el que exigen la mayoría de las
+normas, y AAA.
+
+A lo largo del track aparecieron varios de esos criterios: campos con
+etiqueta, botones con nombre, navegación con teclado (entradas de HTML,
+DOM y DevTools, de locators y de mouse y teclado). Algunos se pueden
+comprobar automáticamente, porque dependen de reglas fijas del HTML; otros
+requieren el juicio de una persona, como si el texto alternativo de una
+imagen la describe bien o si el orden de lectura tiene sentido. La
+documentación de Playwright lo advierte: los tests automáticos detectan
+algunos problemas comunes, pero no reemplazan una evaluación manual.
+
+### axe en un test de Playwright
+
+**axe** es una librería que analiza una página con cientos de reglas de
+accesibilidad. Se usa desde Playwright con el paquete `@axe-core/playwright`,
+que se instala como cualquier dependencia de desarrollo:
+
+```bash
+npm install -D @axe-core/playwright
+```
+
+Un test que analiza el alta de socio de la biblioteca:
+
+```ts
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+test('el alta de socio no tiene problemas de accesibilidad detectables', async ({ page }) => {
+  await page.goto('/socios-alta');
+  const resultados = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa'])
+    .analyze();
+  expect(resultados.violations).toEqual([]);
+});
+```
+
+`new AxeBuilder({ page })` prepara el análisis de la página en el estado
+en que está. `withTags` limita las reglas a las de WCAG nivel A y AA.
+`analyze()` corre el análisis y devuelve los resultados; `violations` es
+la lista de reglas que no se cumplen. La assertion exige que esté vacía.
+
+### Leer las violaciones
+
+El test falla. Con un `console.log` de cada violación (su `id`, su
+impacto, su texto de ayuda y los elementos afectados), el resultado es:
+
+```text
+button-name | critical | Buttons must have discernible text | 1 elemento(s): button
+color-contrast | serious | Elements must meet minimum color contrast ratio thresholds | 1 elemento(s): p
+image-alt | critical | Images must have alternative text | 2 elemento(s): img[src$="enviar.svg"], img[src$="logo.png"]
+```
+
+Cada violación tiene:
+
+- `id`: la regla que no se cumple. `button-name`, un botón sin nombre
+  accesible (el de enviar solo tiene una imagen sin `alt`);
+  `color-contrast`, un texto gris claro sobre blanco que no alcanza el
+  contraste mínimo; `image-alt`, imágenes sin texto alternativo.
+- `impact`: la gravedad, de `minor` a `critical`.
+- `help`: qué exige la regla, y `helpUrl`, un enlace con la explicación y
+  cómo corregirla.
+- `nodes`: los elementos afectados, con un selector para encontrarlos.
+
+Otras reglas que aparecen seguido: `label` (un campo sin etiqueta ni
+nombre), `link-name` (un enlace sin texto) y `html-has-lang` (la página no
+declara su idioma con `<html lang="es">`, que el lector de pantalla usa
+para pronunciar el texto).
+
+La salida de la assertion fallida es mucho más larga: `toEqual([])`
+muestra el objeto completo de cada violación, cientos de líneas. Por eso
+conviene imprimir o adjuntar al reporte un resumen como el de arriba.
+
+Corregida la página (el botón con texto «Enviar», `alt` en las imágenes y
+el texto de ayuda con un color de contraste suficiente), el mismo test
+pasa.
+
+### Analizar una parte de la página
+
+Un análisis puede acotarse:
+
+- `include('main')`: solo lo que está dentro de ese selector.
+- `exclude('img[src="logo.png"]')`: todo menos eso.
+- `disableRules(['color-contrast'])`: sin esa regla.
+
+```ts
+const resultados = await new AxeBuilder({ page })
+  .include('main')
+  .exclude('img[src="logo.png"]')
+  .disableRules(['color-contrast'])
+  .analyze();
+// quedan: button-name e image-alt (solo la imagen del botón)
+```
+
+Excluir una regla o un elemento es razonable para un problema **ya
+reportado** que el equipo decidió corregir más adelante, siempre con un
+comentario que diga por qué y con qué reporte, para no perderlo. Excluir
+para que el test pase sin reportarlo es esconder el defecto.
+
+### Lo que axe no ve
+
+En el alta de socio, el campo DNI no tiene `<label>`, solo un
+placeholder, y axe no lo marcó: el placeholder cuenta como nombre
+accesible (entrada de HTML, DOM y DevTools), así que la regla se cumple.
+Aun así, el placeholder desaparece al escribir y la persona pierde la
+referencia. axe comprueba reglas; no evalúa si la experiencia es buena.
+
+Lo que queda para las pruebas manuales, o para tests propios:
+
+- recorrer la pantalla solo con el teclado (entrada de mouse y teclado);
+- usarla con un lector de pantalla;
+- revisar que los textos alternativos y los nombres describan bien;
+- ampliar la pantalla al 200% y ver que nada se corte.
+
+## Cuándo usarlo
+
+En las pantallas principales de la aplicación, como un test más de la
+suite, para detectar temprano los problemas que tienen reglas fijas.
+Siempre junto con revisiones manuales de accesibilidad.
+
+## Buenas prácticas
+
+- Analizar con las reglas del nivel que exige el proyecto, por ejemplo
+  WCAG A y AA.
+- Imprimir o adjuntar un resumen de las violaciones, no el objeto
+  completo.
+- Analizar cada pantalla en los estados que importan: con un error de
+  validación, con un diálogo abierto.
+- Excluir reglas o elementos solo con un reporte abierto y un comentario.
+
+## Anti-patrones
+
+- **Dar por accesible una pantalla** porque axe no encontró nada.
+- **Excluir reglas para que el test pase** sin reportar el problema.
+- **Analizar solo la página recién cargada**, sin los estados a los que se
+  llega interactuando.
+- **Agregar `aria-label` a cualquier cosa** para conformar a la
+  herramienta: un nombre tiene que describir, no solo existir.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<RuleMatchActivity />
+
+<DetectClassifyActivity />
+
+<AxeFillActivity />

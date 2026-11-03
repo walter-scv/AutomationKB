@@ -1,0 +1,272 @@
+---
+title: "Fixtures propias y BaseTest"
+sidebar_position: 64
+---
+
+import Activity from '@site/src/components/Activity';
+import Order from '@site/src/components/Order';
+import FillBlank from '@site/src/components/FillBlank';
+import MultiSelect from '@site/src/components/MultiSelect';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  FIX_ITEMS,
+  FIX_CORRECT,
+  FIX_RULES,
+  FIX_CODE,
+  BT_TEMPLATE,
+  BT_SLOTS,
+  BT_BANK,
+  BT_EXPLANATION,
+  FIX_QUESTIONS,
+} from '@site/src/content/lessons/64-fixtures-y-basetest';
+
+export const LESSON_SLUG = 'framework-ui-fixtures-basetest';
+
+export function FixOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['fixorder']);
+  return (
+    <Activity
+      title="¿En qué orden se imprime?"
+      kind="Ordenar"
+      goal="seguir la ejecución de una cadena de tres fixtures alrededor de un test."
+      done={isDone('fixorder')}
+      consigna="Con las fixtures de arriba, ordená los 7 mensajes en el orden en que aparecen en la terminal, y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <CodeBlock language="ts">{FIX_CODE}</CodeBlock>
+      <Order
+        items={FIX_ITEMS}
+        correctOrder={FIX_CORRECT}
+        rules={FIX_RULES}
+        onSolved={() => markDone('fixorder')}
+      />
+    </Activity>
+  );
+}
+
+export function BtFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['btfill']);
+  return (
+    <Activity
+      title="El base-test de la agenda"
+      kind="Completar huecos"
+      goal="escribir un base-test con una fixture que depende de otra y reexporta expect."
+      done={isDone('btfill')}
+      consigna="La suite de turnos quiere una fixture agendaAbierta que entregue la agenda ya abierta. Completá los 5 huecos del base-test.ts y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={BT_TEMPLATE}
+        slots={BT_SLOTS}
+        bank={BT_BANK}
+        explanation={BT_EXPLANATION}
+        alreadyDone={isDone('btfill')}
+        onSolved={() => markDone('btfill')}
+      />
+    </Activity>
+  );
+}
+
+export function FixMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['fixmulti']);
+  return (
+    <Activity
+      title="Qué hace la fixture del turno"
+      kind="Marcar todas"
+      goal="predecir cuándo se crea y se limpia una fixture y cómo la reciben los tests."
+      done={isDone('fixmulti')}
+      consigna="Es 1 pregunta con 6 opciones. Marcá todas las afirmaciones correctas y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={FIX_QUESTIONS}
+        alreadyDone={isDone('fixmulti')}
+        onSolved={() => markDone('fixmulti')}
+      />
+    </Activity>
+  );
+}
+
+Los tests ya reciben page sin crearla. Esta entrada usa el mismo mecanismo para entregarles Page Objects y datos preparados, y reúne todo en un archivo del que importan todos los tests.
+
+## Conceptos
+
+### Lo que el test pide por nombre
+
+Desde el primer test, cada uno recibe `page` sin crearla: la pide entre
+llaves, `async ({ page }) => {...}`, y Playwright se la entrega lista y la
+descarta al terminar (entradas de anatomía de un test y de hooks). Eso es
+una **fixture**: un recurso que el framework prepara antes del test y
+limpia después. Playwright trae varias: `page`, `context`, `browser`,
+`browserName` y `request`, un cliente para hacer pedidos a una API.
+
+Con Page Objects, cada test repite dos o tres líneas para crearlos:
+
+```ts
+test('renovar un préstamo extiende el vencimiento 14 días', async ({ page }) => {
+  const prestamosPage = new PrestamosPage(page);
+  // ...
+});
+```
+
+Y si mañana todos los tests necesitan algo nuevo, como un préstamo
+sembrado antes de empezar, hay que tocarlos uno por uno. Las fixtures
+propias resuelven las dos cosas.
+
+### Fixtures propias: `test.extend`
+
+`test.extend` crea una versión de `test` con fixtures nuevas:
+
+```ts
+import { test as base, expect } from '@playwright/test';
+import { IngresoPage } from '../pages/IngresoPage';
+import { PrestamosPage } from '../pages/PrestamosPage';
+
+type Fixtures = {
+  ingresoPage: IngresoPage;
+  prestamosPage: PrestamosPage;
+};
+
+export const test = base.extend<Fixtures>({
+  ingresoPage: async ({ page }, use) => {
+    await use(new IngresoPage(page));
+  },
+  prestamosPage: async ({ page }, use) => {
+    await use(new PrestamosPage(page));
+  },
+});
+
+export { expect };
+```
+
+- `import { test as base }` importa el `test` de Playwright con otro
+  nombre, porque el archivo exporta su propio `test`.
+- El tipo `Fixtures` dice qué fixtures nuevas hay y de qué tipo es cada
+  una (entrada de interfaces y type aliases).
+- Cada fixture es una función que recibe las fixtures que necesita (acá,
+  `page`) y una función `use`. Lo que se le pasa a `use` es lo que recibe
+  el test.
+
+El test pide el Page Object por nombre, igual que pedía `page`:
+
+```ts
+test('renovar un préstamo extiende el vencimiento 14 días', async ({ prestamosPage }) => {
+  await prestamosPage.abrir();
+  // ...
+});
+```
+
+### Antes y después de `use`
+
+Una fixture puede preparar algo antes de entregarlo y limpiarlo después.
+Todo lo que está antes de `use` corre antes del test; `use` entrega el
+valor y espera a que el test termine, pase o falle; lo que está después
+corre al final. Con dos fixtures que imprimen cada momento, una que
+depende de la otra:
+
+```ts
+const test = base.extend<{ socia: string; prestamoDePrueba: string }>({
+  socia: async ({}, use) => {
+    console.log('socia: antes de use');
+    await use('lucia@biblio.test');
+    console.log('socia: después de use');
+  },
+  prestamoDePrueba: async ({ socia }, use) => {
+    console.log('prestamoDePrueba: crear para', socia);
+    await use('Rayuela');
+    console.log('prestamoDePrueba: borrar');
+  },
+});
+
+test('usa el préstamo', async ({ prestamoDePrueba }) => {
+  console.log('test: usa', prestamoDePrueba);
+});
+
+test('no pide ninguna fixture propia', async ({ page }) => {
+  console.log('test: sin fixtures propias');
+});
+```
+
+```text
+socia: antes de use
+prestamoDePrueba: crear para lucia@biblio.test
+test: usa Rayuela
+prestamoDePrueba: borrar
+socia: después de use
+  ✓  1 [chromium] › tests/orden.spec.ts:16:1 › usa el préstamo (2ms)
+test: sin fixtures propias
+  ✓  2 [chromium] › tests/orden.spec.ts:21:1 › no pide ninguna fixture propia (42ms)
+```
+
+Tres cosas se ven en la salida:
+
+1. **Dependencias**: `prestamoDePrueba` pide `socia`, así que Playwright
+   arma primero `socia` y le pasa el valor.
+2. **Orden inverso al terminar**: se desarma primero lo último que se
+   armó, como al apilar y desapilar.
+3. **Bajo demanda**: el segundo test no pidió ninguna fixture propia, y
+   ninguna se creó. Agregar fixtures al archivo no hace más lento a nadie
+   que no las use.
+
+`{}` como primer parámetro de `socia` indica que no depende de ninguna
+otra fixture.
+
+### BaseTest: un solo lugar para todo lo compartido
+
+El archivo que exporta el `test` extendido, en esta suite
+`tests/base-test.ts`, cumple el rol de **BaseTest**: todos los tests
+importan de ahí, nunca de `@playwright/test` directamente:
+
+```ts
+// tests/prestamos.spec.ts
+import { test, expect } from './base-test';
+```
+
+Por eso el archivo también reexporta `expect`. El valor está en lo que
+viene después: el día que todos los tests necesiten una fixture nueva,
+como una sesión iniciada o un dato sembrado, se agrega en `base-test.ts`
+y queda disponible para todos sin tocar ninguno. La entrada siguiente
+agrega así la fixture `sembrarPrestamo`.
+
+Con muchas fixtures, el archivo puede dividirse (una por tema) y
+combinarse, pero el principio no cambia: un solo punto de entrada.
+
+### Lo que no necesita una fixture
+
+Antes de escribir una fixture, conviene confirmar que Playwright no lo
+resuelve ya. Guardar una captura o un trace cuando un test falla no
+necesita código: lo hace la configuración (`screenshot`, `trace`,
+entrada de configuración). Una fixture que envuelve cada test para
+capturar evidencia es código para mantener que no aporta nada.
+
+## Cuándo usarlo
+
+Para entregar a los tests los Page Objects, los datos sembrados y
+cualquier recurso que necesiten preparado, y para limpiar lo que se creó.
+Desde el primer Page Object, conviene que los tests importen de un
+`base-test.ts`.
+
+## Buenas prácticas
+
+- Que todos los tests importen `test` y `expect` del archivo de fixtures.
+- Una fixture por recurso, con un nombre que diga qué entrega.
+- Preparar antes de `use` y limpiar después, en la misma fixture.
+- Declarar las dependencias entre fixtures pidiéndolas por nombre.
+
+## Anti-patrones
+
+- **Crear Page Objects a mano** en cada test.
+- **Importar `test` de `@playwright/test`** en algunos archivos y del
+  BaseTest en otros.
+- **Fixtures que repiten lo que ya hace la configuración**, como capturas
+  al fallar.
+- **Una fixture que hace varias cosas** que no siempre se necesitan
+  juntas.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<FixOrderActivity />
+
+<BtFillActivity />
+
+<FixMultiActivity />

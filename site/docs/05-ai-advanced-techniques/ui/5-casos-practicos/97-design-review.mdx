@@ -1,0 +1,222 @@
+---
+title: "Design review: antes y después"
+sidebar_position: 97
+---
+
+import Activity from '@site/src/components/Activity';
+import Order from '@site/src/components/Order';
+import DecisionPath from '@site/src/components/DecisionPath';
+import Match from '@site/src/components/Match';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  PASS_ITEMS,
+  PASS_CORRECT,
+  PASS_RULES,
+  TRIGGER_START,
+  TRIGGER_NODES,
+  TRIGGER_EXPLANATION,
+  RESULT_LEFT,
+  RESULT_RIGHT,
+  RESULT_WHY,
+} from '@site/src/content/lessons/97-design-review';
+
+export const LESSON_SLUG = 'ai-ui-design-review';
+
+export function PassOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['passorder']);
+  return (
+    <Activity
+      title="Las dos pasadas"
+      kind="Ordenar"
+      goal="ordenar el trabajo del agente de design review, del entorno al comentario final."
+      done={isDone('passorder')}
+      consigna="Son 5 pasos del design review de un Pull Request de la agenda, desordenados. Ordenalos y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={PASS_ITEMS}
+        correctOrder={PASS_CORRECT}
+        rules={PASS_RULES}
+        onSolved={() => markDone('passorder')}
+      />
+    </Activity>
+  );
+}
+
+export function TriggerPathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['triggerpath']);
+  return (
+    <Activity
+      title="¿Se dispara?"
+      kind="Escenario encadenado"
+      goal="aplicar las reglas de disparo del design review a distintos Pull Requests."
+      done={isDone('triggerpath')}
+      consigna="Son 3 situaciones encadenadas con Pull Requests de la agenda. En cada una elegí qué pasa con el design review; si no es lo correcto, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={TRIGGER_START}
+        nodes={TRIGGER_NODES}
+        explanation={TRIGGER_EXPLANATION}
+        alreadyDone={isDone('triggerpath')}
+        onSolved={() => markDone('triggerpath')}
+      />
+    </Activity>
+  );
+}
+
+export function ResultMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['resultmatch']);
+  return (
+    <Activity
+      title="Qué hacer con cada resultado"
+      kind="Emparejar"
+      goal="decidir la acción que corresponde a cada resultado del design review."
+      done={isDone('resultmatch')}
+      consigna="Son 4 pares. Elegí un resultado del design review (izquierda) y después la acción que corresponde (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 4."
+    >
+      <Match
+        left={RESULT_LEFT}
+        right={RESULT_RIGHT}
+        why={RESULT_WHY}
+        leftLabel="Resultado"
+        rightLabel="Acción"
+        alreadyDone={isDone('resultmatch')}
+        onSolved={() => markDone('resultmatch')}
+      />
+    </Activity>
+  );
+}
+
+Diseño no puede aprobar un cambio visual leyendo un diff de estilos. Esta entrada muestra cómo un agente captura las pantallas cambiadas antes y después del Pull Request y le deja a diseño un documento para comparar: cuándo corre, cómo hace las dos pasadas, qué deja y qué hacer con cada resultado.
+
+## Conceptos
+
+### Revisar un cambio visual sin leer código
+
+Un Pull Request de diseño cambia cómo se ve la agenda: espaciados,
+colores, una tarjeta nueva. Quien diseñó tiene que aprobarlo, y no puede
+hacerlo leyendo un diff de CSS. El **design review** automatizado le da
+otra cosa: un agente captura las pantallas cambiadas en la rama del Pull
+Request, captura las mismas pantallas en la rama base, y publica un
+documento con cada par, **antes** y **después**, en el ticket de diseño.
+
+Es el complemento visual de la exploración (entrada de testing
+exploratorio): una mira cómo se comporta la aplicación; esta, cómo se ve.
+Y es distinto del visual testing de la sección II: no compara contra una
+imagen de referencia para dar verde o rojo, sino que le muestra a una
+persona qué cambió para que decida.
+
+### Lo que tiene que existir antes
+
+| Qué | Para qué | Dónde se aprende |
+| :- | :- | :- |
+| El mapa de navegación, con el camino a cada pantalla | Llegar a cada pantalla cambiada, igual en las dos pasadas | Entrada del mapa de navegación |
+| Un entorno que se levanta y se siembra con un comando | Capturar las dos versiones con los mismos datos | Entrada de entornos y datos para agentes |
+| Cuentas de prueba por rol | Ver cada pantalla como la ve cada rol | Entrada de entornos y datos para agentes |
+| Un agente en CI, con acceso al gestor de tickets | Capturar y publicar el documento | Entradas de agentes en CI y de MCP |
+
+En CI, el agente llega al gestor de tickets igual que en tu computadora:
+con el servidor MCP registrado en el `.mcp.json` del repositorio, y el
+token del gestor como secreto del repositorio, que el workflow pasa como
+variable de entorno para el `${JIRA_TOKEN}` del archivo (entrada de
+MCP).
+| Una convención de títulos con el ticket de diseño, como `DIS-142: nueva tarjeta de turno` | Saber dónde publicar | Un acuerdo con el equipo de diseño |
+
+El mapa es la pieza que más se subestima. Para capturar «el diálogo de
+reprogramar con un horario ocupado», el agente necesita saber que se
+abre desde la fila de un turno reservado, y que el horario ocupado
+requiere otro turno a la misma hora. Sin el mapa, captura lo que
+encuentra, que no siempre es lo que cambió.
+
+### Cuándo se dispara
+
+Es un workflow separado del de los tests, con sus propias reglas:
+
+| Condición | ¿Dispara? |
+| :- | :- |
+| Pull Request abierto, no borrador, con el identificador del ticket de diseño al principio del título | Sí |
+| Pull Request con la etiqueta (*label* de GitHub) acordada, por ejemplo `design-review` | Sí, a pedido |
+| Sin el identificador de ticket en el título | No: no hay dónde publicar el documento |
+| Borrador | No |
+| Un push nuevo al mismo Pull Request | No: una vez por Pull Request |
+
+No tiene filtro por rutas (entrada de testing exploratorio): un cambio
+solo visual, como un archivo de estilos, puede no tocar ninguna de las
+rutas que disparan la suite funcional. Para volver a correrlo, se
+saca y se vuelve a poner la etiqueta.
+
+### Las dos pasadas
+
+Las dos capturas comparten **un solo entorno**, con los mismos datos
+sembrados, y solo cambia la versión de la aplicación entre pasadas. Si
+un camino requiere crear datos, por ejemplo un turno para mostrar un horario
+ocupado, se vuelve a sembrar antes de la segunda pasada, para que las
+dos partan del mismo estado.
+
+1. **Después**, en la rama del Pull Request: el agente lee el diff, arma
+   la lista de pantallas cambiadas (modificadas y nuevas), cada una con
+   un nombre estable y el camino para llegar, que toma del mapa de
+   navegación y que llega siempre al mismo lugar, y captura cada
+   pantalla al encontrar su señal.
+2. **Antes**, en la **rama base**, la rama a la que se quiere mergear el
+   Pull Request, normalmente `main`: vuelve a compilar la aplicación con
+   ese código, sobre el mismo entorno, repite los mismos caminos, solo
+   para las pantallas modificadas, y captura.
+
+Las pantallas nuevas no tienen «antes»: el documento las muestra como
+agregados.
+
+### Qué deja
+
+- **Un documento en el ticket de diseño**, con los pares. Se identifica
+  por su título, así que una nueva corrida lo reemplaza en lugar de
+  duplicarlo.
+- **Un comentario de estado en el Pull Request**, uno solo que se edita:
+  «iniciado», «listo» con el enlace al documento, o «no se pudo
+  completar» con el motivo.
+
+### Qué hacer con el resultado
+
+- **Listo**: abrir el documento y comparar. Las regresiones visuales se
+  marcan en el ticket de diseño, no en el diff.
+- **No se pudo completar**: leer el motivo. Lo más común es que la rama no
+  compile o que un camino del mapa no llegue a una pantalla. Se reintenta una vez;
+  si vuelve a fallar, las capturas se hacen a mano.
+- **El comentario quedó en «iniciado»**: la tarea del agente se cortó
+  antes del paso final, por ejemplo porque el entorno se quedó sin
+  memoria. El comentario incluye un enlace al registro de esa ejecución
+  (entrada de agentes en CI): ahí se ve hasta dónde llegó.
+- **Sin comentario**: o el título no tiene el identificador, o faltan
+  credenciales. Se revisa el registro del job.
+- **El documento muestra pantallas equivocadas**: la lista de pantallas
+  que el agente armó desde el diff no coincide con lo que cambió, o el
+  mapa lo llevó a otra pantalla. Se dice en el ticket y
+  se captura a mano lo que faltó.
+
+## Cuándo usarlo
+
+En equipos donde diseño revisa cada cambio visual y los Pull Requests
+llevan un ticket de diseño identificable.
+
+## Buenas prácticas
+
+- El mapa de navegación al día antes de la primera corrida.
+- Un workflow propio, sin filtro por rutas.
+- Las dos pasadas sobre el mismo entorno y los mismos datos.
+- Un documento y un comentario que se reemplazan, no se duplican.
+
+## Anti-patrones
+
+- **Tomar el documento como aprobación** sin que diseño lo mire.
+- **Capturar antes y después en entornos distintos**: la diferencia de
+  datos se confunde con la del diseño.
+- **Correrlo en cada push** del mismo Pull Request.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<PassOrderActivity />
+
+<TriggerPathActivity />
+
+<ResultMatchActivity />

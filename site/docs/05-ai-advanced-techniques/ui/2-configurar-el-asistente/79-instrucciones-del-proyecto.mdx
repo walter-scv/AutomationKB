@@ -1,0 +1,263 @@
+---
+title: "Instrucciones del proyecto: CLAUDE.md y reglas"
+sidebar_position: 79
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import FillBlank from '@site/src/components/FillBlank';
+import Quiz from '@site/src/components/Quiz';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  WHERE_ITEMS,
+  WHERE_COLUMNS,
+  RULE_TEMPLATE,
+  RULE_SLOTS,
+  RULE_BANK,
+  RULE_EXPLANATION,
+  FOLLOW_QUIZ,
+} from '@site/src/content/lessons/79-instrucciones-del-proyecto';
+
+export const LESSON_SLUG = 'ai-ui-instrucciones-del-proyecto';
+
+export function WhereClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['whereclassify']);
+  return (
+    <Activity
+      title="¿Dónde va esta instrucción?"
+      kind="Clasificar"
+      goal="decidir si una instrucción va en el CLAUDE.md del proyecto, en una regla por ruta o en ninguno."
+      done={isDone('whereclassify')}
+      consigna="Son 7 cosas que el equipo de turnos quiere que el agente sepa. Arrastrá cada una a CLAUDE.md del proyecto, Regla con paths o En ninguno de los dos. Regla para los casos dudosos: si se necesita en casi todas las tareas, va en el CLAUDE.md; si solo en ciertos archivos, en una regla con paths; si es un secreto, ya lo sabe o ya lo controla una herramienta, en ninguno. Se completa cuando las 7 están en su caja."
+    >
+      <Classify
+        items={WHERE_ITEMS}
+        columns={WHERE_COLUMNS}
+        itemLabel="Instrucción"
+        counterLabel="ubicadas en su caja"
+        alreadyDone={isDone('whereclassify')}
+        onSolved={() => markDone('whereclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function RuleFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['rulefill']);
+  return (
+    <Activity
+      title="Una regla para las fixtures"
+      kind="Completar huecos"
+      goal="escribir una regla que se carga solo con ciertos archivos y que lleva su motivo."
+      done={isDone('rulefill')}
+      consigna="El equipo de turnos quiere una regla sobre las fixtures, en la carpeta de reglas del proyecto, que se cargue solo cuando el agente trabaja con tests/base-test.ts y que lleve su motivo. Completá los 3 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={RULE_TEMPLATE}
+        slots={RULE_SLOTS}
+        bank={RULE_BANK}
+        explanation={RULE_EXPLANATION}
+        alreadyDone={isDone('rulefill')}
+        onSolved={() => markDone('rulefill')}
+      />
+    </Activity>
+  );
+}
+
+export function FollowQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['followquiz']);
+  return (
+    <Activity
+      title="Cuando las instrucciones no se cumplen"
+      kind="Elegí la opción"
+      goal="diagnosticar por qué no se cumple una instrucción y elegir la corrección."
+      done={isDone('followquiz')}
+      consigna="Son 3 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={FOLLOW_QUIZ}
+        onSolved={() => markDone('followquiz')}
+      />
+    </Activity>
+  );
+}
+
+Un agente empieza cada sesión sin recordar nada. Esta entrada muestra cómo darle, por escrito, lo que necesita saber de tu suite: dónde va ese archivo, qué contiene, qué no, y por qué una instrucción no reemplaza a un bloqueo.
+
+## Conceptos
+
+### Cada sesión empieza de cero
+
+Cada sesión nueva de Claude Code arranca con el contexto vacío (entrada
+de cómo funciona un asistente). El lunes le explicaste que los tests se
+corren con `npx playwright test`, que los locators van en los Page
+Objects y que nunca use `waitForTimeout`. El martes, en una sesión nueva,
+no sabe nada de eso: escribe un test con locators sueltos y una espera
+fija, y se lo volvés a explicar.
+
+Las **instrucciones del proyecto** resuelven eso: un archivo de texto en
+el repositorio que Claude Code agrega solo al contexto al empezar cada
+sesión. Lo que está escrito ahí, el agente lo tiene desde el primer
+pedido, sin que nadie lo repita.
+
+En Claude Code ese archivo se llama `CLAUDE.md`. Otros agentes usan uno
+llamado `AGENTS.md`, con la misma idea, y Claude Code también puede
+leerlo.
+
+### Dónde va
+
+| Archivo | Alcance |
+| :- | :- |
+| `./CLAUDE.md` (raíz del repositorio) | El proyecto. Se sube al repositorio y lo comparte el equipo |
+| `~/.claude/CLAUDE.md` | Tus preferencias personales, en todos los proyectos |
+| `./CLAUDE.local.md` | Tus preferencias en este proyecto. Va en `.gitignore`, para no subirlo |
+
+Claude Code carga los `CLAUDE.md` de la carpeta donde se inicia y de
+todas las carpetas superiores, y los junta: no se pisan entre sí. Los que
+están en subcarpetas se cargan cuando el agente trabaja con archivos de
+esa subcarpeta.
+
+Para no empezar de una hoja en blanco, el comando `/init`, escrito dentro
+de una sesión, le pide al agente que lea el proyecto y escriba un primer
+borrador del `CLAUDE.md`. El borrador se revisa: describe lo que el
+agente vio en el código, no las reglas que el equipo decidió.
+
+### Qué poner
+
+Lo que el agente no puede descubrir solo y necesita en casi todas las
+tareas:
+
+```markdown
+# Suite E2E de la agenda
+
+## Comandos
+- Correr todo: `npx playwright test`
+- Un archivo: `npx playwright test cancelar`
+- Revisar los tipos: `npx tsc --noEmit`
+
+## Convenciones
+- Los locators viven en los Page Objects (`pages/`), nunca en los tests.
+- Pasos numerados con `test.step('1- ...')` y tags `@smoke`, `@p0`, `@p1`.
+- Los datos se crean con las fixtures de `fixtures/`; un test no depende
+  de turnos que ya existan en el entorno.
+
+## Reglas
+- No cambiar una assertion para que un test pase sin confirmar la regla
+  de negocio. (Un cambio así escondió un defecto en la reprogramación.)
+- No usar `waitForTimeout`. (Fue la causa de la mitad de los tests
+  inestables.)
+```
+
+Dos hábitos hacen que se cumplan:
+
+- **Instrucciones concretas y verificables**: «los locators viven en
+  `pages/`» se puede comprobar mirando el código; «escribí buen código»,
+  no.
+- **Cada regla con su motivo**, entre paréntesis. El motivo le permite al
+  agente aplicar la regla en casos que no previste, y le recuerda al
+  equipo por qué existe.
+
+### Qué no poner
+
+- **Secretos**: el archivo se sube al repositorio y entra al contexto en
+  cada sesión (entrada de qué no compartir).
+- **Lo que ya controla una herramienta**: si el **linter** (el programa
+  que revisa el estilo del código, como ESLint) ya rechaza algo, no hace
+  falta explicarlo.
+- **Documentación larga**: cada línea ocupa contexto en todas las
+  sesiones, se use o no. La documentación oficial recomienda que cada
+  `CLAUDE.md` tenga menos de 200 líneas.
+- **Instrucciones que se contradicen**: si dos reglas chocan, el agente
+  puede seguir cualquiera de las dos.
+- **Lo que solo importa en una parte del proyecto**: para eso están las
+  reglas por ruta, que siguen.
+
+### Reglas por tema y por ruta
+
+En proyectos más grandes, las instrucciones se dividen en archivos dentro
+de la carpeta `.claude/rules/`, uno por tema: `tests.md`,
+`page-objects.md`. Un archivo de reglas puede decir a qué archivos del
+proyecto se aplica. Eso se escribe en su **frontmatter**: un bloque al
+principio del archivo, entre dos líneas `---`, con datos sobre el archivo
+en lugar de contenido. Muchas herramientas usan ese formato, y lo vas a
+volver a ver en los comandos, las skills y los agentes:
+
+```markdown
+---
+paths:
+  - "pages/**/*.ts"
+---
+
+# Page Objects
+
+- Los locators se declaran como propiedades `readonly` en el constructor.
+- Ningún método hace assertions: devuelven locators o realizan acciones.
+```
+
+`paths` dice que esta regla se carga solo cuando el agente trabaja con
+un archivo `.ts` dentro de `pages/`. Mientras escribe un test, no ocupa
+contexto.
+
+Un `CLAUDE.md` también puede incluir otro archivo escribiendo `@` y su
+ruta, por ejemplo `@docs/convenciones.md`. Sirve para ordenar, pero no
+ahorra contexto: lo incluido se carga junto con el `CLAUDE.md`.
+
+### La memoria automática
+
+Claude Code tiene además una **memoria automática**: notas que el propio
+agente escribe cuando lo corregís o le contás una preferencia, y que se
+cargan en las sesiones siguientes. Se ven y se editan con `/memory`. Son
+útiles para lo personal, pero las escribe el agente: las reglas que el
+equipo quiere garantizar van en el `CLAUDE.md`, que escriben y revisan
+las personas.
+
+### Son contexto, no un candado
+
+Las instrucciones se leen y el agente intenta seguirlas, pero no lo
+obligan. Si el `CLAUDE.md` dice «no edites la carpeta `legacy/`», el
+agente casi siempre la respeta, y alguna vez, en medio de una tarea
+larga, no. Para lo que no puede pasar nunca hay mecanismos que sí
+bloquean: los **permisos**, reglas que impiden una acción aunque el
+agente la intente (entrada de permisos), y los **hooks** de Claude
+Code, programas que revisan cada acción antes de que ocurra (entrada de
+hooks; no tienen relación con los hooks de Playwright como
+`beforeEach`).
+
+### Mantenerlo vivo
+
+Un `CLAUDE.md` vale lo que vale su última actualización:
+
+- cuando corregís al agente dos veces por lo mismo, esa corrección va al
+  archivo;
+- cuando una regla dejó de aplicar, se borra;
+- de vez en cuando, se relee entero buscando contradicciones.
+
+## Cuándo usarlo
+
+En todo proyecto donde trabajes con un agente más de una vez. Empezá con
+los comandos y las convenciones, y sumá reglas a medida que aparecen
+errores repetidos.
+
+## Buenas prácticas
+
+- Instrucciones concretas, verificables y con su motivo.
+- Menos de 200 líneas por archivo; lo específico, en reglas por ruta.
+- Subir al repositorio el `CLAUDE.md` del proyecto; lo personal, en
+  `CLAUDE.local.md`.
+- Actualizarlo cada vez que una corrección se repite.
+
+## Anti-patrones
+
+- **Secretos o datos de cuentas** en el archivo.
+- **Un manual de 800 líneas** que nadie relee.
+- **Confiar en una instrucción** para algo que tiene que ser imposible.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<WhereClassifyActivity />
+
+<RuleFillActivity />
+
+<FollowQuizActivity />

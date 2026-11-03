@@ -1,0 +1,247 @@
+---
+title: "Cómo funciona un asistente de IA"
+sidebar_position: 75
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import Quiz from '@site/src/components/Quiz';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  KNOW_ITEMS,
+  KNOW_COLUMNS,
+  MODEL_QUIZ,
+  CTX_QUESTIONS,
+} from '@site/src/content/lessons/75-como-funciona-un-asistente';
+
+export const LESSON_SLUG = 'ai-ui-como-funciona-un-asistente';
+
+export function KnowClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['knowclassify']);
+  return (
+    <Activity
+      title="¿De dónde lo sabe?"
+      kind="Clasificar"
+      goal="distinguir lo que un asistente sabe por su entrenamiento, lo que sabe por el contexto y lo que no puede saber."
+      done={isDone('knowclassify')}
+      consigna="Son 7 cosas que un agente podría necesitar al trabajar en la suite de la agenda. Arrastrá cada una a Lo sabe por su entrenamiento, Lo sabe porque está en el contexto o No lo puede saber. Regla para los casos dudosos: si es propio de tu proyecto o reciente, solo lo sabe si alguien se lo dio en esta sesión. Se completa cuando las 7 están en su caja."
+    >
+      <Classify
+        items={KNOW_ITEMS}
+        columns={KNOW_COLUMNS}
+        itemLabel="Conocimiento"
+        counterLabel="ubicados en su caja"
+        alreadyDone={isDone('knowclassify')}
+        onSolved={() => markDone('knowclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function ModelQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['modelquiz']);
+  return (
+    <Activity
+      title="Respuestas que cambian y agentes que actúan"
+      kind="Elegí la opción"
+      goal="interpretar respuestas distintas al mismo pedido y distinguir un asistente de chat de un agente."
+      done={isDone('modelquiz')}
+      consigna="Son 2 preguntas de opción única. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 2."
+    >
+      <Quiz
+        questions={MODEL_QUIZ}
+        onSolved={() => markDone('modelquiz')}
+      />
+    </Activity>
+  );
+}
+
+export function CtxMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['ctxmulti']);
+  return (
+    <Activity
+      title="Una conversación demasiado larga"
+      kind="Marcar todas"
+      goal="reconocer cómo el tamaño y la mezcla del contexto afectan las respuestas."
+      done={isDone('ctxmulti')}
+      consigna="Es 1 pregunta con 5 opciones. Marcá todas las afirmaciones correctas y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={CTX_QUESTIONS}
+        alreadyDone={isDone('ctxmulti')}
+        onSolved={() => markDone('ctxmulti')}
+      />
+    </Activity>
+  );
+}
+
+Antes de usar un asistente de IA en la suite, conviene entender qué es y qué no es: de dónde saca lo que sabe, qué es lo único que ve, por qué se equivoca con seguridad y qué cambia cuando, además de responder, puede actuar.
+
+## Conceptos
+
+### El proyecto de esta sección
+
+En toda la sección se usa el mismo ejemplo: la suite de pruebas de la
+**agenda de turnos** de una clínica. En la aplicación, una recepcionista
+ingresa con su cuenta, abre la agenda de un día, reserva turnos para los
+pacientes, los cancela y los reprograma. La suite es como la que se armó
+en las secciones II a IV: Playwright con TypeScript, Page Objects
+(`AgendaPage`, `PacientesPage`), fixtures que crean los datos de cada test
+y un workflow de GitHub Actions que corre los tests en cada Pull Request.
+
+Lo nuevo es que, para trabajar en esa suite, vas a usar un asistente de
+inteligencia artificial (IA). Esta entrada explica cómo funciona por
+dentro, porque de eso dependen casi todas las reglas de uso de la sección.
+
+### Un modelo de lenguaje
+
+Los asistentes de IA que escriben y revisan código (Claude, ChatGPT,
+Copilot y otros) funcionan con un **modelo de lenguaje**: un programa
+entrenado con enormes cantidades de texto y código. Su trabajo es uno
+solo: a partir del texto que recibe, producir la continuación más
+probable. Si recibe «escribí un test de Playwright que cancele un turno»,
+produce el texto que, según todo lo que leyó durante su entrenamiento,
+mejor responde a eso.
+
+No consulta una base de datos de respuestas correctas ni comprueba lo que
+escribe. Genera texto que encaja con lo que tiene adelante. De ahí salen
+sus dos rasgos más importantes para un tester:
+
+- **Sabe mucho de lo que es común.** La sintaxis de TypeScript, la API de
+  Playwright o el patrón Page Object aparecen millones de veces en lo que
+  leyó: los escribe bien.
+- **No sabe nada de lo tuyo.** Tu aplicación, tus tests, la regla de que
+  un turno se cancela hasta 2 horas antes, lo que falló ayer: nada de eso
+  estaba en su entrenamiento.
+
+El entrenamiento termina en una fecha, la **fecha de corte**. Una versión
+de Playwright publicada después de esa fecha no la conoce, salvo que le
+pases su documentación.
+
+### El contexto: lo único que ve
+
+Si el modelo no sabe nada de tu proyecto, ¿cómo puede ayudar? Con lo que
+le mostrás. Todo lo que el modelo tiene en cuenta al responder se llama
+**contexto**: tu pedido, la conversación hasta ese momento, los archivos
+que le pegaste o que leyó, y los resultados de los comandos que corrió.
+Lo que está en el contexto lo usa; lo que no está, no existe para él.
+
+El contexto tiene un tamaño máximo. Se mide en **tokens**, que son
+fragmentos de texto de unas pocas letras: una palabra corta es un token,
+una larga puede ser dos o tres. El tamaño máximo se llama **ventana de
+contexto**. Una conversación larga, con archivos y salidas de comandos,
+puede ocupar cientos de miles de tokens.
+
+Tres consecuencias que vas a ver en toda la sección:
+
+- **Cada conversación nueva empieza vacía.** Lo que le explicaste ayer no
+  está. Si querés que lo sepa siempre, tiene que estar escrito en un
+  archivo que se le muestre al empezar (entrada de instrucciones del
+  proyecto).
+- **Sin contexto, inventa algo plausible.** Si le pedís «arreglá el test
+  de cancelar» sin mostrarle el test ni el error, va a escribir un test
+  que parece razonable, no uno que resuelva tu problema.
+- **Más contexto no siempre es mejor.** En una conversación de dos horas,
+  con diez archivos leídos y veinte salidas de comandos, lo importante
+  queda mezclado con mucha información vieja, y las respuestas empiezan a
+  perder detalle: se olvida una regla que le diste al principio, o
+  confunde dos archivos parecidos. Cuando pasa, conviene empezar una
+  conversación nueva con un resumen de lo importante.
+
+### Por qué se equivoca: alucinaciones
+
+Como el modelo genera lo probable, puede escribir con total seguridad
+algo que no existe. A eso se lo llama **alucinación**. En la suite de la
+agenda se ve así:
+
+```ts
+await page.getByRole('button', { name: 'Cancelar turno' }).waitUntilVisible();
+```
+
+```text
+error TS2339: Property 'waitUntilVisible' does not exist on type 'Locator'.
+```
+
+`waitUntilVisible` suena como un método de Playwright, pero no existe. En
+testing, las alucinaciones más comunes son métodos y opciones inventados,
+locators que no coinciden con la página real, y explicaciones de un fallo
+que suenan convincentes pero no corresponden a lo que pasó.
+
+### No responde siempre lo mismo
+
+Con el mismo pedido, dos veces, un modelo puede escribir dos tests
+distintos: otro orden de pasos, otro locator, otra assertion. No es un
+error: el modelo elige entre continuaciones probables, y no siempre elige
+la misma. Por eso que una respuesta haya estado bien no garantiza que la
+siguiente lo esté: cada respuesta se verifica (entrada de revisar lo que
+produce).
+
+### De asistente a agente
+
+Hay dos formas de trabajar con un modelo:
+
+- Un **asistente de chat** recibe texto y devuelve texto. Vos le pegás el
+  error, él propone un cambio, vos lo copiás al archivo, vos corrés el
+  test y vos le pegás el resultado.
+- Un **agente** hace esos pasos él mismo, porque tiene **herramientas**:
+  acciones que puede ejecutar, como leer un archivo del proyecto, buscar
+  un texto, editar un archivo o correr un comando en la terminal.
+
+Un agente trabaja en ciclo. Con el pedido «el test de cancelar falla,
+averiguá por qué»:
+
+1. decide leer el test, y lo lee;
+2. con lo que leyó, decide correrlo, y lo corre;
+3. lee el error, decide abrir el Page Object, y lo abre;
+4. y así, hasta que llega a una respuesta o a un cambio.
+
+Cada lectura y cada resultado entra a su contexto. **Claude Code**, el
+agente que se usa en esta sección, trabaja en la terminal, dentro de la
+carpeta de tu repositorio. Que pueda actuar es lo que lo hace útil, y
+también lo que obliga a controlar qué puede hacer: por defecto, te pide
+permiso antes de editar un archivo o correr un comando (entrada de tu
+primer agente en el proyecto).
+
+### Costo y tiempo
+
+Usar un modelo cuesta dinero, y el costo depende de los tokens: los que
+entran (el contexto) y los que salen (la respuesta). Un agente que lee
+veinte archivos y corre diez comandos usa muchos más tokens que una
+pregunta en un chat. Según el plan contratado, eso se paga por uso o se
+descuenta de un límite de uso por día o por semana.
+
+Los proveedores ofrecen modelos de distintos tamaños. Los más grandes
+resuelven mejor las tareas difíciles y cuestan más; los más chicos son
+rápidos y baratos para tareas simples, como resumir un archivo. Elegir el
+modelo según la tarea vuelve a aparecer cuando varios agentes trabajan
+juntos (unidad 4).
+
+## Cuándo usarlo
+
+Para entender un fallo, escribir un borrador, revisar código o explorar
+una pantalla, siempre que le des el contexto necesario y verifiques lo
+que produce.
+
+## Buenas prácticas
+
+- Darle el contexto que necesita, en lugar de suponer que lo sabe.
+- Empezar una conversación nueva cuando la actual se volvió larga y
+  mezclada.
+- Verificar cada respuesta, aunque la anterior haya sido correcta.
+
+## Anti-patrones
+
+- **Confiar en que conoce tu aplicación** o tus reglas de negocio.
+- **Aceptar un método que no conocés** sin comprobar que existe.
+- **Una sola conversación eterna** para todas las tareas del día.
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<KnowClassifyActivity />
+
+<ModelQuizActivity />
+
+<CtxMultiActivity />

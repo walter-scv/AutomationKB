@@ -1,0 +1,331 @@
+---
+title: "Hooks y aislamiento"
+sidebar_position: 42
+---
+
+import Activity from '@site/src/components/Activity';
+import Order from '@site/src/components/Order';
+import Classify from '@site/src/components/Classify';
+import DecisionPath from '@site/src/components/DecisionPath';
+import Quiz from '@site/src/components/Quiz';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  HOOK_ORDER_ITEMS,
+  HOOK_ORDER_CORRECT,
+  HOOK_ORDER_RULES,
+  HOOKS_CODE,
+  HOOK_ITEMS,
+  HOOK_COLUMNS,
+  ORDER_START,
+  ORDER_NODES,
+  ORDER_EXPLANATION,
+  WORKERS_QUIZ,
+  WORKERS_OUTPUT,
+} from '@site/src/content/lessons/42-hooks-y-aislamiento';
+
+export const LESSON_SLUG = 'domains-ui-hooks-y-aislamiento';
+
+export function HookOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['hookorder']);
+  return (
+    <Activity
+      title="¿En qué orden se ejecuta?"
+      kind="Ordenar"
+      goal="seguir la ejecución de los cuatro hooks alrededor de dos tests, con un solo worker."
+      done={isDone('hookorder')}
+      consigna="El grupo de arriba corre con un solo worker. Ordená las 8 ejecuciones en el orden en que ocurren, con las flechas o arrastrando, y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <CodeBlock language="ts">{HOOKS_CODE}</CodeBlock>
+      <Order
+        items={HOOK_ORDER_ITEMS}
+        correctOrder={HOOK_ORDER_CORRECT}
+        rules={HOOK_ORDER_RULES}
+        onSolved={() => markDone('hookorder')}
+      />
+    </Activity>
+  );
+}
+
+export function HookClassifyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['hookclassify']);
+  return (
+    <Activity
+      title="¿En qué hook va?"
+      kind="Clasificar"
+      goal="ubicar cada tarea de preparación o limpieza en el hook que le corresponde."
+      done={isDone('hookclassify')}
+      consigna="Son 7 tareas de la suite de turnos. Arrastrá cada una a beforeAll, beforeEach o afterEach. Regla para los casos dudosos: preguntate si la tarea usa la página, si se puede compartir entre tests sin que uno afecte al otro y si ocurre antes o después del test. Se completa cuando las 7 están en su caja."
+    >
+      <Classify
+        items={HOOK_ITEMS}
+        columns={HOOK_COLUMNS}
+        itemLabel="Tarea"
+        counterLabel="ubicadas en su hook"
+        alreadyDone={isDone('hookclassify')}
+        onSolved={() => markDone('hookclassify')}
+      />
+    </Activity>
+  );
+}
+
+export function DependentActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['dependent']);
+  return (
+    <Activity
+      title="Dos tests que se necesitan"
+      kind="Escenario encadenado"
+      goal="diagnosticar un test que depende de otro y corregirlo con la preparación adecuada."
+      done={isDone('dependent')}
+      consigna="Son 3 decisiones encadenadas: cada una depende de la anterior. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la tercera."
+    >
+      <DecisionPath
+        startId={ORDER_START}
+        nodes={ORDER_NODES}
+        explanation={ORDER_EXPLANATION}
+        alreadyDone={isDone('dependent')}
+        onSolved={() => markDone('dependent')}
+      />
+    </Activity>
+  );
+}
+
+export function WorkersQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['workersquiz']);
+  return (
+    <Activity
+      title="Hooks, workers y contextos"
+      kind="Elegí la opción"
+      goal="explicar una salida con varios workers y predecir el estado con que arranca un test."
+      done={isDone('workersquiz')}
+      consigna="Son 2 preguntas de opción única. La primera usa la salida de arriba. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 2."
+    >
+      <CodeBlock language="text">{WORKERS_OUTPUT}</CodeBlock>
+      <Quiz
+        questions={WORKERS_QUIZ}
+        onSolved={() => markDone('workersquiz')}
+      />
+    </Activity>
+  );
+}
+
+Los tests de un mismo archivo suelen compartir el punto de partida: ingresar, abrir una pantalla. Esta entrada muestra cómo compartir esa preparación sin que un test dependa de otro, y por qué Playwright hace que cada test arranque de cero.
+
+## Conceptos
+
+### Cada test arranca de cero
+
+Playwright le da a cada test un **contexto de navegador** nuevo: una
+sesión aislada, como una ventana de incógnito, con sus propias cookies,
+su propio almacenamiento local y su propio historial. La fixture `page`
+es una pestaña dentro de ese contexto. Cuando el test termina, el contexto
+se descarta.
+
+En este ejemplo, el primer test guarda una preferencia en el
+almacenamiento local de la página (`localStorage`), y el segundo la lee:
+
+```ts
+test('el primer test guarda una preferencia', async ({ page }) => {
+  await page.goto('/catalogo');
+  await page.evaluate(() => localStorage.setItem('vista', 'lista'));
+  console.log('test 1:', await page.evaluate(() => localStorage.getItem('vista')));
+});
+
+test('el segundo test arranca sin esa preferencia', async ({ page }) => {
+  await page.goto('/catalogo');
+  console.log('test 2:', await page.evaluate(() => localStorage.getItem('vista')));
+});
+```
+
+`page.evaluate` ejecuta código dentro de la página; acá se usa solo para
+mirar el almacenamiento. Corriendo con `--workers=1`, los dos tests usan
+el mismo worker, uno después del otro, y aun así el segundo no ve lo que
+guardó el primero:
+
+```text
+test 1: lista
+test 2: null
+```
+
+Lo mismo vale para una sesión iniciada: si un test ingresa con una
+cuenta, el siguiente arranca sin sesión. Ese aislamiento es lo que
+permite correr tests en paralelo y en cualquier orden. También significa
+que cada test tiene que preparar todo lo que necesita.
+
+### Un test que depende de otro
+
+El aislamiento cubre el navegador, no el código. Una variable declarada
+fuera de los tests es compartida, y tienta a pasar datos de un test al
+siguiente:
+
+```ts
+let codigoReserva: string;
+
+test('reservar un libro genera un código', async ({ page }) => {
+  await page.goto('/catalogo');
+  codigoReserva = 'R-1042';
+});
+
+test('consultar la reserva por su código', async ({ page }) => {
+  await page.goto('/catalogo');
+  expect(codigoReserva).toBe('R-1042');
+});
+```
+
+(`expect(valor).toBe(...)` compara un valor común, no un elemento; se ve
+en la entrada de assertions.) Por defecto, Playwright reparte los
+**archivos** entre los workers y corre los tests de un mismo archivo en
+orden, uno tras otro. La configuración que genera el instalador agrega
+`fullyParallel: true` (entrada de configuración), y con esa opción
+también los tests de un mismo archivo se reparten. Con un solo worker,
+los dos tests corren en orden y pasan; con `fullyParallel` y varios
+workers, no:
+
+```text
+Running 2 tests using 2 workers
+  ✓  1 [chromium] › tests/dependiente.spec.ts:5:5 › reservar un libro genera un código (65ms)
+  ✘  2 [chromium] › tests/dependiente.spec.ts:10:5 › consultar la reserva por su código (90ms)
+
+    Error: expect(received).toBe(expected) // Object.is equality
+    Expected: "R-1042"
+    Received: undefined
+```
+
+Cada worker es un proceso separado, con su propia copia de la variable.
+El segundo test corrió en otro worker, donde nadie le asignó un valor:
+`undefined`. Lo mismo pasa si se corre solo el segundo test con `-g`, o
+si el primero falla. No son dos tests independientes: es un test partido
+en dos. La solución es que el segundo prepare su propia reserva, igual
+que haría un caso de test manual con su precondición.
+
+### Preparar antes de cada test: `beforeEach`
+
+Cuando varios tests necesitan la misma preparación, repetirla en cada uno
+los alarga y obliga a cambiarla en varios lugares. `test.beforeEach`
+define un bloque que corre antes de **cada** test:
+
+```ts
+test.describe('Préstamos', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login');
+    await page.getByLabel('Email').fill('lucia@biblio.test');
+    await page.getByLabel('Contraseña').fill('clave123');
+    await page.getByRole('button', { name: 'Ingresar' }).click();
+  });
+
+  test('renovar un préstamo vigente extiende el vencimiento al 24/11', async ({ page }) => {
+    await page.getByRole('button', { name: 'Renovar' }).click();
+    await expect(page.getByRole('cell', { name: '24/11' })).toBeVisible();
+  });
+
+  test('la lista de préstamos muestra Rayuela', async ({ page }) => {
+    await expect(page.getByRole('cell', { name: 'Rayuela' })).toBeVisible();
+  });
+});
+```
+
+El hook recibe las mismas fixtures que el test, y la `page` es la misma:
+el test arranca donde el hook la dejó, con la sesión iniciada. Como el
+hook corre para cada test, cada uno sigue teniendo su propio contexto; lo
+que se evita es repetir el código, no la preparación.
+
+Un hook dentro de un `test.describe` aplica solo a los tests de ese
+grupo. Fuera de todo grupo, aplica a todos los tests del archivo.
+
+### Limpiar después: `afterEach`
+
+`test.afterEach` corre después de cada test, pase o falle. Se usa para
+deshacer lo que el test dejó fuera del navegador, por ejemplo un registro
+que creó en el sistema, para que no afecte a los tests siguientes ni a
+otras personas que usan el mismo entorno. Lo que queda dentro del
+navegador (cookies, almacenamiento) no hace falta limpiarlo: el contexto
+se descarta solo.
+
+### Una vez por worker: `beforeAll` y `afterAll`
+
+`test.beforeAll` y `test.afterAll` corren una vez antes y una vez después
+de un grupo de tests. Con `console.log` en cada hook y un solo worker, el
+orden queda a la vista:
+
+```text
+Running 2 tests using 1 worker
+beforeAll
+beforeEach
+test: buscar por título
+afterEach
+beforeEach
+test: buscar sin resultados
+afterEach
+afterAll
+```
+
+`beforeAll` una vez al principio, el par `beforeEach`/`afterEach`
+alrededor de cada test, y `afterAll` al final.
+
+"Una vez" significa una vez **por worker**. Con `fullyParallel` y dos
+workers, los tests del grupo se reparten y cada worker corre su propio
+`beforeAll`:
+
+```text
+Running 2 tests using 2 workers
+beforeAll
+beforeAll
+...
+afterAll
+afterAll
+```
+
+Por eso `beforeAll` no sirve para algo que tiene que pasar una sola vez
+para toda la suite; eso se resuelve con otras herramientas que se ven en
+la sección III. Sirve para preparar algo costoso que todos los tests del
+grupo pueden compartir sin modificarlo, como leer un archivo con datos de
+referencia.
+
+`beforeAll` tampoco puede usar `page`: la página se crea para cada test,
+y en ese momento no hay ningún test corriendo. Si se intenta, Playwright
+lo rechaza:
+
+```text
+Error: "context" and "page" fixtures are not supported in "beforeAll" since they are created on a per-test basis.
+If you would like to reuse a single page between tests, create context manually with browser.newContext(). See https://aka.ms/playwright/reuse-page for details.
+If you would like to configure your page before each test, do that in beforeEach hook instead.
+```
+
+El propio mensaje da la salida habitual: preparar la página en
+`beforeEach`.
+
+## Cuándo usarlo
+
+`beforeEach` cuando todos los tests de un grupo comparten el mismo punto
+de partida, como ingresar y navegar a una pantalla. `afterEach` para
+limpiar lo que un test creó fuera del navegador. `beforeAll` solo para
+preparación costosa que los tests comparten sin modificar.
+
+## Buenas prácticas
+
+- Hacer que cada test prepare lo que necesita, directamente o con
+  `beforeEach`.
+- Dejar en el hook solo lo que comparten todos los tests del grupo.
+- Limpiar en `afterEach` lo que un test crea fuera del navegador.
+- Correr un test solo, con `-g`, para comprobar que no depende de otro.
+
+## Anti-patrones
+
+- **Pasar datos de un test a otro** con variables compartidas.
+- **Confiar en el orden de los tests**: en paralelo, el orden cambia.
+- **Usar `beforeAll` para algo que tiene que pasar una sola vez** en toda
+  la suite.
+- **Meter en `beforeEach` la acción que el test prueba**: el hook prepara,
+  el test actúa y verifica.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<HookOrderActivity />
+
+<HookClassifyActivity />
+
+<DependentActivity />
+
+<WorkersQuizActivity />

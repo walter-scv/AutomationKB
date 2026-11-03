@@ -1,0 +1,260 @@
+---
+title: "Las fases de un pipeline de automatización"
+sidebar_position: 87
+---
+
+import Activity from '@site/src/components/Activity';
+import Order from '@site/src/components/Order';
+import Match from '@site/src/components/Match';
+import FillBlank from '@site/src/components/FillBlank';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  PHASE_ITEMS,
+  PHASE_CORRECT,
+  PHASE_RULES,
+  ART_LEFT,
+  ART_RIGHT,
+  ART_WHY,
+  PLAN_TEMPLATE,
+  PLAN_SLOTS,
+  PLAN_BANK,
+  PLAN_EXPLANATION,
+} from '@site/src/content/lessons/87-fases-del-pipeline';
+
+export const LESSON_SLUG = 'ai-ui-fases-del-pipeline';
+
+export function PhaseOrderActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['phaseorder']);
+  return (
+    <Activity
+      title="Las fases, en orden"
+      kind="Ordenar"
+      goal="ordenar las fases de un pipeline que automatiza una pantalla."
+      done={isDone('phaseorder')}
+      consigna="Son las 8 fases de un pipeline que automatiza los casos de la pantalla de pacientes, desordenadas. Ordenalas y presioná Comprobar. Si el orden no es correcto, se indica qué par está invertido."
+    >
+      <Order
+        items={PHASE_ITEMS}
+        correctOrder={PHASE_CORRECT}
+        rules={PHASE_RULES}
+        onSolved={() => markDone('phaseorder')}
+      />
+    </Activity>
+  );
+}
+
+export function ArtMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['artmatch']);
+  return (
+    <Activity
+      title="Qué deja cada fase"
+      kind="Emparejar"
+      goal="relacionar cada fase con el artefacto que le pasa a la siguiente."
+      done={isDone('artmatch')}
+      consigna="Son 5 pares. Elegí un momento del pipeline (izquierda) y después el artefacto que produce (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 5."
+    >
+      <Match
+        left={ART_LEFT}
+        right={ART_RIGHT}
+        why={ART_WHY}
+        leftLabel="Momento"
+        rightLabel="Artefacto"
+        alreadyDone={isDone('artmatch')}
+        onSolved={() => markDone('artmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function PlanFillActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['planfill']);
+  return (
+    <Activity
+      title="El plan aprobado"
+      kind="Completar huecos"
+      goal="completar un plan con prioridades, casos de uso y estrategia de datos."
+      done={isDone('planfill')}
+      consigna="El plan de cancelación de turnos tiene dos tests. La cancelación es crítica: si falla, no se puede publicar una versión (en el esquema de tags de la sección IV, eso es p0). La vista de turnos pasados está en el caso de uso UC-08. Los tests que modifican un dato necesitan uno propio; los que solo leen pueden usar los sembrados. Completá los 4 huecos y presioná Comprobar. Cada ficha se usa una vez y sobran algunas."
+    >
+      <FillBlank
+        template={PLAN_TEMPLATE}
+        slots={PLAN_SLOTS}
+        bank={PLAN_BANK}
+        explanation={PLAN_EXPLANATION}
+        alreadyDone={isDone('planfill')}
+        onSolved={() => markDone('planfill')}
+      />
+    </Activity>
+  );
+}
+
+Un pipeline multiagente hace explícitas las fases de automatizar: explorar, planificar, desarrollar, revisar, ejecutar, reparar, documentar y limpiar. Esta entrada muestra qué pasa en cada una y cómo se pasan el trabajo los agentes.
+
+## Conceptos
+
+### Las fases de una tarea de automatización
+
+Automatizar los casos de una pantalla, con agentes o sin ellos, pasa
+siempre por los mismos momentos. Una tester que automatiza la
+cancelación de turnos a mano también lee los casos de uso, mira la
+pantalla, decide qué probar, escribe, pide revisión, corre y documenta.
+En un sistema multiagente (entrada de por qué varios agentes), esos
+momentos se escriben como **fases**: pasos con un responsable y un
+resultado concreto, que se hacen en orden. A una secuencia de fases así
+se la llama **pipeline**, como una cañería por la que el trabajo pasa de
+una fase a la siguiente.
+
+Las fases de un pipeline de automatización de UI:
+
+1. **Explorar los documentos**: los casos de uso y los tests que ya
+   existen.
+2. **Planificar**: decidir los escenarios y los datos que necesitan.
+3. **Verificar la pantalla**: recorrer la aplicación y confirmar los
+   locators que necesitan los escenarios del plan.
+4. **Desarrollar**: escribir Page Objects, fixtures y tests.
+5. **Revisar**: comprobar cada pieza contra las reglas de la suite.
+6. **Ejecutar**: correr los tests de verdad.
+7. **Reparar y repetir**: si algo falla, corregir y volver a la fase que
+   corresponde.
+8. **Documentar**: actualizar la tabla de cobertura de los casos de uso.
+9. **Limpiar**: borrar lo temporal.
+
+El orden y la cantidad de fases cambian entre equipos. Lo que se
+mantiene es que cada fase tiene un responsable y le entrega algo
+concreto a la siguiente.
+
+### Explorar los documentos
+
+El pipeline empieza por lo escrito: los **casos de uso** de la
+funcionalidad, con sus flujos y reglas, y los tests que ya existen, para
+no duplicarlos (entrada de casos de uso). Si los casos de uso no
+existen, el pipeline no tiene de dónde sacar qué probar: planifica a
+partir de lo que ve en la pantalla y toma como correcto lo que la
+aplicación hace.
+
+Esta búsqueda la suele hacer el orquestador mismo, sin lanzar un
+subagente: buscar archivos por nombre y por tag, como `@UC-07`, es
+rápido y barato.
+
+### Planificar: escenarios y datos
+
+El planificador recibe los casos de uso y la lista de tests existentes,
+y devuelve los escenarios: qué test, de qué caso de uso, con qué
+prioridad. También decide los **datos** que necesita cada uno, porque
+cambian el diseño del test: uno que solo lee puede usar los turnos
+sembrados; uno que cancela o modifica un turno necesita uno propio,
+creado por su fixture (entrada de setup y cleanup). Las convenciones de
+datos del proyecto las lee del contrato de setup (entrada de entornos y
+datos para agentes).
+
+### Verificar la pantalla
+
+Con el plan aprobado, un agente con el servidor MCP de Playwright
+recorre la pantalla y confirma cómo encontrar cada elemento que
+necesitan los escenarios (entrada de MCP). Para llegar a cada pantalla
+sigue el mapa de navegación (entrada del mapa de navegación). No le devuelve al resto el
+árbol de accesibilidad entero, que puede tener miles de líneas, sino una
+lista corta de **locators verificados**: «botón Cancelar turno:
+`getByRole('button', { name: 'Cancelar turno' })` dentro de la fila».
+
+### Desarrollar y revisar
+
+El constructor recibe el plan aprobado y los locators verificados, y
+escribe el código. Lo que escribe no va directo a la suite: se guarda
+como **archivo temporal**, en una carpeta aparte, por ejemplo
+`.claude/temp/`, para que lo revisen los revisores (entrada de gates y
+revisores). Solo lo aprobado se copia a su lugar definitivo en `pages/`
+y `tests/`. Así, un test que nunca se aprobó no queda en la suite si el
+proceso se corta a la mitad.
+
+### Ejecutar, reparar y repetir
+
+El orden es: primero se revisa, después se copia lo aprobado a la suite,
+y recién ahí se ejecuta, porque Playwright solo encuentra los tests que
+están en la carpeta de tests de la configuración. Los tests nuevos se
+corren de verdad, con `npx playwright test`. Hay
+comandos que parecen una verificación y no lo son: `npx playwright test
+--list` solo lista los tests sin ejecutarlos, y el linter (el programa
+que revisa el estilo del código) solo mira cómo está escrito. Un test
+que nunca corrió no está validado.
+
+Si un test falla, el sistema corrige y vuelve a correr, con un **tope**
+de intentos, por ejemplo tres. Si lo supera, se detiene y le pide ayuda
+a una persona, en lugar de seguir intentando. Como todo el trabajo se
+hace en una rama propia, lo copiado se puede descartar con Git si la
+persona decide no seguir.
+
+### Documentar y limpiar
+
+Al terminar, se actualiza la tabla de cobertura de cada caso de uso con
+los tests que efectivamente corrieron (entrada de casos de uso).
+Esa tabla es la que después usa la exploración con agentes para decidir
+qué no está cubierto (unidad 5). Y se borran los archivos temporales,
+aunque el proceso haya fallado.
+
+### Cómo se pasan el trabajo
+
+Los agentes no comparten conversación: cada uno tiene su propio contexto
+(entrada de subagentes). Se pasan el trabajo por **artefactos**: archivos
+o respuestas con un formato acordado, que una fase produce y la
+siguiente lee.
+
+| Fase | Produce |
+| :- | :- |
+| Planificar | El plan aprobado, en un archivo JSON |
+| Verificar la pantalla | La lista de locators verificados |
+| Desarrollar | El Page Object y los tests, como archivos temporales |
+| Revisar | Un veredicto APROBADO o RECHAZADO, con los problemas |
+| Ejecutar | La salida real de la ejecución |
+
+Un plan aprobado, por ejemplo:
+
+```json
+{
+  "funcionalidad": "cancelar turnos",
+  "tests_requeridos": {
+    "cancelar un turno lo libera": { "caso_de_uso": "UC-07", "prioridad": "p0" },
+    "no se puede cancelar con menos de 2 horas": { "caso_de_uso": "UC-07", "prioridad": "p1" }
+  },
+  "datos": {
+    "cancelar un turno lo libera": "propio",
+    "no se puede cancelar con menos de 2 horas": "propio"
+  }
+}
+```
+
+`datos` dice, para cada test, si necesita un turno **propio**, creado
+por su fixture, o si puede usar los **sembrados**: los dos cancelan o
+intentan cancelar, así que los dos necesitan uno propio.
+
+Con un formato fijo, cada fase sabe qué recibe, y el orquestador puede
+comprobar cosas sin interpretar texto, por ejemplo que cada test `p0`
+del plan exista al final del proceso.
+
+## Cuándo usarlo
+
+Al diseñar un sistema de agentes para automatizar: primero las fases,
+después qué agente hace cada una y qué artefacto se pasan.
+
+## Buenas prácticas
+
+- Casos de uso y contrato de setup antes de la primera corrida.
+- Explorar documentos y pantalla antes de escribir código.
+- Artefactos con formato fijo entre fases.
+- Ejecución real, con tope de intentos, y limpieza siempre.
+
+## Anti-patrones
+
+- **Escribir tests sin haber recorrido la pantalla.**
+- **Dar por validado un test** que nunca se corrió.
+- **Pasar el trabajo entre agentes como texto libre.**
+
+## Práctica
+
+Estos son los 3 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<PhaseOrderActivity />
+
+<ArtMatchActivity />
+
+<PlanFillActivity />

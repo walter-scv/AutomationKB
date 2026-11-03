@@ -1,0 +1,305 @@
+---
+title: "Selectores CSS y XPath"
+sidebar_position: 44
+---
+
+import Activity from '@site/src/components/Activity';
+import Match from '@site/src/components/Match';
+import SpotToken from '@site/src/components/SpotToken';
+import TypeAnswer from '@site/src/components/TypeAnswer';
+import DecisionPath from '@site/src/components/DecisionPath';
+import CodeBlock from '@theme/CodeBlock';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  SEL_LEFT,
+  SEL_RIGHT,
+  SEL_WHY,
+  AGENDA_HTML,
+  FRAGILE_ROUNDS,
+  FRAGILE_PROMPT,
+  DNI_ACCEPTED,
+  DNI_HINTS,
+  DNI_EXPLANATION,
+  LEGACY_START,
+  LEGACY_NODES,
+  LEGACY_EXPLANATION,
+} from '@site/src/content/lessons/44-css-y-xpath';
+
+export const LESSON_SLUG = 'domains-ui-css-y-xpath';
+
+export function SelectorMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['selectormatch']);
+  return (
+    <Activity
+      title="¿Qué encuentra cada selector?"
+      kind="Emparejar"
+      goal="leer selectores CSS y XPath y decir qué elemento encuentran en una agenda de turnos."
+      done={isDone('selectormatch')}
+      consigna="Son 6 pares sobre el HTML de arriba. Elegí un selector de la izquierda y después lo que encuentra en la derecha (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 6."
+    >
+      <CodeBlock language="html">{AGENDA_HTML}</CodeBlock>
+      <Match
+        left={SEL_LEFT}
+        right={SEL_RIGHT}
+        why={SEL_WHY}
+        leftLabel="Selector"
+        rightLabel="Qué encuentra"
+        alreadyDone={isDone('selectormatch')}
+        onSolved={() => markDone('selectormatch')}
+      />
+    </Activity>
+  );
+}
+
+export function FragileSpotActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['fragilespot']);
+  return (
+    <Activity
+      title="La parte que se va a romper"
+      kind="Señalar en la línea"
+      goal="detectar en cada selector la parte que depende de la posición o del diseño."
+      done={isDone('fragilespot')}
+      consigna="Son 5 líneas de tests de la agenda. En cada una, hacé click en la parte del selector que lo vuelve frágil. Si no es esa, leé la pista y probá otra. Se completa al resolver las 5."
+    >
+      <SpotToken
+        rounds={FRAGILE_ROUNDS}
+        prompt={FRAGILE_PROMPT}
+        itemLabel="Línea"
+        alreadyDone={isDone('fragilespot')}
+        onSolved={() => markDone('fragilespot')}
+      />
+    </Activity>
+  );
+}
+
+export function DniTypeActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['dnitype']);
+  return (
+    <Activity
+      title="Un selector estable para el DNI"
+      kind="Respuesta escrita"
+      goal="escribir un selector CSS basado en un atributo que identifica el dato."
+      done={isDone('dnitype')}
+      consigna="El campo DNI de la agenda no tiene etiqueta ni placeholder, y el equipo de desarrollo no puede agregarlos por ahora. Escribí solo el selector CSS, sin page.locator, que lo encuentre por su atributo name, y presioná Enter."
+    >
+      <TypeAnswer
+        accepted={DNI_ACCEPTED}
+        hints={DNI_HINTS}
+        explanation={DNI_EXPLANATION}
+        placeholder="Selector CSS"
+        alreadyDone={isDone('dnitype')}
+        onSolved={() => markDone('dnitype')}
+      />
+    </Activity>
+  );
+}
+
+export function LegacyActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['legacy']);
+  return (
+    <Activity
+      title="Un test heredado que reserva otro turno"
+      kind="Escenario encadenado"
+      goal="diagnosticar un selector por posición, reemplazarlo por uno estable y comprobarlo."
+      done={isDone('legacy')}
+      consigna="Son 3 decisiones encadenadas: cada una depende de la anterior. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la tercera."
+    >
+      <DecisionPath
+        startId={LEGACY_START}
+        nodes={LEGACY_NODES}
+        explanation={LEGACY_EXPLANATION}
+        alreadyDone={isDone('legacy')}
+        onSolved={() => markDone('legacy')}
+      />
+    </Activity>
+  );
+}
+
+Cuando un elemento no tiene rol, nombre ni texto que lo identifique, queda la opción de describir cómo está construida la página. Esta entrada enseña los dos lenguajes para hacerlo, CSS y XPath, y por qué son el último recurso.
+
+## Conceptos
+
+### `page.locator` con un selector
+
+Además de los locators de la entrada anterior, `page.locator(selector)`
+encuentra elementos con un **selector**: una expresión que describe la
+estructura del HTML. Acepta dos lenguajes, CSS y XPath. Si el texto
+empieza con `//` o con `xpath=`, Playwright lo interpreta como XPath; en
+cualquier otro caso, como CSS.
+
+Los ejemplos usan esta versión de «Mis préstamos» de la biblioteca:
+
+```html
+<main>
+  <h1>Mis préstamos</h1>
+  <div class="prestamo" data-codigo="P-310">
+    <span class="titulo">Rayuela</span>
+    <span class="vence">10/11</span>
+    <button class="btn btn-primario">Renovar</button>
+  </div>
+  <div class="prestamo vencido" data-codigo="P-311">
+    <span class="titulo">Ficciones</span>
+    <span class="vence">02/11</span>
+    <button class="btn btn-primario" disabled>Renovar</button>
+  </div>
+  <form id="busqueda">
+    <input name="q" type="search" placeholder="Buscar en el catálogo">
+    <button type="submit" class="btn">Buscar</button>
+  </form>
+</main>
+```
+
+### Selectores CSS
+
+CSS es el lenguaje que usan las hojas de estilo para decir a qué
+elementos se aplica cada regla. Sus piezas básicas:
+
+- **Etiqueta**: `button` encuentra todos los `<button>` (3 en la página).
+- **`#id`**: `#busqueda` encuentra el elemento con `id="busqueda"`.
+- **`.clase`**: `.prestamo` encuentra los elementos con esa clase (2).
+  Juntas, sin espacio, exigen las dos: `.prestamo.vencido` encuentra solo
+  el préstamo de Ficciones.
+- **`[atributo="valor"]`**: `input[name="q"]` encuentra el `<input>` con
+  `name="q"`; `[data-codigo="P-311"]`, el elemento con ese atributo.
+  `[class*="vencido"]` usa `*=`, "contiene".
+
+Y las relaciones entre elementos, que siguen el árbol del DOM (entrada de
+HTML, DOM y DevTools):
+
+- **Un espacio** significa "en cualquier lugar adentro de": `.prestamo
+  button` encuentra los botones que están dentro de un préstamo (2).
+- **`>`** significa "hijo directo de": `form > button` encuentra el botón
+  Buscar; `main > button` no encuentra nada, porque ningún botón es hijo
+  directo de `<main>`.
+- **`:nth-child(n)`** elige por posición entre hermanos:
+  `main > div:nth-child(2)` es el segundo hijo de `<main>`, el préstamo de
+  Rayuela (el primero es el `<h1>`). `:first-child` es el primero de sus
+  hermanos.
+
+Playwright agrega pseudo-clases propias, como `:has-text('Renovar')` y
+`:visible`, que no existen en CSS estándar. Para lo mismo conviene
+`filter`, que se ve en la entrada siguiente.
+
+### Selectores XPath
+
+XPath es un lenguaje para recorrer documentos con forma de árbol. Una
+expresión es un camino de nodos:
+
+- `//button` encuentra todos los `<button>`, en cualquier nivel.
+- `[@atributo='valor']` filtra por atributo:
+  `//input[@name='q']`. Sin valor, `[@disabled]`, exige solo que el
+  atributo exista: encuentra el botón deshabilitado.
+- Un número entre corchetes elige por posición entre los hermanos con la
+  misma etiqueta: `//main/div[2]` es el segundo `<div>` hijo de `<main>`,
+  el préstamo de Ficciones. A diferencia de `:nth-child`, cuenta solo los
+  `<div>`: el `<h1>` no suma.
+- `text()` es el texto del nodo: `//button[text()='Renovar']` encuentra
+  los dos botones Renovar. `contains()` busca una parte:
+  `//span[contains(text(),'Ray')]` encuentra el título de Rayuela.
+- Los caminos se encadenan: `//div[@data-codigo='P-310']//button` es el
+  botón dentro del préstamo P-310.
+- `..` sube al padre: `//span[text()='Ficciones']/..` es el `<div>` que
+  contiene ese título.
+
+Dos cosas que XPath resuelve de forma directa: comparar el texto de un
+elemento con `text()`, algo que el CSS estándar no hace, y subir al
+padre con `..`. Para todo lo demás, CSS es más corto y más legible.
+
+### Las reglas de siempre siguen valiendo
+
+Un selector es un locator como cualquier otro: se busca recién al actuar
+y está sujeto a strictness. `.prestamo button` encuentra dos botones, y un
+click falla igual que en la entrada anterior:
+
+```text
+locator.click: Error: strict mode violation: locator('.prestamo button') resolved to 2 elements:
+    1) <button class="btn btn-primario">Renovar</button> aka locator('div').filter({ hasText: 'Rayuela 10/11 Renovar' }).getByRole('button')
+    2) <button disabled class="btn btn-primario">Renovar</button> aka locator('div').filter({ hasText: 'Ficciones 02/11 Renovar' }).getByRole('button')
+```
+
+Las alternativas que sugiere Playwright (`aka`) ya no usan clases: usan
+`filter` y `getByRole`.
+
+### Por qué son frágiles
+
+CSS y XPath describen **cómo está construida** la página, no qué ve la
+persona. La documentación de Playwright lo advierte: estos selectores
+quedan atados a la estructura del DOM o a la implementación, y se rompen
+cuando esa estructura cambia, algo que pasa seguido. Tres casos típicos:
+
+**Posiciones.** Un test que renueva Ficciones con
+`main > div:nth-child(3) > button` funciona hoy. Un día se agrega un aviso
+debajo del título:
+
+```html
+<h1>Mis préstamos</h1>
+<div class="aviso">La biblioteca cierra el lunes</div>
+<div class="prestamo" data-codigo="P-310">...Rayuela...</div>
+<div class="prestamo vencido" data-codigo="P-311">...Ficciones...</div>
+```
+
+Ahora el tercer hijo de `<main>` es el préstamo de Rayuela. El test no
+falla: hace click en el botón equivocado y sigue. Es el peor resultado
+posible, un test que pasa haciendo otra cosa.
+
+**Clases de diseño.** `.btn-primario` describe cómo se ve el botón. Si
+diseño lo cambia a `.btn-secundario`, el selector deja de encontrarlo
+aunque el botón siga ahí. Algunas herramientas de desarrollo generan
+nombres de clase automáticamente, como `btn-x7a9`, que cambian en cada
+versión de la aplicación.
+
+**Caminos largos.** `//main/div[2]/span[1]` depende de cada nivel
+intermedio: un `<div>` nuevo en el medio lo rompe.
+
+El mismo botón con un locator orientado al usuario no depende de nada de
+eso: el préstamo de Ficciones se identifica por su texto y el botón por
+su rol (cómo combinarlos se ve en la entrada siguiente).
+
+### Cuándo sí usarlos
+
+Hay casos en que no queda otra opción: un elemento sin rol ni nombre
+útil, sin etiqueta, sin texto y sin `data-testid`, como un ícono
+decorativo, o una aplicación vieja que nadie va a modificar. En esos
+casos, el selector más estable es el que usa un atributo que describe el
+dato y no el diseño: un `id` o un `name` que el código de la aplicación
+necesita (`input[name="q"]`), o un atributo de datos como
+`[data-codigo="P-311"]`. Lo que se evita son las posiciones, las clases de
+estilo y los caminos largos.
+
+Para probar un selector antes de escribirlo en el test, la búsqueda del
+panel Elements de DevTools acepta CSS y XPath y muestra cuántos elementos
+coinciden.
+
+## Cuándo usarlo
+
+Como último recurso, cuando ningún locator orientado al usuario ni
+`getByTestId` sirven. Y para leer suites existentes, que muchas veces
+están escritas con CSS o XPath.
+
+## Buenas prácticas
+
+- Preferir `getByRole`, `getByLabel` y `getByText`; usar CSS o XPath solo
+  cuando no hay alternativa.
+- Si hace falta un selector, basarlo en un `id`, un `name` o un atributo
+  de datos.
+- Probar el selector en DevTools antes de escribirlo.
+- Preferir CSS a XPath, salvo para subir al elemento padre.
+
+## Anti-patrones
+
+- **Elegir por posición** con `:nth-child`, `nth` o índices de XPath.
+- **Usar clases de estilo** o nombres de clase generados.
+- **Copiar el XPath completo** que ofrece DevTools (`/html/body/main/div[2]/...`).
+- **Usar `:has-text()`** donde alcanza `getByText` o `filter`.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<SelectorMatchActivity />
+
+<FragileSpotActivity />
+
+<DniTypeActivity />
+
+<LegacyActivity />

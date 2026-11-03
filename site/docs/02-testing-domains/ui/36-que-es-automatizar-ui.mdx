@@ -1,0 +1,361 @@
+---
+title: "Qué es automatizar tests de UI"
+sidebar_position: 36
+---
+
+import Activity from '@site/src/components/Activity';
+import Classify from '@site/src/components/Classify';
+import MultiSelect from '@site/src/components/MultiSelect';
+import FindInCode from '@site/src/components/FindInCode';
+import DecisionPath from '@site/src/components/DecisionPath';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  LAYER_ITEMS,
+  LAYER_COLUMNS,
+  AUTOMATION_QUESTIONS,
+  FIRST_LINES,
+  FIRST_RULE_LABELS,
+  PLAN_START,
+  PLAN_NODES,
+  PLAN_EXPLANATION,
+} from '@site/src/content/lessons/36-que-es-automatizar-ui';
+
+export const LESSON_SLUG = 'domains-ui-que-es-automatizar';
+
+export function LayerActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['layer']);
+  return (
+    <Activity
+      title="¿En qué capa va cada verificación?"
+      kind="Clasificar"
+      goal="ubicar cada verificación de una tienda online en la capa más baja de la pirámide que la cubre."
+      done={isDone('layer')}
+      consigna="Son 9 verificaciones y 3 capas: Componente, API o integración, y UI. Arrastrá cada una a la capa más baja donde se puede comprobar. Regla para los casos dudosos: si lo que se verifica es lo que la persona ve en la pantalla, va en UI; si es la respuesta de un servicio, en API; si es una regla que se calcula sin servidor, en Componente. Se completa cuando las 9 están en su capa."
+    >
+      <Classify
+        items={LAYER_ITEMS}
+        columns={LAYER_COLUMNS}
+        itemLabel="Verificación"
+        counterLabel="ubicadas en su capa"
+        alreadyDone={isDone('layer')}
+        onSolved={() => markDone('layer')}
+      />
+    </Activity>
+  );
+}
+
+export function AutomationActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['automation']);
+  return (
+    <Activity
+      title="Beneficios, riesgos y alcance"
+      kind="Marcar todas"
+      goal="distinguir los riesgos de automatizar de sus beneficios, y qué permite afirmar un test que pasa."
+      done={isDone('automation')}
+      consigna="Son 2 preguntas, de 6 y 4 opciones. En cada una, marcá todas las opciones que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={AUTOMATION_QUESTIONS}
+        alreadyDone={isDone('automation')}
+        onSolved={() => markDone('automation')}
+      />
+    </Activity>
+  );
+}
+
+export function FirstActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['first']);
+  return (
+    <Activity
+      title="¿Qué propiedad le falta?"
+      kind="Clasificar"
+      goal="diagnosticar qué propiedad de un test automatizado confiable rompe cada test de un homebanking, o si no rompe ninguna."
+      done={isDone('first')}
+      consigna="Son 8 tests. Elegí cada uno y decí qué propiedad no cumple (rápido, independiente, repetible o que se valida solo), o si las cumple todas. Se completa cuando encontrás los 5 que tienen un problema."
+    >
+      <FindInCode
+        lines={FIRST_LINES}
+        ruleLabels={FIRST_RULE_LABELS}
+        okLabel="Es confiable"
+        prompt="¿qué propiedad no cumple?"
+        itemLabel="Test"
+        counterLabel="tests con problema encontrados"
+        alreadyDone={isDone('first')}
+        onSolved={() => markDone('first')}
+      />
+    </Activity>
+  );
+}
+
+export function PlanActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['plan']);
+  return (
+    <Activity
+      title="La primera suite de una app de turnos"
+      kind="Escenario encadenado"
+      goal="decidir qué automatizar primero, cómo tratar un fallo intermitente y en qué capa va cada verificación."
+      done={isDone('plan')}
+      consigna="Son 4 decisiones encadenadas: cada una depende de la anterior. Elegí una opción por situación; si no es la adecuada, leé por qué y elegí otra. Se completa al resolver la cuarta."
+    >
+      <DecisionPath
+        startId={PLAN_START}
+        nodes={PLAN_NODES}
+        explanation={PLAN_EXPLANATION}
+        alreadyDone={isDone('plan')}
+        onSolved={() => markDone('plan')}
+      />
+    </Activity>
+  );
+}
+
+Foundations cubrió cómo diseñar un caso de test, cómo programar y cómo versionar el código. Este track junta las tres cosas: escribir casos de test como código que un navegador ejecuta solo. Antes de la primera línea, hace falta un criterio: qué conviene automatizar, en qué capa y qué sigue siendo trabajo manual.
+
+## Conceptos
+
+### Qué es un test automatizado
+
+Un test automatizado es un caso de test escrito como código para que una
+herramienta lo ejecute y compare el resultado real con el esperado, sin
+una persona frente a la pantalla. No cambia qué es una prueba: sigue
+habiendo una precondición, pasos, datos y un resultado esperado, igual
+que en la entrada de anatomía de un caso de test. Cambia quién ejecuta y
+quién compara.
+
+Tomemos un caso manual de una biblioteca online:
+
+> **Caso:** renovar un préstamo vigente.
+> **Precondición:** la socia `lucia@biblio.test` tiene prestado *Rayuela*,
+> con vencimiento el 10/11.
+> **Pasos:** 1. Ingresar con esa cuenta. 2. Abrir «Mis préstamos».
+> 3. Presionar «Renovar» en la fila de *Rayuela*.
+> **Resultado esperado:** se muestra «Préstamo renovado» y el vencimiento
+> pasa a 24/11.
+
+La versión automatizada hace exactamente lo mismo, en el mismo orden: abre
+un navegador, ingresa con la cuenta, navega a «Mis préstamos», presiona el
+botón y verifica dos cosas, el mensaje y la fecha nueva. Si alguna de las
+dos no coincide, el test falla y deja registrado qué esperaba y qué
+encontró. El valor no está en usar código, sino en la repetibilidad: la
+misma verificación, corrida cien veces, sin cansancio ni variaciones de
+quien la ejecuta.
+
+Lo que el test automatizado no hace es mirar alrededor. Un tester manual
+que renueva el préstamo puede notar que la portada del libro no carga o
+que el botón quedó tapado por un aviso. El test solo comprueba lo que se
+le pidió: el mensaje y la fecha. Encontrar lo que nadie anticipó sigue
+siendo trabajo del testing exploratorio (entrada de técnicas basadas en
+la experiencia).
+
+### Qué es un test de UI
+
+Un test de UI ejercita la aplicación a través de su interfaz gráfica, la
+misma que usa una persona: abre un navegador real, hace click, escribe en
+campos y lee lo que aparece en pantalla. Cuando recorre un flujo completo,
+desde la interfaz hasta la base de datos y de vuelta, se lo llama también
+**test end-to-end** (E2E).
+
+La misma regla de negocio se puede probar en distintos puntos de la
+aplicación. En la biblioteca, "un préstamo se puede renovar como máximo
+dos veces" se puede comprobar:
+
+- llamando directamente a la función que calcula si un préstamo es
+  renovable, sin interfaz ni servidor (test de componente);
+- enviando un pedido al servicio de préstamos y leyendo su respuesta, sin
+  abrir ninguna pantalla (test de API o de integración);
+- entrando con una socia que ya renovó dos veces y comprobando que el
+  botón «Renovar» aparece deshabilitado (test de UI).
+
+Solo el último prueba lo que la socia ve, incluido que el botón esté
+deshabilitado y no simplemente oculto o habilitado por error. También es
+el más lento: tiene que levantar un navegador, ingresar y navegar antes de
+llegar a la verificación.
+
+### La pirámide de tests
+
+La **pirámide de tests** es un modelo que muestra cómo repartir los tests
+automatizados según su granularidad. La versión original de Mike Cohn
+tiene tres capas: tests unitarios abajo, tests de servicio en el medio y
+tests de UI arriba. Otra versión difundida las llama tests de componente,
+de integración y end-to-end. Los nombres y la cantidad de capas varían,
+pero la lectura es la misma:
+
+- **Abajo**: tests chicos, aislados y rápidos, cada uno sobre una pieza
+  pequeña. Hacen falta muchos para cubrir la funcionalidad.
+- **Arriba**: tests que recorren un flujo grande de punta a punta. Son más
+  lentos, dependen de más piezas a la vez y cada uno cubre mucho, así que
+  alcanza con pocos.
+
+La forma de pirámide indica la proporción: muchos tests en la base y pocos
+en la punta. Aplicado a la biblioteca: la regla de renovación tiene
+combinaciones para probar (préstamo vencido, ya renovado dos veces, libro
+con reserva de otra socia, socia con multa pendiente). Probar cada
+combinación por la UI significa ingresar y navegar en cada una, minutos de
+ejecución para algo que un test de componente resuelve en milisegundos.
+La distribución razonable es probar las combinaciones de la regla abajo,
+el contrato del servicio en el medio, y dejar arriba un par de tests de UI:
+la renovación exitosa de punta a punta y el botón deshabilitado cuando no
+corresponde renovar.
+
+Una suite con la forma invertida (muchos tests de UI y casi nada abajo) se
+conoce como "cono de helado". Funciona, pero es lenta, tarda en mostrar
+dónde está el problema cuando algo falla y se rompe con cualquier cambio de
+pantalla, aunque la lógica siga intacta.
+
+### Qué aporta automatizar
+
+Según ISTQB, automatizar aporta:
+
+- **Tiempo**: elimina trabajo manual repetitivo, como volver a ejecutar la
+  regresión en cada versión o cargar los mismos datos una y otra vez.
+- **Consistencia**: los pasos se ejecutan siempre igual, en el mismo
+  orden, con los mismos datos. Desaparecen los errores simples de quien
+  ejecuta, como saltear un paso o tipear mal un dato.
+- **Objetividad y medidas**: produce evaluaciones objetivas, como la
+  cobertura, y medidas que a una persona le costaría tomar, como el tiempo
+  exacto de cada operación.
+- **Información accesible**: los resultados quedan registrados y
+  disponibles para gestionar e informar el avance del testing.
+- **Feedback más rápido**: una regresión que a mano lleva dos días corre en
+  minutos, así que un defecto se detecta horas después de introducirse y
+  no semanas.
+- **Tiempo para pensar**: libera a los testers de lo repetitivo para
+  diseñar pruebas nuevas y más profundas.
+
+En la biblioteca, la regresión manual de préstamos (ingresar, pedir,
+renovar, devolver, reservar, con distintos tipos de socia) lleva una
+jornada. Automatizada, corre en cada cambio que se sube al repositorio, y
+la jornada se dedica a explorar la funcionalidad nueva de esa versión.
+
+### Los riesgos de automatizar
+
+ISTQB también enumera los riesgos:
+
+- **Expectativas irreales** sobre lo que la herramienta hace o lo fácil
+  que es usarla.
+- **Estimaciones imprecisas** del tiempo y el costo de incorporarla, de
+  mantener los tests y de adaptar el proceso de testing existente.
+- **Usar la herramienta donde conviene el testing manual.**
+- **Depender demasiado de la herramienta** y dejar de lado el pensamiento
+  crítico de las personas.
+- **Depender del proveedor**: que deje de dar soporte, venda la
+  herramienta o desaparezca.
+- **Usar software de código abierto que se abandona**, o que exige
+  actualizaciones frecuentes de sus componentes internos.
+- **Una herramienta incompatible** con la plataforma de desarrollo.
+- **Una herramienta que no cumple** requisitos regulatorios o normas de
+  seguridad.
+
+El riesgo más frecuente en la práctica es el segundo, y en particular el
+mantenimiento. Un test automatizado es código: cada vez que cambia la
+pantalla que recorre, hay que actualizarlo. Si la biblioteca rediseña
+«Mis préstamos» y la suite tiene cuarenta tests de UI que pasan por ahí,
+el rediseño trae cuarenta tests para revisar. Un plan que estima solo el
+tiempo de escribir los tests, y no el de mantenerlos, subestima el costo
+real.
+
+### Qué hace confiable a un test automatizado
+
+Las características de un buen caso de test (entrada de características
+de un buen caso) valen igual para uno automatizado: tiene que ser claro,
+verificable, independiente y repetible. La automatización vuelve dos de
+ellas todavía más críticas, porque ya no hay una persona que note el
+problema:
+
+- **Independiente**: no depende del orden de ejecución ni de lo que otro
+  test dejó. Las herramientas corren tests en paralelo y en distinto
+  orden; un test que necesita que otro haya creado el préstamo antes falla
+  según cómo se repartan.
+- **Repetible**: da el mismo resultado en la máquina de quien lo escribió,
+  en el servidor de integración continua, hoy y dentro de seis meses.
+
+Y suma otras propiedades que en un caso manual no se notan. El acrónimo
+**F.I.R.S.T.**, difundido para tests automatizados, las resume:
+
+- **Fast** (rápido): el acrónimo nació para tests unitarios, que corren en
+  milisegundos. Un test de UI nunca va a ser tan rápido, porque abre un
+  navegador; ahí "rápido" significa segundos, no minutos. Una suite lenta
+  se corre cada vez menos seguido, y deja de dar feedback temprano.
+- **Independent** (independiente) y **Repeatable** (repetible): las dos
+  de arriba.
+- **Self-validating** (se valida solo): termina en pasa o falla, sin que
+  alguien tenga que leer un log para decidir. Un test que imprime "el
+  vencimiento es 24/11" y no lo compara con nada no verifica.
+- **Timely** (oportuno): se escribe cerca de cuando se desarrolla la
+  funcionalidad, no como deuda para "cuando haya tiempo".
+
+Un test que falla de manera intermitente sin que el comportamiento haya
+cambiado se llama **flaky** (inestable). Un test flaky es peor que no tener
+el test: el equipo aprende a ignorar el rojo ("ese falla a veces"), y el
+día que falla por un defecto real, nadie lo mira. Una suite chica y
+confiable vale más que una grande en la que nadie cree.
+
+### Cuándo conviene automatizar un caso
+
+No todo caso amortiza el costo de escribirlo y mantenerlo. Tres preguntas
+ordenan la decisión:
+
+1. **¿Se va a ejecutar muchas veces?** La regresión de préstamos corre en
+   cada versión; la verificación de una migración de datos que se hace una
+   sola vez, no.
+2. **¿Tiene un resultado esperado exacto?** "El vencimiento pasa a 24/11"
+   se compara sin ambigüedad. "La ficha del libro se ve atractiva" depende
+   de quién la mire; una verificación automática de eso termina siendo tan
+   estricta que falla por diferencias que no importan, o tan laxa que no
+   comprueba nada.
+3. **¿La funcionalidad ya está estable?** Si la pantalla de reservas
+   cambia todas las semanas, el test se reescribe todas las semanas.
+   Conviene cubrirla a mano hasta que se estabilice.
+
+Aplicadas a cinco casos de la biblioteca:
+
+- Renovar un préstamo vigente: se ejecuta en cada versión, tiene resultado
+  exacto y la pantalla es estable. **Se automatiza.**
+- Ingresar con usuario y contraseña: precondición de casi todos los
+  demás casos y con resultado exacto. **Se automatiza.**
+- Revisar que la nueva portada de la home sea fácil de leer: es un juicio
+  de usabilidad, no un resultado exacto. **Queda manual.**
+- Verificar la importación única del catálogo viejo: se ejecuta una vez.
+  **Queda manual.**
+- El buscador con filtros nuevos que producto todavía está definiendo: hoy
+  cambia cada semana. **Manual por ahora**, se automatiza cuando se
+  estabilice.
+
+## Cuándo usarlo
+
+Este criterio se aplica antes de escribir el primer test de UI de un
+proyecto y cada vez que llega una funcionalidad nueva: decide qué casos se
+automatizan, en qué capa de la pirámide y qué queda para el testing manual
+y exploratorio.
+
+## Buenas prácticas
+
+- Probar cada regla en la capa más baja que la cubra, y dejar la UI para
+  los flujos que la persona usuaria recorre de punta a punta.
+- Estimar el mantenimiento de un test, no solo el tiempo de escribirlo.
+- Automatizar casos que se repiten, con resultado exacto, sobre
+  funcionalidad estable.
+- Investigar un test flaky apenas aparece, en lugar de reintentarlo hasta
+  que pase.
+- Mantener el testing exploratorio junto a la suite automatizada.
+
+## Anti-patrones
+
+- **Automatizar todo por la UI**, incluidas las combinaciones de una regla
+  que un test de componente cubre en milisegundos.
+- **Medir el avance por cantidad de tests automatizados** en lugar de por
+  los riesgos que cubren.
+- **Tolerar tests flaky** con el argumento de que "a veces falla".
+- **Automatizar una pantalla que todavía cambia cada semana.**
+- **Reemplazar el testing manual** en vez de complementarlo.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<LayerActivity />
+
+<AutomationActivity />
+
+<FirstActivity />
+
+<PlanActivity />

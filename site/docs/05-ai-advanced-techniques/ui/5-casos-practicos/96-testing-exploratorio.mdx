@@ -1,0 +1,318 @@
+---
+title: "Testing exploratorio con agentes"
+sidebar_position: 96
+---
+
+import Activity from '@site/src/components/Activity';
+import Quiz from '@site/src/components/Quiz';
+import DecisionPath from '@site/src/components/DecisionPath';
+import Match from '@site/src/components/Match';
+import MultiSelect from '@site/src/components/MultiSelect';
+import {useLessonProgress} from '@site/src/hooks/useLessonProgress';
+import {
+  READY_QUIZ,
+  GATE_START,
+  GATE_NODES,
+  GATE_EXPLANATION,
+  REPORT_LEFT,
+  REPORT_RIGHT,
+  REPORT_WHY,
+  EXPLORE_QUESTIONS,
+} from '@site/src/content/lessons/96-testing-exploratorio';
+
+export const LESSON_SLUG = 'ai-ui-testing-exploratorio';
+
+export function ReadyQuizActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['readyquiz']);
+  return (
+    <Activity
+      title="¿Está listo el proyecto?"
+      kind="Elegí la opción"
+      goal="reconocer qué le falta a un proyecto para que la exploración con agentes dé un reporte confiable."
+      done={isDone('readyquiz')}
+      consigna="Son 3 preguntas de opción única sobre la agenda. Si elegís una opción incorrecta, leé la explicación y elegí otra. Se completa al responder bien las 3."
+    >
+      <Quiz
+        questions={READY_QUIZ}
+        onSolved={() => markDone('readyquiz')}
+      />
+    </Activity>
+  );
+}
+
+export function ExGatePathActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['exgatepath']);
+  return (
+    <Activity
+      title="¿Corre la exploración?"
+      kind="Escenario encadenado"
+      goal="aplicar el gate de dos etapas a distintos Pull Requests."
+      done={isDone('exgatepath')}
+      consigna="Son 3 Pull Requests de la agenda, encadenados. En cada uno elegí qué pasa con la exploración; si no es lo correcto, leé el porqué y probá otra. Se completa al llegar al final del recorrido."
+    >
+      <DecisionPath
+        startId={GATE_START}
+        nodes={GATE_NODES}
+        explanation={GATE_EXPLANATION}
+        alreadyDone={isDone('exgatepath')}
+        onSolved={() => markDone('exgatepath')}
+      />
+    </Activity>
+  );
+}
+
+export function ReportMatchActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['reportmatch']);
+  return (
+    <Activity
+      title="Qué hacer con cada reporte"
+      kind="Emparejar"
+      goal="decidir la acción que corresponde a cada resultado del reporte de exploración."
+      done={isDone('reportmatch')}
+      consigna="Son 4 pares. Elegí un reporte de exploración de la agenda (izquierda) y después la acción que corresponde (o al revés). Si el par no corresponde, se puede reintentar. Se completa cuando emparejaste los 4."
+    >
+      <Match
+        left={REPORT_LEFT}
+        right={REPORT_RIGHT}
+        why={REPORT_WHY}
+        leftLabel="Reporte"
+        rightLabel="Acción"
+        alreadyDone={isDone('reportmatch')}
+        onSolved={() => markDone('reportmatch')}
+      />
+    </Activity>
+  );
+}
+
+export function ExploreMultiActivity() {
+  const {isDone, markDone} = useLessonProgress(LESSON_SLUG, ['exploremulti']);
+  return (
+    <Activity
+      title="Las reglas de la exploración"
+      kind="Marcar todas"
+      goal="reconocer las reglas de una exploración automática segura, útil y de costo controlado."
+      done={isDone('exploremulti')}
+      consigna="Son 2 preguntas: la primera sobre la exploración por Pull Request, con 6 opciones, y la segunda sobre la exploración a pedido, con 5. En cada una marcá todas las que correspondan y comprobá: el conjunto tiene que ser exacto. Si no lo es, podés corregir y volver a comprobar."
+    >
+      <MultiSelect
+        questions={EXPLORE_QUESTIONS}
+        alreadyDone={isDone('exploremulti')}
+        onSolved={() => markDone('exploremulti')}
+      />
+    </Activity>
+  );
+}
+
+Un agente con un navegador puede explorar lo que la suite automatizada no cubre, siempre que el proyecto le dé lo que necesita. Esta entrada muestra qué tiene que existir antes, la exploración a pedido y la disparada por Pull Request: cómo decide si corre, qué hace, qué reporte deja, qué hacer con él y cuánto cuesta.
+
+## Conceptos
+
+### Explorar con un agente
+
+El testing exploratorio diseña y ejecuta a la vez: quien prueba aprende
+de la aplicación mientras la recorre y decide el siguiente paso por lo
+que ve (entrada de técnicas basadas en la experiencia). Un agente con el
+servidor MCP de Playwright (entrada de MCP) puede hacer una parte de ese
+trabajo: recorrer flujos, probar variantes y registrar evidencia.
+
+No reemplaza a una persona que explora: no tiene su intuición del negocio
+ni su olfato para lo raro. Lo que aporta es cobertura extra, sobre todo en
+lo que la suite automatizada no cubre, sin que nadie tenga que dedicarle
+la tarde.
+
+### Lo que tiene que existir antes
+
+Un agente que explora necesita lo mismo que una persona nueva que explora
+por primera vez la agenda: saber qué tiene que pasar, cómo llegar a cada
+pantalla, con qué usuario entrar y con qué datos. Una persona lo pregunta;
+el agente lo lee o no lo sabe. Antes de la primera exploración, el
+proyecto necesita:
+
+| Qué | Para qué lo usa el agente | Dónde se aprende |
+| :- | :- | :- |
+| Casos de uso de lo que se explora, con flujos alternativos, de error y reglas | Saber qué probar y cuál es el resultado correcto | Entrada de casos de uso |
+| Mapa de navegación, con la señal de cada pantalla y lo que requiere cada transición | Llegar a cada pantalla, incluso a las que no tienen ruta, y saber que llegó | Entrada del mapa de navegación |
+| Tags de caso de uso en los tests | Saber qué ya está automatizado, para no repetirlo | Entrada de casos de uso |
+| La dirección del entorno y una sesión iniciada por rol | Entrar sin inventar direcciones ni ver contraseñas | Entradas de sesión reutilizada y de entornos y datos para agentes |
+| Una forma de crear datos sin pasar por la interfaz | Preparar el estado de cada flujo | Entrada de setup y cleanup |
+| El servidor MCP de Playwright | Manejar el navegador | Entrada de MCP |
+| La plantilla de defectos del equipo | Escribir los hallazgos en el formato de siempre | Entrada de skills |
+
+Sin casos de uso, el agente explora lo que ve y toma como correcto lo que
+muestra la aplicación: su reporte dice «funciona» sobre un defecto. Sin
+el mapa, no llega a lo que depende de datos, como el diálogo de
+reprogramar, que solo aparece si hay un turno reservado.
+
+Sobre la sesión: si el agente ingresara escribiendo email y contraseña
+en el navegador, la contraseña entraría a su contexto (entrada de qué no
+compartir). Para evitarlo, la sesión se prepara antes, sin el agente: un
+script ingresa con la cuenta de prueba de cada rol y guarda la sesión
+con `storageState`, como en la sección III (entrada de sesión
+reutilizada). Después, el servidor MCP de Playwright se inicia con esa
+sesión, y el navegador ya arranca adentro:
+
+```bash
+claude mcp add playwright -- npx playwright mcp --isolated --storage-state playwright/.auth/recepcion.json
+```
+
+La exploración disparada por Pull Request suma tres requisitos más, que
+viste en la unidad 3:
+
+- **un entorno propio por Pull Request**, que se levanta con un comando y
+  se siembra de cero (entrada de entornos y datos para agentes);
+- **herramientas de datos que se nieguen a operar fuera de ese entorno**,
+  para dejar al agente trabajar sin supervisión;
+- **el agente corriendo en CI**, con sus credenciales como secretos y
+  permiso para comentar en el Pull Request (entrada de agentes en CI).
+
+Por eso se empieza por la exploración a pedido: necesita menos, se ve lo
+que hace el agente en cada paso, y muestra rápido qué le falta a la
+documentación. La disparada por Pull Request se suma cuando la versión a
+pedido ya da reportes útiles y el entorno descartable existe.
+
+### Exploración a pedido
+
+En la forma interactiva, invocás un comando o una skill (entradas de
+comandos y de skills) con el contexto: el ticket y los casos de uso a
+probar, por ejemplo `/explorar AGE-87 UC-09`. El agente:
+
+1. lee del ticket, con el servidor MCP del gestor de tickets (entrada de
+   MCP), solo lo necesario: resumen, estado y prioridad. También busca
+   los defectos ya reportados, para no duplicarlos;
+2. lee los flujos del caso de uso: el principal, los alternativos y los
+   de error;
+3. recorre cada flujo en el entorno de pruebas, compara con el diseño si
+   lo hay, y registra lo que encuentra con capturas;
+4. muestra cada hallazgo con su evidencia y **espera tu aprobación**
+   antes de reportarlo, con el formato de defectos del equipo.
+
+Dos reglas que se aprenden rápido: pedir solo los campos del ticket que
+hacen falta (un ticket completo puede ocupar miles de tokens), y no
+saltear un flujo porque faltan datos: el agente los crea o pregunta.
+
+### Exploración disparada por un Pull Request
+
+En la forma automática, el agente corre en CI cuando se abre un Pull
+Request, lo lee, decide qué probaría un tester curioso que la suite no
+cubre, recorre la aplicación en un entorno limpio y deja **un** reporte en
+el Pull Request. Corre independientemente del resultado de la suite y no
+bloquea nada: es señal extra, no un gate.
+
+Lo que hace:
+
+1. levanta la aplicación en un entorno **propio y descartable**, nunca
+   en el compartido;
+2. lee el Pull Request: el diff, la descripción, el plan de pruebas si lo
+   hay;
+3. elige escenarios que **no** estén automatizados, cruzando las tablas
+   de cobertura de los casos de uso con los tests existentes (entrada de
+   casos de uso), con foco en el cambio y sus casos borde;
+4. prepara los datos que necesitan esos escenarios;
+5. recorre la aplicación, con capturas en cada paso relevante;
+6. publica un solo comentario en el Pull Request, con una marca oculta
+   (un comentario HTML que GitHub no muestra) que le permite encontrarlo y
+   actualizarlo en lugar de duplicarlo;
+7. si probó un área sin caso de uso escrito, escribe un borrador a partir
+   de lo observado, marcado para que una persona confirme cada regla:
+   lo que observó es lo que hace la aplicación, no necesariamente lo que
+   tiene que hacer (entrada de casos de uso).
+
+### El gate de dos etapas
+
+La parte más importante de copiar es cómo decide si corre:
+
+- **En CI, un filtro grueso** por rutas: el workflow mira qué archivos
+  cambió el Pull Request (con la opción `paths` del disparador, o con un
+  paso que lista los archivos) y descarta solo los cambios que nunca
+  pueden cambiar lo que ve un usuario, como tests, documentación o
+  configuración de CI. No descarta, por ejemplo, `package.json`, porque una
+  dependencia sí puede cambiar el comportamiento.
+- **Dentro de la tarea, el juicio fino**: el agente lee el diff y decide
+  si el cambio se ve en la pantalla. No se ve si es una reorganización
+  del código que no cambia lo que hace (un *refactor*), una
+  funcionalidad nueva que todavía está apagada con un interruptor de
+  configuración (un *feature flag*), o algo que el usuario no usa, como
+  un cambio en el proceso de compilación. En ese caso termina con un
+  reporte `SKIPPED` y su motivo.
+
+Ante la duda, el agente sigue: es peor perder cobertura en silencio por un
+filtro mal calibrado que un reporte que no encuentra nada.
+
+Además, corre **una vez por Pull Request**, no en cada push: cada
+exploración es una corrida de agente completa, de 25 a 40 minutos. Se
+logra eligiendo los eventos del disparador: `pull_request` con
+`types: [opened, reopened, ready_for_review]`, sin `synchronize`, que es
+el evento de cada push nuevo.
+
+### Qué hacer con el reporte
+
+| El reporte dice | Acción |
+| :- | :- |
+| Escenarios aprobados, sin hallazgos | Mirar las capturas por arriba. Es confianza extra, no una aprobación |
+| Encontró un defecto | Reproducirlo vos antes de reportarlo |
+| Diferencia con la documentación | Decidir cuál tiene razón; si es la aplicación, actualizar la documentación |
+| `SKIPPED` con su motivo | Leer el motivo; si el cambio sí es visible, explorar a mano |
+
+Un hallazgo es una **pista**, no un veredicto: lo reproduce una persona
+antes de que se convierta en un ticket.
+
+### Lo que cuesta, y por qué se hace igual
+
+Es caro: un entorno propio por Pull Request y casi media hora de agente.
+Se justifica cuando la suite automatizada cubre lo crítico pero no los
+caminos laterales, y cuando el costo de un defecto en producción es alto.
+Para bajarlo, ayudan un entorno local que se levanta con un solo comando y
+herramientas para crear datos de prueba sin pasar por la interfaz. Si esas
+herramientas existen, conviene que se nieguen a operar contra cualquier
+entorno que no sea el local: así se le puede confiar el entorno a un
+agente sin supervisión.
+
+### ¿Está listo el proyecto?
+
+- ¿Los flujos que vas a explorar tienen caso de uso, con reglas de valores
+  concretos?
+- ¿Cada pantalla de esos flujos está en el mapa de navegación, con su señal?
+- ¿El agente arranca con una sesión de prueba ya iniciada, sin ver las
+  contraseñas?
+- ¿Puede crear los datos de cada flujo sin pasar por la interfaz?
+- ¿Sabe dónde y en qué formato reportar?
+
+Si alguna respuesta es no, eso es lo primero que hay que armar: el agente
+va a explorar igual, pero su reporte no va a ser confiable.
+
+## Cuándo usarlo
+
+A pedido, para explorar una funcionalidad nueva con sus casos de uso; y
+disparado por Pull Request, cuando la cobertura extra vale el costo de
+una corrida de agente por cambio.
+
+## Buenas prácticas
+
+- Casos de uso y mapa de navegación antes de la primera exploración.
+- Empezar a pedido; pasar a Pull Request cuando la base esté probada.
+- Entornos propios y descartables, nunca el compartido.
+- Elegir escenarios que la suite no cubre.
+- Un solo reporte por Pull Request, que se actualiza.
+- Reproducir cada hallazgo antes de reportarlo.
+
+## Anti-patrones
+
+- **Explorar sin casos de uso**: el agente valida lo que muestra la
+  aplicación.
+- **Empezar por la exploración automática**, sin haber probado la
+  versión a pedido.
+- **Explorar en el entorno compartido**, aunque sea solo lectura.
+- **Reportar un hallazgo** sin reproducirlo.
+- **Correr la exploración en cada push** del mismo Pull Request.
+
+## Práctica
+
+Estos son los 4 ejercicios de práctica de la entrada, en orden. Cada uno es independiente y tiene su propia consigna; cada bloque avisa cuando está resuelto.
+
+<ReadyQuizActivity />
+
+<ExGatePathActivity />
+
+<ReportMatchActivity />
+
+<ExploreMultiActivity />
